@@ -9,9 +9,13 @@ Six original fictional cases, eight stages, two paths per case, spoken prompts a
 - **Natural information requests:** maps questions to authored exhibits and clarifications. The app returns canonical facts, not model-invented figures. Later branch evidence is gated by stage.
 - **Fallback:** all authored cases and deterministic arithmetic checks work without AI; external copy-and-paste review remains available.
 
+## Seamless practice flow
+
+Without a configured key, there are no AI interview panels, connection reminders or AI-generation controls in the case or debrief. Settings is the only entry point. After connecting, information requests sit above the existing answer box and follow-up discussion sits below it; the normal Continue button remains unchanged. Clearing the key removes these controls immediately without discarding answers. Previously generated feedback remains accessible as a collapsed saved record.
+
 ## AI setup for a user
 
-1. Open the deployed site and click **Connect AI**.
+1. Open the deployed site and click **Settings**.
 2. Choose Groq, OpenAI, Google Gemini, Anthropic Claude, DeepSeek, OpenRouter or the site's configured compatible endpoint.
 3. Enter a valid API key and the exact model ID available in that provider account. For Anthropic, enter a workspace ID only if your key requires one.
 4. Confirm the data-sharing notice and use **Save & test connection**. This makes one small provider request.
