@@ -422,6 +422,178 @@
       "decisionFeedback": "Compare reach, engagement, uplift, cost and access. An honest recommendation may acknowledge that the target is not feasible under the tested assumptions.",
       "model": "Do not promise 3,000 additional outcomes based on the small pilot. Compare programme designs, estimate the target gap and conduct a staged evaluation that addresses access and selection bias.",
       "drill": "Separate reach, engagement, percentage-point uplift and causal evidence in a programme impact calculation."
+    },
+    {
+      "id": "guesstimate",
+      "title": "How many cups?",
+      "company": "Consumer demand • Guesstimate",
+      "level": "Intermediate",
+      "minutes": 40,
+      "icon": "≈",
+      "color": "#eee7cf",
+      "summary": "Estimate a city’s takeaway coffee demand, defend your assumptions and cross-check from the supply side.",
+      "brief": "Estimate the number of paid takeaway coffee cups sold on a typical weekday within Chennai municipal limits. Include delivery and street vendors; exclude home-made coffee and dine-in cups. Estimate cups, not unique customers or revenue. Build your own assumptions without looking up the answer, give a range and explain how you would validate it. This is a fictional estimation exercise: all later numerical anchors are hypothetical, not facts about Chennai.",
+      "objective": [
+        "Produce an assumption-led weekday cup estimate and a defensible range; no business recommendation is required."
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "scope",
+          "title": "Market boundary",
+          "text": "Count a delivered cup once, at the seller. A buyer can purchase multiple cups. Keep the geographic boundary and typical weekday consistent across methods.",
+          "category": "Scope"
+        },
+        {
+          "id": "demand",
+          "title": "Demand-side structure",
+          "text": "A possible decomposition is residents × relevant age share × daily outside-coffee buying share × takeaway share × cups per buyer. You may propose a different mutually exclusive segmentation. Choose and explain your own initial values.",
+          "category": "Method"
+        },
+        {
+          "id": "supply",
+          "title": "Supply-side structure",
+          "text": "A cross-check can use number of sellers × daily takeaway cups per seller, segmented by shop type. Watch for overlapping directories, peak-hour bias and delivery already included in seller counts.",
+          "category": "Method"
+        },
+        {
+          "id": "uncertainty",
+          "title": "Uncertainty and data needs",
+          "text": "Population boundary, purchase frequency, takeaway share, seller counts and seller throughput may all be uncertain. Identify which assumptions dominate the result; distinguish a plausible scenario range from a statistical confidence interval.",
+          "category": "Evidence"
+        }
+      ],
+      "calc": {
+        "question": "Enter your own first estimate of takeaway cups per weekday. Explain the assumptions and a plausible low–high range below.",
+        "answer": null,
+        "unit": "cups/weekday",
+        "working": "There is no fixed correct total here. Review the boundary, decomposition, arithmetic under your own assumptions, plausible range and independent cross-check. Later numerical exercises check arithmetic under explicitly supplied hypothetical inputs.",
+        "hint": "Start with either people and purchase frequency or sellers and daily throughput. State what each factor includes.",
+        "tolerance": 0.02,
+        "openEstimate": true
+      },
+      "hypothesisFeedback": "A useful estimate makes assumptions visible and keeps people, purchases and cups distinct. An order-of-magnitude answer without a derivation is difficult to assess.",
+      "decisionFeedback": "Defend a range, triangulate with an independent method and name the highest-value data to obtain. A different well-supported initial number is not automatically wrong.",
+      "model": "Give your own estimate with its derivation and uncertainty. Under the later hypothetical inputs, demand- and supply-side results are of similar order, but neither is a verified market fact.",
+      "drill": "Re-estimate the market using a different decomposition, then change the two assumptions with the greatest influence."
+    },
+    {
+      "id": "diagnosis",
+      "title": "What actually went wrong?",
+      "company": "Digital commerce • Problem identification",
+      "level": "Advanced",
+      "minutes": 40,
+      "icon": "?",
+      "color": "#dfe9ed",
+      "summary": "Orders appear to have fallen. Separate the real problem from measurement errors before suggesting fixes.",
+      "brief": "CartLane’s dashboard shows completed weekly orders falling from 50,000 to 40,000 after a new app release. Leadership suspects delivery capacity and wants to buy more capacity. Your assignment is ONLY to identify and define the problem: establish what changed, where it is concentrated, which explanations remain plausible and what evidence would distinguish them. Do not propose a solution or an implementation plan. Two comparable weeks are used; all figures are fictional.",
+      "objective": [
+        "Produce a quantified problem statement with evidence, uncertainty and a focused verification plan; do not choose an intervention."
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "headline",
+          "title": "Headline performance",
+          "text": "Recorded completed orders: previous week 50,000; current week 40,000. Checkout attempts: 100,000 in each week. The dashboard definition of completed order is unchanged, but that does not establish that data capture is unchanged.",
+          "category": "Performance"
+        },
+        {
+          "id": "funnel",
+          "title": "Recorded funnel",
+          "text": "App-recorded successful payment confirmations: 80,000 → 64,000. App-recorded completed orders: 50,000 → 40,000. Thus recorded completion per recorded payment confirmation is unchanged. These are app records, not independent bank or shipment reconciliations.",
+          "category": "Funnel"
+        },
+        {
+          "id": "platform",
+          "title": "Platform split",
+          "text": "Android: 60,000 checkout attempts in each week; app-recorded payment confirmations 48,000 → 32,000. iOS: 40,000 attempts in each week; confirmations 32,000 in each week. The release was Android-only.",
+          "category": "Segmentation"
+        },
+        {
+          "id": "operations",
+          "title": "Delivery operations",
+          "text": "Available delivery slots and carrier staffing are unchanged. Sample on-time performance is stable. These observations weaken the capacity hypothesis but cannot prove capacity is irrelevant for every segment.",
+          "category": "Operations"
+        },
+        {
+          "id": "timeline",
+          "title": "Timeline and comparability",
+          "text": "The app release and a campaign happened in the same week. Traffic volume is unchanged, but customer mix may differ. No randomised rollout or controlled experiment has been run. Temporal association alone is not causal proof.",
+          "category": "Evidence"
+        }
+      ],
+      "calc": {
+        "question": "What is the percentage decline in RECORDED completed orders?",
+        "answer": 20,
+        "unit": "%",
+        "working": "(50,000 − 40,000)/50,000 × 100 = 20%. This describes a recorded decline, not yet a verified operational decline.",
+        "hint": "Use the previous week as the denominator.",
+        "tolerance": 0.02
+      },
+      "hypothesisFeedback": "The recorded loss appears upstream of fulfilment, in Android payment confirmation. Unchanged recorded downstream conversion weakens a simple delivery-capacity story, but independent measurement is needed.",
+      "decisionFeedback": "The deliverable is a bounded diagnosis, not a fix. Distinguish symptoms, measurement artefacts, candidate mechanisms and a proven root cause.",
+      "model": "The dashboard shows a 20% order decline, with a recorded payment-confirmation loss concentrated on Android. Do not label this a delivery-capacity problem or an app defect without reconciliation and causal evidence.",
+      "drill": "Write a problem statement with affected segment, magnitude, timing, evidence and remaining uncertainty—without including a proposed solution."
+    },
+    {
+      "id": "investment",
+      "title": "Build it or partner?",
+      "company": "Infrastructure • Strategic investment",
+      "level": "Advanced",
+      "minutes": 40,
+      "icon": "↔",
+      "color": "#e9e1d8",
+      "summary": "Compare ownership and partnership using cash flows, downside risk and service constraints.",
+      "brief": "ColdLink is considering a five-year temperature-controlled storage service. It can build its own facility or use a specialist partner. Expected annual volume is 70,000 pallet-months. The board wants positive net present value at a 10% discount rate and evidence that 98% on-time availability can be sustained. Recommend whether and how to proceed. All figures are fictional. Ignore tax, financing, working capital and residual value; annual operating cash flows occur at year-end. The five-year annuity factor at 10% is supplied as 3.791.",
+      "objective": [
+        "Compare risk-adjusted investment attractiveness and service feasibility; do not equate accounting profit or payback with NPV."
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "demand",
+          "title": "Demand and scope",
+          "text": "Base demand: 70,000 pallet-months/year for five years. A pallet stored for one month is one pallet-month. Demand is a forecast, not signed contracts. Both options have capacity for the base case.",
+          "category": "Market"
+        },
+        {
+          "id": "owned",
+          "title": "Owned facility economics",
+          "text": "Upfront investment ₹200 lakh at time zero. Price ₹200/pallet-month; variable operating cost ₹80/pallet-month; annual fixed cash cost ₹24 lakh. No other recurring or terminal cash flows are assumed.",
+          "category": "Ownership"
+        },
+        {
+          "id": "partner",
+          "title": "Partner economics",
+          "text": "Upfront integration cost ₹20 lakh. Net contribution after all partner variable charges is ₹60/pallet-month. Annual contract-management cash cost ₹8 lakh. No other recurring or terminal cash flows are assumed.",
+          "category": "Partnership"
+        },
+        {
+          "id": "discount",
+          "title": "Valuation convention",
+          "text": "For a constant annual cash flow over five years, present value equals annual cash flow × 3.791. NPV equals that present value minus time-zero investment. Use the supplied rounded factor consistently.",
+          "category": "Finance"
+        },
+        {
+          "id": "service",
+          "title": "Strategic and service considerations",
+          "text": "The owned facility offers more process control but demands operating capability. The partner reduces capital commitment but introduces dependence, audit and exit risks. Neither option has yet demonstrated the 98% service target for this customer mix.",
+          "category": "Execution"
+        }
+      ],
+      "calc": {
+        "question": "Calculate annual operating CASH FLOW for the owned facility at base demand. Enter ₹ lakh.",
+        "answer": 60,
+        "unit": "₹ lakh",
+        "working": "70,000×(₹200−₹80)/100,000 − ₹24 lakh = ₹60 lakh/year, before time-zero investment.",
+        "hint": "Contribution less fixed cash costs; do not deduct the capital outlay annually.",
+        "tolerance": 0.02
+      },
+      "hypothesisFeedback": "The owned facility generates positive annual cash flow, but the investment decision also requires capital timing, alternative economics and service feasibility.",
+      "decisionFeedback": "Compare NPV under consistent assumptions, test downside scenarios and consider control, dependence and reversibility. A positive NPV does not establish service feasibility.",
+      "model": "Both base options have positive NPV under the supplied assumptions, with the partner requiring less upfront capital. A defensible decision tests demand, service and contract risks before committing; it may favour a conditional partnership rather than an unconditional launch.",
+      "drill": "Compare two investments with different capital requirements using consistent cash-flow timing, then test what could invalidate the preferred option."
     }
   ],
   "rich": {
@@ -972,6 +1144,293 @@
         "Counting every enrolled student as an incremental success.",
         "Treating a selected voluntary pilot as a causal estimate.",
         "Ignoring students without access because the digital unit cost is lower."
+      ]
+    },
+    "guesstimate": {
+      "archetype": "guesstimate",
+      "stageNames": [
+        "Define scope",
+        "Build assumptions",
+        "First estimate",
+        "Choose cross-check",
+        "Calculate",
+        "Stress assumptions",
+        "Estimate range",
+        "Validate"
+      ],
+      "prompts": {
+        "0": "Define exactly what you are estimating. How would you break it into quantities you can reasonably approximate?",
+        "1": "Build your assumptions before calculating. You may use the method notes, but requesting an exhibit is optional. Explain why your inputs are plausible.",
+        "3": "Choose a numerical cross-check. Both routes use explicitly hypothetical inputs; compare their implications with your own first estimate.",
+        "5": "Test the revised assumption. Recalculate the estimate and explain which uncertainty this resolves and which uncertainty remains.",
+        "6": "State your final estimated range, its assumptions and the main uncertainty. Reconcile differences between methods without treating either as ground truth.",
+        "7": "Which two data points would most improve the estimate? Describe how you would gather them and test for coverage or sampling bias."
+      },
+      "assessmentInstruction": "This is a guesstimate. Do not grade the initial estimate against a fixed reference total or penalise it for differing from the later hypothetical anchors. Assess scope, decomposition, explicit assumptions, order of magnitude, arithmetic, uncertainty and triangulation. No business solution or implementation recommendation is required.",
+      "finalDimension": "Estimation synthesis and validation",
+      "clarifications": [
+        [
+          "What is included?",
+          "Paid takeaway and delivered coffee cups within the stated boundary, including vendors; no home-made or dine-in coffee."
+        ],
+        [
+          "Can I choose my own assumptions?",
+          "Yes. The first estimate is open-ended and has no automatic right/wrong target. Later inputs are fixed hypothetical arithmetic exercises."
+        ],
+        [
+          "Should the final answer be exact?",
+          "No. Give a sensible range and identify what drives it; do not call a scenario range a statistical confidence interval."
+        ]
+      ],
+      "extra": [],
+      "branches": [
+        {
+          "id": "demand",
+          "title": "Demand-side cross-check",
+          "focus": "Use people, buying frequency and cup counts.",
+          "evidence": "For this checkpoint only, assume 8 million residents; 70% relevant adults; 40% of those adults buy coffee outside the home on a typical weekday; 25% of their outside-coffee purchases are takeaway; and 1.2 cups per buyer in the counted takeaway occasions. Treat these as independent multiplicative assumptions for the exercise. No additional tourist or commuter flow is included.",
+          "question": "Calculate this demand-side scenario and explain which assumptions you would challenge.",
+          "calc": {
+            "question": "Under these supplied assumptions, how many takeaway cups are sold per weekday?",
+            "answer": 672000,
+            "unit": "cups/weekday",
+            "working": "8,000,000 × 0.70 × 0.40 × 0.25 × 1.2 = 672,000 cups/weekday.",
+            "hint": "Track the population base of each percentage.",
+            "tolerance": 1
+          },
+          "shock": "The takeaway-share assumption is particularly uncertain: use 20% for a low scenario and 30% for a high scenario. Keep all other supplied inputs unchanged. This is a sensitivity range, not a measured confidence interval.",
+          "stressCalc": {
+            "question": "Calculate the LOW scenario in cups per weekday. Give the high scenario and interpretation in your explanation.",
+            "answer": 537600,
+            "unit": "cups/weekday",
+            "working": "Low: 8m × .70 × .40 × .20 × 1.2 = 537,600. High at 30%: 806,400. This range varies only takeaway share, not all uncertainties.",
+            "hint": "Change only the takeaway-share factor.",
+            "tolerance": 1
+          },
+          "probe": "Which additional uncertainty could move the estimate outside this one-factor range?",
+          "model": "The supplied demand scenario gives roughly 0.54–0.81 million cups/day as takeaway share varies. Treat this as an illustrative sensitivity range, compare it with your own estimate and a seller-based check, and seek evidence on frequency and takeaway share before narrowing it."
+        },
+        {
+          "id": "supply",
+          "title": "Supply-side cross-check",
+          "focus": "Count sellers and daily throughput without double-counting delivery.",
+          "evidence": "For this checkpoint only, assume 4,000 fixed outlets averaging 120 takeaway cups/day and 1,000 mobile sellers averaging 80/day. These categories do not overlap in the initial list. Delivered cups are already included in each seller’s count.",
+          "question": "Calculate the seller-based scenario and explain how you would check it independently.",
+          "calc": {
+            "question": "Under the supplied seller assumptions, estimate total cups per weekday.",
+            "answer": 560000,
+            "unit": "cups/weekday",
+            "working": "4,000 × 120 + 1,000 × 80 = 560,000 cups/weekday. Do not add delivery cups a second time.",
+            "hint": "Sum the two seller categories.",
+            "tolerance": 1
+          },
+          "shock": "A directory audit finds that 10% of the 4,000 fixed-outlet records are duplicate records, not additional sellers. Each remaining unique fixed outlet still averages 120 cups/day. Mobile seller count and throughput are unchanged.",
+          "stressCalc": {
+            "question": "Recalculate cups per weekday after removing duplicate fixed-outlet records.",
+            "answer": 512000,
+            "unit": "cups/weekday",
+            "working": "3,600 unique fixed outlets × 120 + 1,000 mobile sellers × 80 = 512,000 cups/day.",
+            "hint": "Remove duplicate records before multiplying by throughput.",
+            "tolerance": 1
+          },
+          "probe": "How would peak-hour observations and unequal outlet sizes bias an average-throughput estimate?",
+          "model": "The corrected seller scenario is about 0.51 million cups/day. Its precision is conditional on hypothetical throughput and complete seller coverage. Triangulate with the demand method and sample outlets by type and time of day; do not claim this as Chennai’s actual market size."
+        }
+      ],
+      "strong": [
+        "Defines the market and units before estimating.",
+        "States defensible assumptions and checks double-counting and orders of magnitude.",
+        "Reconciles methods and explains the uncertainty rather than chasing a single target."
+      ],
+      "pitfalls": [
+        "Counting customers as cups or adding delivery twice.",
+        "Using national or metropolitan population with municipal seller counts.",
+        "Presenting hypothetical anchors as measured Chennai data."
+      ]
+    },
+    "diagnosis": {
+      "archetype": "diagnosis",
+      "stageNames": [
+        "Clarify symptom",
+        "Map hypotheses",
+        "Quantify symptom",
+        "Choose diagnostic test",
+        "Localise",
+        "Challenge diagnosis",
+        "Define the problem",
+        "Verify causes"
+      ],
+      "prompts": {
+        "0": "What is the symptom, and what would count as a well-supported diagnosis? Build competing explanations before choosing one.",
+        "1": "Request evidence that can separate a real performance change from a measurement change. Explain what each observation supports or rules out.",
+        "3": "Which diagnostic test would you prioritise: localising the affected cohort or reconciling independent records? Explain what the result would tell you.",
+        "5": "New evidence challenges the headline story. Revise the diagnosis, distinguish facts from hypotheses and calculate the requested measure.",
+        "6": "State the problem precisely: what changed, where, by how much and with what confidence? Separate proven observations from unproven causes. Do not recommend a fix.",
+        "7": "Propose the next diagnostic tests, including the evidence that would confirm or falsify each remaining hypothesis. Do not design a solution or implementation programme."
+      },
+      "assessmentInstruction": "DIAGNOSIS-ONLY case. The candidate must identify and bound the problem, not recommend a solution. Do not ask for interventions, ROI of fixes or implementation. Do not penalise the absence of a solution. Evaluate symptom-versus-cause distinction, measurement validity, segmentation, competing hypotheses, causal caution and a falsifiable verification plan.",
+      "finalDimension": "Problem definition and verification",
+      "clarifications": [
+        [
+          "Am I expected to solve the problem?",
+          "No. Your output is a quantified problem statement, a ranked set of explanations and the next evidence needed. Buying capacity or changing software is out of scope."
+        ],
+        [
+          "Can I trust the dashboard?",
+          "Treat it as a reported observation. Reconcile with independent source systems before concluding the whole decline is real."
+        ],
+        [
+          "Does the release prove causality?",
+          "No. Timing and concentration support investigation, but campaign mix and selection may confound the association."
+        ]
+      ],
+      "extra": [],
+      "branches": [
+        {
+          "id": "cohorts",
+          "title": "Localise the affected cohort",
+          "focus": "Compare platforms and versions before assigning a cause.",
+          "evidence": "Current Android checkout attempts are 60,000 and app-recorded confirmations 32,000. The previous Android recorded confirmation rate was 48,000/60,000 = 80%. iOS remains at 80%.",
+          "question": "Localise the recorded drop and distinguish an association from a root-cause claim.",
+          "calc": {
+            "question": "Calculate the current Android APP-RECORDED payment-confirmation rate. Enter percent.",
+            "answer": 53.3333,
+            "unit": "%",
+            "working": "32,000 / 60,000 × 100 = 53.33%, down 26.67 percentage points from 80%.",
+            "hint": "A percentage-point change differs from a relative percentage change.",
+            "tolerance": 0.05
+          },
+          "shock": "Current Android cohort reconciliation: old-version users made 15,000 attempts with 12,000 confirmations in both app and bank records. New-version users made 45,000 attempts: the app recorded 20,000 confirmations, while the bank verifies 28,000 paid transactions. Thus 8,000 new-version payments are missing from app confirmation records. iOS bank confirmations remain 32,000. No independent shipment audit is available on this path.",
+          "stressCalc": {
+            "question": "What is the BANK-VERIFIED payment-success rate for the new-version Android cohort? Enter percent.",
+            "answer": 62.2222,
+            "unit": "%",
+            "working": "28,000 / 45,000 × 100 = 62.22%. App-recorded rate was 44.44%. Total bank payments are 12,000 + 28,000 + 32,000 = 72,000 versus 80,000 previously.",
+            "hint": "Use the independent bank numerator for the specified cohort.",
+            "tolerance": 0.05
+          },
+          "probe": "What could explain the cohort difference besides a software defect, and what would falsify that explanation?",
+          "model": "The new Android cohort has both under-recording and a lower bank-verified payment-success rate. Of the 16,000 apparent payment-confirmation loss, 8,000 is an app-recording gap; bank payments are down 8,000 overall. Version association is not causal proof. Reconcile shipment outcomes and compare like-for-like cohorts or a controlled rollout before asserting the exact order impact or root cause."
+        },
+        {
+          "id": "reconcile",
+          "title": "Reconcile independent records",
+          "focus": "Separate reporting error from the underlying operational change.",
+          "evidence": "The bank independently verifies 80,000 paid transactions in the prior week and 72,000 in the current week. The app recorded 80,000 and 64,000 payment confirmations respectively. IDs and time windows have been reconciled; duplicates and refunds are excluded consistently.",
+          "question": "How much of the apparent payment-confirmation decline is a recording gap?",
+          "calc": {
+            "question": "How many current-week bank-verified paid transactions are missing from app confirmation records?",
+            "answer": 8000,
+            "unit": "transactions",
+            "working": "72,000 bank-verified payments − 64,000 app confirmations = 8,000 missing app confirmations.",
+            "hint": "Compare the two sources in the same week.",
+            "tolerance": 1
+          },
+          "shock": "An independent shipment audit now verifies 50,000 completed orders previously and 45,000 currently, versus 40,000 currently in the app dashboard. Bank-paid transactions are 80,000 and 72,000. The bank-to-shipment conversion is therefore unchanged at 62.5%. The discrepancy is concentrated on Android, but no controlled evidence yet establishes the mechanism.",
+          "stressCalc": {
+            "question": "What is the VERIFIED decline in completed orders, as a percentage of the previous week?",
+            "answer": 10,
+            "unit": "%",
+            "working": "(50,000 − 45,000)/50,000 × 100 = 10%. The other 5,000 orders in the apparent 10,000 decline are a reporting gap.",
+            "hint": "Use shipment-audited orders, not dashboard counts.",
+            "tolerance": 0.02
+          },
+          "probe": "Which transaction-level joins or controlled comparisons would distinguish a gateway fault, app fault and customer-mix change?",
+          "model": "The apparent 20% order decline combines a verified 10% decline and a 5,000-order reporting gap. Bank payments also declined 10%, while verified downstream conversion is stable. Prioritise diagnosing payment-stage loss and the measurement discrepancy, especially on Android; do not claim a delivery shortage or a proven software root cause. Specify transaction reconciliation and controlled cohort tests next."
+        }
+      ],
+      "strong": [
+        "Distinguishes the reported symptom from independently verified performance.",
+        "Quantifies where the loss occurs and maintains multiple causal explanations.",
+        "Ends with a precise problem statement and tests that could falsify the leading hypothesis, without jumping to an intervention."
+      ],
+      "pitfalls": [
+        "Taking the dashboard at face value.",
+        "Calling the release a proven cause merely because it occurred at the same time.",
+        "Recommending more delivery capacity before localising the loss."
+      ]
+    },
+    "investment": {
+      "archetype": "investment",
+      "assessmentInstruction": "Strategic investment case. Compare cash flow, NPV, service feasibility and strategic trade-offs. Use the supplied annuity factor. Accept build, partner, pilot or defer decisions when supported; do not favour a single answer merely because base-case NPV is higher.",
+      "clarifications": [
+        [
+          "Which financial measure should I use?",
+          "NPV at 10% over five years. Simple payback may supplement the analysis but is not the decision criterion."
+        ],
+        [
+          "Are depreciation and tax included?",
+          "No. Work directly with the supplied operating cash flows and time-zero outlay; do not add tax shields or residual value."
+        ],
+        [
+          "Does positive NPV imply approval?",
+          "No. Demand and the 98% service target must also be supported. You can recommend a conditional decision or defer commitment."
+        ]
+      ],
+      "extra": [],
+      "branches": [
+        {
+          "id": "build",
+          "title": "Owned facility downside",
+          "focus": "Test capital commitment and an overrun.",
+          "evidence": "Use annual operating cash flow of ₹60 lakh for five years, upfront investment ₹200 lakh and annuity factor 3.791. No terminal value. For comparison, the partner’s annual cash flow at base volume is 70,000×₹60/100,000 − ₹8 lakh = ₹34 lakh, with ₹20 lakh upfront cost.",
+          "question": "Is ownership attractive in absolute terms and compared with the partner?",
+          "calc": {
+            "question": "Calculate the owned facility’s base-case NPV. Enter ₹ lakh.",
+            "answer": 27.46,
+            "unit": "₹ lakh",
+            "working": "₹60 lakh × 3.791 − ₹200 lakh = ₹27.46 lakh. Partner base NPV: ₹34×3.791−₹20 = ₹108.894 lakh.",
+            "hint": "Subtract upfront investment after discounting annual cash flows.",
+            "tolerance": 0.02
+          },
+          "shock": "A binding construction quote raises owned-facility upfront investment from ₹200 lakh to ₹250 lakh. Annual operating cash flow remains ₹60 lakh. The partner base economics are unchanged. There is no quantified strategic premium that offsets the overrun.",
+          "stressCalc": {
+            "question": "Calculate revised owned-facility NPV after the capital overrun. Enter ₹ lakh.",
+            "answer": -22.54,
+            "unit": "₹ lakh",
+            "working": "₹60 lakh × 3.791 − ₹250 lakh = −₹22.54 lakh.",
+            "hint": "Only time-zero capital cost changes.",
+            "tolerance": 0.02
+          },
+          "probe": "What evidence might justify ownership despite a worse financial case, and how would you avoid inventing that value?",
+          "model": "Ownership now has negative NPV under the stated economics. A conditional partner arrangement or deferral is more defensible unless a redesigned cost structure or evidenced strategic benefit changes the case. Validate demand and service before treating the partner’s higher NPV as sufficient."
+        },
+        {
+          "id": "partner",
+          "title": "Partner performance downside",
+          "focus": "Test lower realised volume and contract risk.",
+          "evidence": "Partner base annual cash flow is ₹34 lakh and upfront integration ₹20 lakh. Use five years and factor 3.791. The owned base NPV is ₹27.46 lakh under its original ₹200 lakh investment.",
+          "question": "How attractive is the partner option, and what operational risks could overturn that conclusion?",
+          "calc": {
+            "question": "Calculate partner base-case NPV. Enter ₹ lakh.",
+            "answer": 108.894,
+            "unit": "₹ lakh",
+            "working": "₹34 lakh × 3.791 − ₹20 lakh = ₹108.894 lakh.",
+            "hint": "Use net contribution after partner charges, not customer revenue.",
+            "tolerance": 0.02
+          },
+          "shock": "A pilot suggests the partner can support only 60,000 pallet-months/year. Net contribution stays ₹60/pallet-month, annual contract-management cost stays ₹8 lakh, and additional expected annual service credits payable by ColdLink are ₹6 lakh. Upfront cost remains ₹20 lakh. These replace the partner base assumptions for all five years. The pilot achieves 96% service, below the board’s 98% target.",
+          "stressCalc": {
+            "question": "Calculate partner NPV under the revised volume and service-credit assumptions. Enter ₹ lakh.",
+            "answer": 63.402,
+            "unit": "₹ lakh",
+            "working": "Annual cash flow = 60,000×₹60/100,000 − ₹8 lakh − ₹6 lakh = ₹22 lakh. NPV = ₹22×3.791−₹20 = ₹63.402 lakh.",
+            "hint": "Deduct the recurring service credits before discounting.",
+            "tolerance": 0.02
+          },
+          "probe": "Would you approve a positive-NPV contract that fails the service requirement? What would your decision depend on?",
+          "model": "The revised partner NPV remains positive at ₹63.402 lakh, but the pilot fails the 98% service target. Require a credible service remedy and retest economics, evaluate another partner, or defer. Do not approve unconditionally on NPV alone or assume service can be fixed at zero cost."
+        }
+      ],
+      "strong": [
+        "Uses incremental cash flows and consistent timing for both alternatives.",
+        "Updates NPV for the changed assumption and separates financial attractiveness from service feasibility.",
+        "Discusses strategic control, dependence and reversibility without inventing quantified benefits."
+      ],
+      "pitfalls": [
+        "Subtracting capital expenditure from every annual cash flow.",
+        "Comparing accounting profit with discounted cash flow.",
+        "Ignoring the service hurdle because NPV is positive."
       ]
     }
   }

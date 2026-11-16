@@ -4,7 +4,7 @@ const catalog=require('../data/cases.json');
 const key='test-key-not-a-real-key';
 const session=(changes={})=>({id:'cement',version:3,step:1,opened:['economics'],answers:{structure:'I would separate price and volume.',diagnosis:'Fuel price has increased.'},...changes});
 const fetchJSON=value=>async()=>({ok:true,status:200,json:async()=>({choices:[{message:{content:JSON.stringify(value)},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:5}})});
-test('build catalog matches the HTML and every case retains two complete branches',()=>{assert.deepEqual(require('../scripts/build.cjs').catalog(),catalog);assert.equal(catalog.cases.length,6);for(const c of catalog.cases){assert.equal(catalog.rich[c.id].branches.length,2);for(const b of catalog.rich[c.id].branches){assert(Number.isFinite(b.calc.answer));assert(Number.isFinite(b.stressCalc.answer))}}});
+test('build catalog matches the HTML and every case retains two complete branches',()=>{assert.deepEqual(require('../scripts/build.cjs').catalog(),catalog);assert.equal(catalog.cases.length,9);for(const c of catalog.cases){assert.equal(catalog.rich[c.id].branches.length,2);for(const b of catalog.rich[c.id].branches){assert(Number.isFinite(b.calc.answer));assert(Number.isFinite(b.stressCalc.answer))}}});
 test('stage gating never exposes future branch evidence',()=>{let s=prepareSession(session());assert(!availableFacts(s).some(x=>x.id.startsWith('branch:')));assert.deepEqual(knownFacts(s).map(x=>x.id),['exhibit:economics']);s=prepareSession(session({step:4,branch:'fuel'}));assert(availableFacts(s).some(x=>x.id==='branch:fuel'));assert(!availableFacts(s).some(x=>x.id==='update:fuel'));s=prepareSession(session({step:5,branch:'fuel'}));assert(availableFacts(s).some(x=>x.id==='update:fuel'));assert(!availableFacts(s).some(x=>x.id.includes('pricing')))});
 test('information responses only contain canonical allowed facts',async()=>{const r=await handle({action:'information',provider:'groq',model:'test-model',session:session(),question:'Fuel costs?'},key,{skipRateLimit:true,fetchImpl:fetchJSON({factIds:['exhibit:economics','update:fuel','made-up'],text:'Revenue is 900 trillion'})});assert.equal(r.result.facts.length,1);assert.equal(r.result.facts[0].text,catalog.cases[0].exhibits[0].text);assert(!JSON.stringify(r).includes('900 trillion'))});
 test('follow-up prompt excludes answer keys and hidden exhibits',()=>{const p=promptFor({action:'followup',session:session()});assert(!p.user.includes(catalog.cases[0].calc.working));assert(!p.user.includes('alternative fuel blend'));assert(p.user.includes('Fuel price has increased.'));assert.throws(()=>promptFor({action:'followup',session:session({answers:{}})}),/Add your answer/)});
@@ -15,3 +15,34 @@ test('custom endpoint can only come from administrator configuration',()=>{asser
 test('auth, rate limits and upstream failures never echo sensitive provider bodies',async()=>{for(const status of [401,403,429,400,404,500])await assert.rejects(handle({action:'test',provider:'groq',model:'test-model'},key,{skipRateLimit:true,fetchImpl:async()=>({ok:false,status,json:async()=>({error:key})})}),e=>!e.message.includes(key)&&e.status>=400);await assert.rejects(handle({action:'test',provider:'groq',model:'test-model'},'',{skipRateLimit:true}),/API key/)});
 test('invalid JSON, malformed sessions and excessive answer length fail safely',()=>{assert.throws(()=>parseJSON('not json'),/unsupported response/);assert.equal(parseJSON('```json\n{"ok":true}\n```').ok,true);assert.throws(()=>prepareSession(session({step:4})),/Choose/);assert.throws(()=>prepareSession(session({answers:{structure:'x'.repeat(5001)}})),/5,000/)});
 test('API handler rejects cross-origin, oversized and non-JSON requests before calling provider',async()=>{const handler=require('../api/ai.js');async function call(req){const res={headers:{},setHeader(k,v){this.headers[k]=v},status(s){this.code=s;return this},json(b){this.body=b;return this}};await handler(req,res);return res}assert.equal((await call({method:'GET',headers:{}})).code,405);assert.equal((await call({method:'POST',headers:{origin:'https://evil.example',host:'case.example','content-type':'application/json'},body:{}})).code,403);assert.equal((await call({method:'POST',headers:{host:'case.example','content-type':'text/plain'},body:{}})).code,415);assert.equal((await call({method:'POST',headers:{host:'case.example','content-type':'application/json'},body:{x:'x'.repeat(100001)}})).code,413)});
+test('new archetype reference calculations agree with independent arithmetic',()=>{
+ const cases=Object.fromEntries(catalog.cases.map(c=>[c.id,c])),r=catalog.rich;
+ const check=(actual,expected)=>assert(Math.abs(actual-expected)<0.001,`${actual} vs ${expected}`);
+ assert.equal(cases.guesstimate.calc.openEstimate,true);assert.equal(cases.guesstimate.calc.answer,null);
+ check(r.guesstimate.branches[0].calc.answer,8e6*.7*.4*.25*1.2);
+ check(r.guesstimate.branches[0].stressCalc.answer,8e6*.7*.4*.2*1.2);
+ check(r.guesstimate.branches[1].calc.answer,4000*120+1000*80);
+ check(r.guesstimate.branches[1].stressCalc.answer,4000*.9*120+1000*80);
+ check(cases.diagnosis.calc.answer,(50000-40000)/50000*100);
+ check(r.diagnosis.branches[0].calc.answer,32000/60000*100);
+ check(r.diagnosis.branches[0].stressCalc.answer,28000/45000*100);
+ check(r.diagnosis.branches[1].calc.answer,72000-64000);
+ check(r.diagnosis.branches[1].stressCalc.answer,(50000-45000)/50000*100);
+ check(cases.investment.calc.answer,70000*(200-80)/100000-24);
+ check(r.investment.branches[0].calc.answer,60*3.791-200);
+ check(r.investment.branches[0].stressCalc.answer,60*3.791-250);
+ check(r.investment.branches[1].calc.answer,34*3.791-20);
+ check(r.investment.branches[1].stressCalc.answer,(60000*60/100000-8-6)*3.791-20);
+});
+test('AI coaching follows diagnosis-only and open-estimation requirements',()=>{
+ for(const id of ['diagnosis','guesstimate']){
+  const raw=session({id,step:7,branch:catalog.rich[id].branches[0].id,answers:{implementation:'My verification plan',number:'1500000'}});
+  const follow=promptFor({action:'followup',session:raw});const user=JSON.parse(follow.user);
+  assert.equal(user.stage,catalog.rich[id].stageNames[7]);assert.equal(user.prompt,catalog.rich[id].prompts[7]);
+  assert(follow.system.includes(catalog.rich[id].assessmentInstruction));
+  const review=promptFor({action:'feedback',session:raw}),shape=JSON.parse(review.user).shape;
+  assert.equal(shape.dimensions[5].name,catalog.rich[id].finalDimension);
+  const cleaned=sanitizeResult('feedback',shape,review.s);assert.equal(cleaned.dimensions[5].name,catalog.rich[id].finalDimension);
+  assert.equal(JSON.parse(review.user).reference[0].openEstimate,id==='guesstimate');
+ }
+});

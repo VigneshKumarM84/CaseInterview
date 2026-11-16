@@ -1,6 +1,6 @@
 # Case Room
 
-Six original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching.
+Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching.
 
 ## Included AI features
 
@@ -71,7 +71,7 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 
 ## Validation
 
-Automated API and jsdom interaction tests cover all 12 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
+Automated API and jsdom interaction tests cover all 18 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
 
 Research references are in the app's Research & case design section. Provider implementation references:
 
@@ -81,3 +81,11 @@ Research references are in the app's Research & case design section. Provider im
 - https://platform.claude.com/docs/en/api/overview
 - https://api-docs.deepseek.com/
 - https://openrouter.ai/docs/api/reference/overview
+
+## Additional archetypes
+
+- **How many cups? — Guesstimate:** scope, own assumptions, first estimate, demand/supply cross-checks, sensitivity and validation. The first estimate has no fixed answer and is excluded from automatic scoring; two later calculations use explicitly hypothetical inputs. Chennai anchors are not real market statistics.
+- **What actually went wrong? — Diagnosis only:** distinguish a reported decline from measurement errors and real payment-stage losses. Ends with a quantified problem statement and falsifiable verification plan, not a solution. Cohort and independent-reconciliation paths reveal different evidence.
+- **Build it or partner? — Strategic investment:** compare five-year NPV, construction overruns and partner service failure. Positive NPV alone is insufficient.
+
+Each has eight stages and two paths. Stage labels, review criteria and optional AI coaching adapt to the archetype. These are original fictional teaching cases, not actual McKinsey interview questions. McKinsey’s public Talbot Trucks sample informs the general investment-attractiveness archetype: https://www.mckinsey.com/careers/interviewing/talbot-trucks
