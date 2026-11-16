@@ -1,0 +1,978 @@
+{
+  "cases": [
+    {
+      "id": "cement",
+      "title": "The disappearing margin",
+      "company": "Cement • Profitability",
+      "level": "Foundation",
+      "minutes": 40,
+      "icon": "◩",
+      "color": "#dfebe4",
+      "summary": "Sales are steady. Profits are not. Find the change that matters.",
+      "brief": "Aruna Cement sells 1 million tonnes a year. Annual operating profit fell from ₹100 crore to ₹60 crore. The CEO wants to recover the lost ₹40 crore within 12 months, without major capital expenditure. Diagnose the decline and recommend the next move. All case data is fictional.",
+      "objective": [
+        "Recover operating profit within 12 months",
+        "Maximise market share at any cost",
+        "Build a new plant immediately"
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "economics",
+          "title": "Revenue & cost bridge",
+          "category": "Financials",
+          "text": "Annual volume: 1 million tonnes in both years. Realisation: ₹5,000/t in both years. Fuel: ₹800 → ₹1,100/t. Power: ₹400 → ₹500/t. Other operating costs: ₹2,800/t, unchanged.",
+          "critical": true
+        },
+        {
+          "id": "operations",
+          "title": "Plant performance",
+          "category": "Operations",
+          "text": "Throughput and product quality are stable. Fuel consumption per tonne is unchanged; delivered fuel price rose 37.5%. Electricity consumption per tonne is unchanged; tariff rose 25%.",
+          "critical": true
+        },
+        {
+          "id": "options",
+          "title": "Available interventions",
+          "category": "Implementation",
+          "text": "An alternative fuel blend could save ₹200/t across annual output, before a one-time ₹2 crore trial cost. Quality and throughput effects are untested. A power contract could save ₹50/t. Both can operate within 12 months; no other quantified savings are available.",
+          "critical": true
+        },
+        {
+          "id": "market",
+          "title": "Market & customers",
+          "category": "Market",
+          "text": "Market size, share and customer mix are stable. Competitors have spare capacity. Customers are price-sensitive; no price increase has been validated."
+        },
+        {
+          "id": "fuelmarket",
+          "title": "Supplier landscape",
+          "text": "Existing fuel suppliers can offer shorter contracts but have not quoted a reduction. Alternative fuel availability and delivered quality must be verified; lower price alone does not prove lower cost per tonne of cement.",
+          "category": "Investigation"
+        },
+        {
+          "id": "accounts",
+          "title": "Customer economics",
+          "text": "The sales team has proposed targeted pricing, but customer loss and contribution impact need testing. No blanket price increase is yet established.",
+          "category": "Investigation"
+        }
+      ],
+      "calc": {
+        "question": "How much of the annual profit decline is explained by the fuel cost increase? Enter ₹ crore.",
+        "answer": 30,
+        "tolerance": 0.1,
+        "unit": "₹ crore",
+        "working": "₹300/t × 1,000,000 t = ₹300 million = ₹30 crore.",
+        "hint": "Convert rupees into crore: ₹1 crore = ₹10 million."
+      },
+      "hypothesis": [
+        "Energy input prices explain the entire ₹40 crore decline",
+        "Lower utilisation is the main cause",
+        "Falling selling prices explain the decline"
+      ],
+      "hypothesisCorrect": 0,
+      "hypothesisFeedback": "Fuel contributes ₹30 crore and power ₹10 crore. Consumption intensity is unchanged, so the evidence points to prices, not process efficiency.",
+      "decision": [
+        "Pilot the fuel blend and validate the power contract; acknowledge the remaining gap",
+        "Immediately switch all fuel and promise full ₹40 crore recovery",
+        "Increase production to solve the margin decline"
+      ],
+      "decisionCorrect": 0,
+      "decisionFeedback": "Fuel saves ₹20 crore and power ₹5 crore annually. After the ₹2 crore trial, first-year savings are ₹23 crore: a ₹17 crore gap remains. Validate quality and throughput before scaling.",
+      "model": "The full ₹40 crore decline is explained by fuel and power prices. Pilot the fuel blend with quality and throughput guardrails and validate the power contract. The quantified package delivers ₹23 crore in the first year, leaving ₹17 crore to address through further cost and pricing work. Assign owners and review trial results before rollout.",
+      "drill": "Practise converting per-tonne changes into annual profit impact, then separate recurring savings from one-time costs."
+    },
+    {
+      "id": "market",
+      "title": "A new city, a real decision",
+      "company": "Consumer services • Market entry",
+      "level": "Intermediate",
+      "minutes": 40,
+      "icon": "↗",
+      "color": "#eee7d8",
+      "summary": "A promising market is only the beginning. Should a meal brand enter Pune?",
+      "brief": "FreshTable is considering a Pune launch of its meal subscription service. The board requires at least ₹1 crore annual operating profit at steady state and a credible acquisition plan. Recommend whether to proceed. Ignore tax, financing and working capital. All case data is fictional.",
+      "objective": [
+        "Launch as quickly as possible",
+        "Assess profit potential and validate demand before scaling",
+        "Capture every customer segment"
+      ],
+      "objectiveCorrect": 1,
+      "exhibits": [
+        {
+          "id": "demand",
+          "title": "Demand & reachable customers",
+          "category": "Market",
+          "text": "There are 100,000 target households. Research suggests 8% may subscribe, but this is stated intent, not paid conversion. Base plan assumes 5,000 subscribers. Each orders 20 meals/month for 12 months.",
+          "critical": true
+        },
+        {
+          "id": "economics",
+          "title": "Unit economics",
+          "category": "Financials",
+          "text": "Price: ₹150/meal. Food, delivery and packaging: ₹110/meal. Annual fixed operating costs: ₹3 crore. These costs exclude first-time customer acquisition.",
+          "critical": true
+        },
+        {
+          "id": "acquisition",
+          "title": "Acquisition & retention",
+          "category": "Implementation",
+          "text": "Estimated initial acquisition cost: ₹2,000/subscriber. For this exercise, assume the initial subscribers stay for a full year. Real retention and acquisition costs are unvalidated. A limited paid pilot is feasible.",
+          "critical": true
+        },
+        {
+          "id": "competition",
+          "title": "Competitive context",
+          "category": "Market",
+          "text": "Three competitors serve the city. Interviews suggest consistency and reliable delivery matter more than menu variety. No willingness-to-pay study has yet been run."
+        },
+        {
+          "id": "segments",
+          "title": "Customer occasions",
+          "text": "Office clusters offer dense routes but weekday concentration. Residential subscribers may be more dispersed. The 5,000-subscriber base case has not been allocated between these groups.",
+          "category": "Investigation"
+        },
+        {
+          "id": "service",
+          "title": "Operating constraints",
+          "text": "Delivery reliability and food consistency must be maintained. No ability to serve more than 5,000 customers at the current cost is assumed without validation.",
+          "category": "Investigation"
+        }
+      ],
+      "calc": {
+        "question": "At 5,000 subscribers, what is annual operating profit before acquisition costs? Enter ₹ crore.",
+        "answer": 1.8,
+        "tolerance": 0.02,
+        "unit": "₹ crore",
+        "working": "5,000 × 20 × 12 × (₹150 − ₹110) − ₹3 crore = ₹1.8 crore.",
+        "hint": "Calculate contribution per meal, then annual meals, then subtract fixed costs."
+      },
+      "hypothesis": [
+        "The full target market will subscribe",
+        "The base case clears the steady-state target, but demand and retention need validation",
+        "Positive contribution guarantees launch success"
+      ],
+      "hypothesisCorrect": 1,
+      "hypothesisFeedback": "₹1.8 crore steady-state operating profit exceeds the ₹1 crore hurdle. But the assumed subscriber base and retention have not been validated.",
+      "decision": [
+        "Reject because there are competitors",
+        "Launch at full scale based on survey intent",
+        "Run a paid pilot, validate retention and acquisition, then decide on scale"
+      ],
+      "decisionCorrect": 2,
+      "decisionFeedback": "Initial acquisition costs are ₹1 crore at 5,000 subscribers, reducing first-year profit to ₹0.8 crore under the exercise assumptions. Distinguish that from the ₹1.8 crore steady-state figure.",
+      "model": "The base case produces ₹1.8 crore annual operating profit before acquisition, above the steady-state hurdle. First-year profit is ₹0.8 crore after initial acquisition. Recommend a paid pilot to measure conversion, retention, delivery reliability and acquisition cost before committing to a full launch.",
+      "drill": "Build a three-line sensitivity analysis for subscriber count, contribution per meal and retention."
+    },
+    {
+      "id": "operations",
+      "title": "The capacity illusion",
+      "company": "Manufacturing • Operations",
+      "level": "Intermediate",
+      "minutes": 40,
+      "icon": "≋",
+      "color": "#e5e5f0",
+      "summary": "Demand is waiting. Identify the bottleneck before buying equipment.",
+      "brief": "A packaged-food factory needs to supply 48,000 packs/day. It currently makes 40,000. The COO proposes a new filling line. Recommend a way to close the gap with minimal investment. Assume an 8-hour day, sufficient materials and no inventory buffers between stages. All case data is fictional.",
+      "objective": [
+        "Increase filling capacity regardless of other stages",
+        "Meet demand by addressing the system constraint",
+        "Maximise the speed of every machine"
+      ],
+      "objectiveCorrect": 1,
+      "exhibits": [
+        {
+          "id": "capacity",
+          "title": "Line capacity",
+          "category": "Operations",
+          "text": "Effective capacities: mixing 7,000 packs/hour; filling 8,000; packing 5,000. Current output is 40,000 packs/day over 8 hours. These effective rates already include current losses.",
+          "critical": true
+        },
+        {
+          "id": "losses",
+          "title": "Packing losses",
+          "category": "Operations",
+          "text": "Packing nameplate rate is 7,000/hour. Its current effective rate is 5,000/hour due to changeovers and minor stops. A trial suggests 6,200/hour may be feasible with standardised setups and maintenance.",
+          "critical": true
+        },
+        {
+          "id": "options",
+          "title": "Improvement choices",
+          "category": "Implementation",
+          "text": "A new filling line costs ₹1 crore and increases filling capacity to 12,000/hour. Packing improvements cost ₹8 lakh and could raise its effective capacity to 6,200/hour, subject to sustained trial results.",
+          "critical": true
+        },
+        {
+          "id": "quality",
+          "title": "Quality & demand",
+          "category": "Market",
+          "text": "Demand is 48,000/day for the next six months. Rejects are already reflected in effective capacities. Faster packing must retain seal quality. No demand above 48,000/day is confirmed."
+        },
+        {
+          "id": "mix",
+          "title": "Product mix",
+          "text": "Demand varies across product formats. The current average rate does not prove capability for every shift and format.",
+          "category": "Investigation"
+        },
+        {
+          "id": "measurement",
+          "title": "Rate measurement",
+          "text": "Use good packs after rejects when measuring effective rate. Avoid deducting the same loss twice.",
+          "category": "Investigation"
+        }
+      ],
+      "calc": {
+        "question": "If packing sustains 6,200 packs/hour, what is the maximum daily line output over 8 hours?",
+        "answer": 49600,
+        "tolerance": 1,
+        "unit": "packs/day",
+        "working": "min(7,000, 8,000, 6,200) × 8 = 49,600 packs/day.",
+        "hint": "The slowest effective stage limits the whole line. Do not subtract losses again."
+      },
+      "hypothesis": [
+        "Filling is the constraint because it has the proposed investment",
+        "Packing constrains the line; improving filling alone does not increase output",
+        "Mixing is already too slow for demand"
+      ],
+      "hypothesisCorrect": 1,
+      "hypothesisFeedback": "Packing limits output to 5,000/hour × 8 = 40,000/day. A faster filling line would still wait for packing.",
+      "decision": [
+        "Buy the new filling line immediately",
+        "Promise 56,000/day after the packing change",
+        "Trial packing improvements, verify quality and sustain at least 6,000/hour"
+      ],
+      "decisionCorrect": 2,
+      "decisionFeedback": "6,000/hour meets demand; 6,200 provides only a 3.3% capacity cushion. Validate performance across shifts and product mixes before promising reliable supply.",
+      "model": "Packing is the constraint. Trial the ₹8 lakh setup and maintenance improvements rather than the ₹1 crore filling investment. At 6,200/hour the line could supply 49,600/day, enough for current demand with a small cushion. Verify seal quality and sustained performance across shifts.",
+      "drill": "Practise identifying the minimum effective capacity, and distinguish theoretical capacity from reliable daily delivery."
+    },
+    {
+      "id": "pricing",
+      "title": "The discount dilemma",
+      "company": "Software • Pricing",
+      "level": "Intermediate",
+      "minutes": 40,
+      "icon": "%",
+      "color": "#ede3ee",
+      "summary": "More customers or higher contribution? Evaluate a pricing change and a segmented alternative.",
+      "brief": "LedgerNest sells subscription software to small businesses. It has 10,000 customers paying ₹1,000/month. The CEO wants to improve next-year operating profit by at least ₹1 crore without reducing service quality. Sales proposes a 15% price cut. Advise the CEO. All figures are fictional; ignore tax, financing and working capital.",
+      "objective": [
+        "Improve annual operating profit by ₹1 crore while maintaining service quality"
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "economics",
+          "title": "Current economics",
+          "text": "10,000 customers; price ₹1,000/customer/month; variable service cost ₹300/customer/month; annual fixed costs ₹5 crore. All customer counts in the base plan are full-year averages.",
+          "category": "Financials"
+        },
+        {
+          "id": "discount",
+          "title": "Sales proposal",
+          "text": "A 15% price cut is projected to lift full-year average customers by 25%. Variable cost remains ₹300/customer/month. Fixed cost does not change. No paid experiment validates this projection.",
+          "category": "Commercial"
+        },
+        {
+          "id": "segments",
+          "title": "Customer segments",
+          "text": "7,000 standard users and 3,000 advanced users currently pay the same price. Advanced users ask for audit logs and integrations. Willingness to pay is untested.",
+          "category": "Customers"
+        },
+        {
+          "id": "service",
+          "title": "Service capacity",
+          "text": "The current support team can serve up to 13,000 customers at the stated cost and quality. Above that, additional staffing would be needed; its cost is not yet estimated.",
+          "category": "Operations"
+        },
+        {
+          "id": "experiment",
+          "title": "Experiment design",
+          "text": "A test needs a control group, customer-level contribution, support effort and churn tracking. A short promotional response is not proof of a durable uplift.",
+          "category": "Investigation"
+        }
+      ],
+      "calc": {
+        "question": "What is current annual operating profit? Enter ₹ crore.",
+        "answer": 3.4,
+        "unit": "₹ crore",
+        "working": "10,000 × (1,000 − 300) × 12 − ₹5 crore = ₹3.4 crore.",
+        "hint": "Use contribution, not revenue.",
+        "tolerance": 0.02
+      },
+      "hypothesisFeedback": "The baseline contribution is ₹8.4 crore and operating profit ₹3.4 crore. A price reduction must generate enough additional contribution to offset the lower margin.",
+      "decisionFeedback": "A defensible decision compares customer response, contribution, service capacity and evidence quality, rather than revenue growth alone.",
+      "model": "Do not approve a broad price cut on an unvalidated volume projection. Test a segmented premium offer or a limited discount experiment, compare contribution and retention, and protect service quality.",
+      "drill": "Calculate the customer increase needed to offset a price cut, then test whether support capacity can handle it."
+    },
+    {
+      "id": "distribution",
+      "title": "The warehouse promise",
+      "company": "Distribution • Network design",
+      "level": "Advanced",
+      "minutes": 45,
+      "icon": "⇄",
+      "color": "#e2ebf3",
+      "summary": "A regional hub promises lower costs. Test freight savings, inventory and execution risk.",
+      "brief": "RouteWorks distributes industrial spares from Chennai to southern India. Annual delivery cost is rising and customers complain about late orders. The COO proposes a Bengaluru hub. Find a way to improve service while saving at least ₹20 lakh/year after recurring costs. One-time setup must pay back within two years. All data is fictional. Ignore tax and financing; treat inventory carrying cost as a recurring operating cost.",
+      "objective": [
+        "Improve service and save ₹20 lakh/year with setup payback within two years"
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "volume",
+          "title": "Demand by region",
+          "text": "Annual shipments: Tamil Nadu 60,000; Karnataka 30,000; Kerala 10,000. Customer demand is stable. All figures are shipments, not tonnes.",
+          "category": "Demand"
+        },
+        {
+          "id": "freight",
+          "title": "Current shipping cost",
+          "text": "Current delivered cost/shipment: Tamil Nadu ₹120; Karnataka ₹300; Kerala ₹250. These include line haul and local delivery. Other costs are unchanged unless specified.",
+          "category": "Financials"
+        },
+        {
+          "id": "service",
+          "title": "Service performance",
+          "text": "On-time rates: Tamil Nadu 95%, Karnataka 78%, Kerala 85%. Of Karnataka late orders, 60% involve carrier transit and 40% involve late warehouse release. Do not assume all late orders have one cause.",
+          "category": "Operations"
+        },
+        {
+          "id": "options",
+          "title": "Available paths",
+          "text": "A Karnataka hub changes the freight network and stocks inventory locally. A carrier-and-cutoff programme keeps the current network. Both require detailed economics and a service pilot.",
+          "category": "Options"
+        },
+        {
+          "id": "process",
+          "title": "Order release",
+          "text": "Late release sometimes comes from inaccurate stock records and approval holds. A carrier contract alone will not remove those delays.",
+          "category": "Investigation"
+        }
+      ],
+      "calc": {
+        "question": "What is the current annual shipping cost across all three regions? Enter ₹ lakh.",
+        "answer": 187,
+        "unit": "₹ lakh",
+        "working": "60,000×120 + 30,000×300 + 10,000×250 = ₹18,700,000 = ₹187 lakh.",
+        "hint": "₹1 lakh = ₹100,000.",
+        "tolerance": 0.02
+      },
+      "hypothesisFeedback": "Karnataka has the weakest service and the highest cost per shipment, but both transport and warehouse release contribute to lateness.",
+      "decisionFeedback": "Separate freight savings, fixed site costs, inventory carrying costs and one-time setup. A cheaper shipment is not necessarily a cheaper network.",
+      "model": "Compare a Karnataka hub with a carrier-and-release pilot. Require evidence that the proposed operating model improves both economics and on-time delivery. Include inventory and transition costs.",
+      "drill": "Build a total-cost bridge and state the conditions under which a regional hub beats a process improvement."
+    },
+    {
+      "id": "education",
+      "title": "Seats are not outcomes",
+      "company": "Education • Social impact",
+      "level": "Advanced",
+      "minutes": 40,
+      "icon": "◎",
+      "color": "#f0ead6",
+      "summary": "An education programme must choose whom to reach and how to measure learning.",
+      "brief": "An education foundation has ₹60 lakh for a one-year programme covering up to 20,000 eligible students. It wants at least 3,000 additional students to achieve a defined mastery threshold relative to no programme. Recommend an approach that addresses both learning and access. All numbers are fictional planning assumptions; this is a programme-design case, not a claim about any teaching method.",
+      "objective": [
+        "Generate at least 3,000 additional mastery outcomes within ₹60 lakh, considering access"
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "baseline",
+          "title": "Baseline and eligibility",
+          "text": "20,000 eligible students; 40% are expected to meet the mastery threshold without the programme. There are no fees paid by students. The target concerns additional mastery outcomes, not enrolment.",
+          "category": "Outcomes"
+        },
+        {
+          "id": "digital",
+          "title": "Digital programme",
+          "text": "Digital programme budget: ₹12 lakh fixed + ₹600/enrolled student. Enrol 8,000 students in the base plan. An assumed 80% engage consistently. Engaged students are assumed to have a 30 percentage-point mastery uplift versus their no-programme outcome; non-engaged students have zero uplift.",
+          "category": "Programme"
+        },
+        {
+          "id": "access",
+          "title": "Access constraints",
+          "text": "60% of eligible students have reliable digital access. Students without access are not assumed equivalent in learning needs or support. No transport or device programme is included in the initial budget.",
+          "category": "Equity"
+        },
+        {
+          "id": "evidence",
+          "title": "Evidence quality",
+          "text": "The uplift estimates come from a small voluntary pilot without random assignment. Selection bias, attrition and differences in prior attainment are unresolved. Treat estimates as scenarios, not causal proof.",
+          "category": "Evaluation"
+        },
+        {
+          "id": "measurement",
+          "title": "Measurement plan",
+          "text": "Use a common pre/post assessment and comparison group; track attendance, attrition and outcomes by access group. Discuss fair allocation and informed participation with programme leaders.",
+          "category": "Investigation"
+        }
+      ],
+      "calc": {
+        "question": "At 8,000 digital enrolments, what is the expected number of additional mastery outcomes under the stated assumptions?",
+        "answer": 1920,
+        "unit": "students",
+        "working": "8,000 × 80% × 30 percentage points = 1,920 additional mastery outcomes.",
+        "hint": "Use absolute uplift, not a 30% relative increase.",
+        "tolerance": 1
+      },
+      "hypothesisFeedback": "The base digital programme costs ₹60 lakh but produces only 1,920 expected additional outcomes. Spending the full budget is not the same as achieving the objective.",
+      "decisionFeedback": "Compare reach, engagement, uplift, cost and access. An honest recommendation may acknowledge that the target is not feasible under the tested assumptions.",
+      "model": "Do not promise 3,000 additional outcomes based on the small pilot. Compare programme designs, estimate the target gap and conduct a staged evaluation that addresses access and selection bias.",
+      "drill": "Separate reach, engagement, percentage-point uplift and causal evidence in a programme impact calculation."
+    }
+  ],
+  "rich": {
+    "cement": {
+      "minutes": 40,
+      "clarifications": [
+        [
+          "What counts as success?",
+          "Recover the ₹40 crore profit decline; management will consider a partial recovery if the remaining gap is explicit. Do not assume volume growth."
+        ],
+        [
+          "Can we invest?",
+          "Major capacity investment is out of scope. Trials and changes in procurement or commercial terms are possible."
+        ],
+        [
+          "How should first-year savings be treated?",
+          "Use full-year implementation only when specified. Later scenarios change availability or volume and replace the relevant original assumptions."
+        ]
+      ],
+      "extra": [
+        {
+          "id": "fuelmarket",
+          "title": "Supplier landscape",
+          "text": "Existing fuel suppliers can offer shorter contracts but have not quoted a reduction. Alternative fuel availability and delivered quality must be verified; lower price alone does not prove lower cost per tonne of cement.",
+          "category": "Investigation"
+        },
+        {
+          "id": "accounts",
+          "title": "Customer economics",
+          "text": "The sales team has proposed targeted pricing, but customer loss and contribution impact need testing. No blanket price increase is yet established.",
+          "category": "Investigation"
+        }
+      ],
+      "branches": [
+        {
+          "id": "fuel",
+          "title": "Fuel and procurement",
+          "focus": "Test fuel substitution and implementation timing.",
+          "evidence": "Full-year implementation case: alternative fuel saves ₹200 per tonne across 1 million tonnes. Power saves ₹50/t. One-time fuel trial costs ₹2 crore. Assume no volume or quality loss in this initial calculation.",
+          "question": "What does this package achieve in year one, and what still needs to be solved?",
+          "calc": {
+            "question": "Calculate total first-year savings for this package. Enter ₹ crore.",
+            "answer": 23,
+            "unit": "₹ crore",
+            "working": "Fuel ₹20 crore + power ₹5 crore − trial ₹2 crore = ₹23 crore. Recovery gap: ₹17 crore.",
+            "hint": "Separate recurring savings and trial cost.",
+            "tolerance": 0.02
+          },
+          "shock": "New supplier evidence: the alternative fuel can cover only 60% of annual output in year one. Its ₹200/t saving applies only to that share. Power saving still applies to all output, and trial cost remains ₹2 crore. Quality performance is still unproven.",
+          "stressCalc": {
+            "question": "Recalculate first-year savings with 60% fuel coverage. Enter ₹ crore.",
+            "answer": 15,
+            "unit": "₹ crore",
+            "working": "0.6m tonnes×₹200 + 1m×₹50 − ₹2 crore = ₹15 crore. Gap: ₹25 crore.",
+            "hint": "Only the fuel saving changes.",
+            "tolerance": 0.02
+          },
+          "probe": "What trial measures and stop conditions would protect output and quality?",
+          "model": "A staged fuel trial plus power contract can deliver ₹15 crore under the updated availability constraint. Do not promise full recovery. Require delivered-quality checks, quality and throughput limits, and a supplier contingency."
+        },
+        {
+          "id": "pricing",
+          "title": "Customer and pricing",
+          "focus": "Test whether targeted pricing creates profit after volume loss.",
+          "evidence": "For this branch only, management can test a ₹150/t price increase on 400,000 tonnes of customer demand. It expects to lose 5% of this segment volume. At the original price, contribution on any lost tonne is ₹1,000. Other customer volumes and fixed costs stay unchanged. Ignore the fuel/power initiatives for this incremental pricing calculation.",
+          "question": "How would you assess the price proposal and distinguish revenue from profit impact?",
+          "calc": {
+            "question": "What is the incremental annual operating profit from the proposed price increase? Enter ₹ crore.",
+            "answer": 3.7,
+            "unit": "₹ crore",
+            "working": "Retained volume 380,000×₹150 = ₹5.7 crore; lost contribution 20,000×₹1,000 = ₹2 crore; net ₹3.7 crore.",
+            "hint": "Apply the price increase to retained tonnes and subtract lost contribution.",
+            "tolerance": 0.02
+          },
+          "shock": "The customer pilot suggests volume loss of 12%, rather than 5%, in the targeted segment. The price increase and original contribution per tonne remain unchanged.",
+          "stressCalc": {
+            "question": "What is incremental annual profit with 12% volume loss? Enter ₹ crore.",
+            "answer": 0.48,
+            "unit": "₹ crore",
+            "working": "352,000×₹150 − 48,000×₹1,000 = ₹48 lakh = ₹0.48 crore.",
+            "hint": "Revenue uplift and lost contribution have different bases.",
+            "tolerance": 0.02
+          },
+          "probe": "What customer-level evidence would change your recommendation?",
+          "model": "Targeted pricing is positive at 12% volume loss, but only ₹0.48 crore. Break-even loss is about 13.04%; use a reversible, segmented test and do not treat it as a substitute for the energy-cost programme."
+        }
+      ],
+      "strong": [
+        "Reconciles the full ₹40 crore decline and distinguishes input price from consumption efficiency.",
+        "States which assumptions changed and recalculates rather than repeating the first recommendation.",
+        "Makes the recovery gap explicit and defines quality, throughput and commercial guardrails."
+      ],
+      "pitfalls": [
+        "Treating all energy inflation as an efficiency problem.",
+        "Counting recurring savings as first-year savings without testing coverage.",
+        "Calculating price impact on customers who leave."
+      ]
+    },
+    "market": {
+      "minutes": 40,
+      "clarifications": [
+        [
+          "What is the profit hurdle?",
+          "At least ₹1 crore annual steady-state operating profit. First-year acquisition and cash requirements must also be discussed."
+        ],
+        [
+          "Is 8% intent equivalent to conversion?",
+          "No. It is a survey response, not a purchase commitment."
+        ],
+        [
+          "How do we handle retention?",
+          "The initial calculation assumes a full year. A later retention scenario explicitly replaces that simplifying assumption."
+        ]
+      ],
+      "extra": [
+        {
+          "id": "segments",
+          "title": "Customer occasions",
+          "text": "Office clusters offer dense routes but weekday concentration. Residential subscribers may be more dispersed. The 5,000-subscriber base case has not been allocated between these groups.",
+          "category": "Investigation"
+        },
+        {
+          "id": "service",
+          "title": "Operating constraints",
+          "text": "Delivery reliability and food consistency must be maintained. No ability to serve more than 5,000 customers at the current cost is assumed without validation.",
+          "category": "Investigation"
+        }
+      ],
+      "branches": [
+        {
+          "id": "retention",
+          "title": "Acquisition and retention",
+          "focus": "Stress-test first-year economics against customer churn.",
+          "evidence": "Initial cohort: 5,000 subscribers, 20 meals/month, contribution ₹40/meal, annual fixed costs ₹3 crore. Initial acquisition cost is ₹2,000 per subscriber. All stay 12 months for this first calculation. No replacement acquisition is included.",
+          "question": "What could make a profitable steady-state plan unattractive in the first year?",
+          "calc": {
+            "question": "Calculate first-year profit after initial acquisition. Enter ₹ crore.",
+            "answer": 0.8,
+            "unit": "₹ crore",
+            "working": "Contribution ₹4.8 crore − fixed ₹3 crore − acquisition ₹1 crore = ₹0.8 crore.",
+            "hint": "Keep steady-state and first-year profit separate.",
+            "tolerance": 0.02
+          },
+          "shock": "Paid pilot: 40% of the initial cohort leave after month 6; the rest stay 12 months. There are no replacements. Every active subscriber still orders 20 meals/month at ₹40 contribution. Fixed costs and initial acquisition cost remain unchanged.",
+          "stressCalc": {
+            "question": "Calculate first-year profit with this retention pattern. Enter ₹ crore.",
+            "answer": -0.16,
+            "unit": "₹ crore",
+            "working": "3,000×12 + 2,000×6 = 48,000 subscriber-months; ×20×₹40 = ₹3.84 crore; less ₹4 crore costs gives −₹0.16 crore.",
+            "hint": "Count subscriber-months, not just year-end customers.",
+            "tolerance": 0.02
+          },
+          "probe": "How would you measure retained cohorts without confusing discounts with product-market fit?",
+          "model": "The revised first year loses ₹0.16 crore. A small paid retention pilot or a deferred launch is defensible; require evidence on cohort retention and acquisition payback before scaling."
+        },
+        {
+          "id": "density",
+          "title": "Delivery density and scale",
+          "focus": "Investigate the subscriber threshold and route economics.",
+          "evidence": "Base economics remain ₹40 contribution/meal, 20 meals/month and ₹3 crore annual fixed costs. Assume full-year subscribers and exclude initial acquisition for the steady-state hurdle.",
+          "question": "What scale would meet the board’s profit hurdle, and can the operating model support it?",
+          "calc": {
+            "question": "Minimum whole subscribers needed for ₹1 crore annual operating profit?",
+            "answer": 4167,
+            "unit": "subscribers",
+            "working": "(₹3 crore + ₹1 crore) / (₹40×20×12) = 4,166.67, rounded up to 4,167.",
+            "hint": "The target profit is additional to fixed costs.",
+            "tolerance": 0
+          },
+          "shock": "Route test: delivered cost rises by ₹10/meal in dispersed areas; price stays ₹150. The original variable cost was ₹110/meal. Current kitchen and delivery capacity is 5,000 full-year subscribers. Fixed costs stay ₹3 crore.",
+          "stressCalc": {
+            "question": "Minimum whole subscribers needed for the same ₹1 crore hurdle at the revised contribution?",
+            "answer": 5556,
+            "unit": "subscribers",
+            "working": "Contribution falls to ₹30/meal; ₹4 crore/(₹30×240)=5,555.56, rounded up to 5,556. At capacity, profit is only ₹0.6 crore.",
+            "hint": "Recalculate contribution before finding subscriber count.",
+            "tolerance": 0
+          },
+          "probe": "Could a smaller, denser geographic launch beat a citywide launch? What must be validated?",
+          "model": "The threshold exceeds current capacity. Test a dense cluster, improve contribution or revise the plan; do not assume that adding dispersed customers will meet the profit hurdle."
+        }
+      ],
+      "strong": [
+        "Separates survey intent, paid conversion and retention.",
+        "Differentiates first-year acquisition economics from steady-state profitability.",
+        "Links subscriber thresholds to achievable density and capacity."
+      ],
+      "pitfalls": [
+        "Using year-end subscriber count for full-year revenue.",
+        "Treating stated intent as actual demand.",
+        "Ignoring the delivery-cost effect of geographic expansion."
+      ]
+    },
+    "operations": {
+      "minutes": 40,
+      "clarifications": [
+        [
+          "Are the rates nameplate or effective?",
+          "The initial line-capacity exhibit uses effective good-output rates, already including current losses."
+        ],
+        [
+          "Can the factory build inventory between stages?",
+          "Assume no buffer for the simplified line-capacity calculation. Real buffer design would require additional data."
+        ],
+        [
+          "What is the investment objective?",
+          "Supply 48,000 good packs/day reliably at minimal investment, without weakening quality."
+        ]
+      ],
+      "extra": [
+        {
+          "id": "mix",
+          "title": "Product mix",
+          "text": "Demand varies across product formats. The current average rate does not prove capability for every shift and format.",
+          "category": "Investigation"
+        },
+        {
+          "id": "measurement",
+          "title": "Rate measurement",
+          "text": "Use good packs after rejects when measuring effective rate. Avoid deducting the same loss twice.",
+          "category": "Investigation"
+        }
+      ],
+      "branches": [
+        {
+          "id": "reliability",
+          "title": "Reliability and product mix",
+          "focus": "Test whether the trial sustains customer demand.",
+          "evidence": "The improved packing trial suggests 6,200 good packs/hour. Mixing stays 7,000/hour and filling 8,000/hour. Demand is 48,000 good packs/day over 8 hours.",
+          "question": "How much operating cushion does the trial provide?",
+          "calc": {
+            "question": "What is the percentage capacity cushion above demand? Enter percent.",
+            "answer": 3.3333,
+            "unit": "%",
+            "working": "(49,600 − 48,000)/48,000×100 = 3.33%.",
+            "hint": "Compare spare daily capacity with demand.",
+            "tolerance": 0.05
+          },
+          "shock": "Across production days, 60% of days run an easy format at 6,400 good packs/hour and 40% a difficult format at 5,200. These replace the initial 6,200 average. Every day is 8 hours; demand remains 48,000/day. Do not assume spare output can be carried to the next day.",
+          "stressCalc": {
+            "question": "What is average output across this mix of days?",
+            "answer": 47360,
+            "unit": "packs/day",
+            "working": "(0.6×6,400 + 0.4×5,200)×8 = 47,360/day. Difficult-format days produce only 41,600.",
+            "hint": "Calculate the weighted average, then assess each day separately.",
+            "tolerance": 1
+          },
+          "probe": "Why might an average be insufficient even if it met demand?",
+          "model": "The average misses demand and difficult-format days miss by 6,400 packs. Improve the difficult-format setup, validate shifts, or evaluate a temporary capacity option. Do not promise reliability from an average."
+        },
+        {
+          "id": "investment",
+          "title": "Investment and payback",
+          "focus": "Compare inexpensive debottlenecking with a temporary alternative.",
+          "evidence": "Packing improvements cost ₹8 lakh upfront. Incremental contribution is ₹2 per extra good pack sold; only the additional 8,000 packs/day needed to meet demand can be sold. Assume 250 operating days/year and sustained production. A temporary packing contractor can instead supply the 8,000/day at an extra ₹0.80/pack relative to in-house variable cost, with no setup cost.",
+          "question": "What is the payback, and how would you compare a contractor during the trial?",
+          "calc": {
+            "question": "Simple payback for the ₹8 lakh packing improvement, in operating days?",
+            "answer": 50,
+            "unit": "operating days",
+            "working": "₹800,000/(8,000×₹2)=50 operating days. Unsold excess capacity earns no contribution.",
+            "hint": "Use incremental sales, capped by demand.",
+            "tolerance": 0.01
+          },
+          "shock": "A firm customer update reduces total demand to 44,000/day for all of the coming year. Baseline output stays 40,000/day; contribution remains ₹2/extra pack; investment remains ₹8 lakh. The six-month trial window contains 125 operating days.",
+          "stressCalc": {
+            "question": "Recalculate simple payback in operating days at the lower demand.",
+            "answer": 100,
+            "unit": "operating days",
+            "working": "₹800,000/(4,000×₹2)=100 operating days. This fits 125 days if the improvement is sustained.",
+            "hint": "Only 4,000 extra packs can now be sold.",
+            "tolerance": 0.01
+          },
+          "probe": "How does demand certainty affect committing capital versus using temporary capacity?",
+          "model": "The improvement still has 100 operating-day payback, but demand and execution must be validated. A contractor may bridge the trial; compare its incremental cost and quality before selecting it."
+        }
+      ],
+      "strong": [
+        "Uses the system constraint, not the proposed equipment, as the starting point.",
+        "Does not double-count losses already embedded in effective rates.",
+        "Tests performance by format and caps benefits at sellable demand."
+      ],
+      "pitfalls": [
+        "Improving filling without changing the bottleneck.",
+        "Converting all extra capacity into profit regardless of demand.",
+        "Relying on one average trial rate for service commitments."
+      ]
+    },
+    "pricing": {
+      "clarifications": [
+        [
+          "What is the target baseline?",
+          "Improve the current annual operating profit by at least ₹1 crore."
+        ],
+        [
+          "Are customer counts year-end figures?",
+          "Use full-year average customers unless a later scenario says otherwise."
+        ],
+        [
+          "Does service cost include fixed overhead?",
+          "₹300/customer/month is variable service cost; the ₹5 crore fixed cost is additional."
+        ]
+      ],
+      "extra": [
+        {
+          "id": "experiment",
+          "title": "Experiment design",
+          "text": "A test needs a control group, customer-level contribution, support effort and churn tracking. A short promotional response is not proof of a durable uplift.",
+          "category": "Investigation"
+        }
+      ],
+      "branches": [
+        {
+          "id": "discount",
+          "title": "Broad price cut",
+          "focus": "Test contribution break-even and capacity.",
+          "evidence": "The proposal reduces monthly price from ₹1,000 to ₹850. Variable cost remains ₹300. Customer count rises from 10,000 to 12,500 for the full year. Fixed costs remain ₹5 crore.",
+          "question": "Does the sales projection actually improve profit?",
+          "calc": {
+            "question": "Calculate annual operating profit under the discount proposal. Enter ₹ crore.",
+            "answer": 3.25,
+            "unit": "₹ crore",
+            "working": "12,500×(₹850−₹300)×12 − ₹5 crore = ₹3.25 crore. This is ₹0.15 crore below the baseline.",
+            "hint": "Compare contribution, not customer growth.",
+            "tolerance": 0.02
+          },
+          "shock": "The paid test supports only 10% full-year average customer growth at the same discounted price. All other assumptions are unchanged.",
+          "stressCalc": {
+            "question": "Calculate annual operating profit at 11,000 customers. Enter ₹ crore.",
+            "answer": 2.26,
+            "unit": "₹ crore",
+            "working": "11,000×₹550×12 − ₹5 crore = ₹2.26 crore.",
+            "hint": "Use ₹550 monthly contribution.",
+            "tolerance": 0.02
+          },
+          "probe": "What volume increase would merely preserve baseline profit? What about the ₹1 crore improvement target?",
+          "model": "Preserving ₹3.4 crore profit requires 12,728 whole customers, about 27.3% growth. Hitting ₹4.4 crore needs 14,243, beyond known support capacity. Reject a blanket cut or limit it to a controlled experiment."
+        },
+        {
+          "id": "premium",
+          "title": "Segmented premium tier",
+          "focus": "Test monetisation of advanced users.",
+          "evidence": "All 7,000 standard users stay on ₹1,000/month with variable cost ₹300. Of the 3,000 advanced users, 70% adopt a ₹1,400 premium tier at variable cost ₹450; the rest retain the old plan. All remain for the full year. Additional annual product fixed cost is ₹30 lakh.",
+          "question": "How much incremental profit could a premium offer create?",
+          "calc": {
+            "question": "Calculate incremental annual operating profit versus the baseline. Enter ₹ lakh.",
+            "answer": 33,
+            "unit": "₹ lakh",
+            "working": "2,100×[(1,400−450)−(1,000−300)]×12 − ₹30 lakh = ₹33 lakh.",
+            "hint": "Only migrating users create incremental contribution.",
+            "tolerance": 0.02
+          },
+          "shock": "The pilot now indicates only 40% of advanced users will migrate; all others stay on the old plan. Costs are unchanged.",
+          "stressCalc": {
+            "question": "Calculate incremental annual operating profit with 40% migration. Enter ₹ lakh.",
+            "answer": 6,
+            "unit": "₹ lakh",
+            "working": "1,200×₹250×12 − ₹30 lakh = ₹6 lakh.",
+            "hint": "Migration changes; total customers do not.",
+            "tolerance": 0.02
+          },
+          "probe": "What additional benefit would be needed to meet the target? How could a smaller launch reduce fixed cost?",
+          "model": "A premium pilot remains slightly positive but cannot deliver the ₹1 crore target alone. Validate demand, limit development cost and investigate complementary retention or acquisition improvements."
+        }
+      ],
+      "strong": [
+        "Calculates contribution effects instead of equating customer growth with profit.",
+        "Checks whether the hurdle requires capacity beyond what is known.",
+        "Separates migration from new customers and identifies fixed product cost."
+      ],
+      "pitfalls": [
+        "Applying premium revenue to all users.",
+        "Ignoring service cost and capacity.",
+        "Presenting a small positive uplift as achievement of the full ₹1 crore target."
+      ]
+    },
+    "distribution": {
+      "clarifications": [
+        [
+          "What must improve?",
+          "Service as well as annual recurring savings. No single mandated on-time target has been agreed; propose a measurable one."
+        ],
+        [
+          "How do we treat inventory?",
+          "New inventory requires cash. Apply the specified annual carrying-cost rate in recurring economics, but discuss inventory cash separately from setup payback."
+        ],
+        [
+          "What is one-time payback?",
+          "For this exercise, setup expenditure divided by net recurring savings. This is not a full investment valuation."
+        ]
+      ],
+      "extra": [
+        {
+          "id": "process",
+          "title": "Order release",
+          "text": "Late release sometimes comes from inaccurate stock records and approval holds. A carrier contract alone will not remove those delays.",
+          "category": "Investigation"
+        }
+      ],
+      "branches": [
+        {
+          "id": "hub",
+          "title": "Regional hub",
+          "focus": "Test network savings including inventory.",
+          "evidence": "Karnataka shipments would cost ₹130 each from the hub. Other regions stay unchanged. Annual hub fixed cost ₹18 lakh; additional average inventory ₹40 lakh with 20% annual carrying cost. Setup cost ₹20 lakh. All 30,000 Karnataka shipments use the hub in the initial scenario.",
+          "question": "Does the hub meet the saving and setup-payback requirements?",
+          "calc": {
+            "question": "Calculate net annual recurring savings from the hub. Enter ₹ lakh.",
+            "answer": 25,
+            "unit": "₹ lakh",
+            "working": "30,000×(₹300−₹130)/100,000 − ₹18 lakh − ₹8 lakh = ₹25 lakh. Setup payback = 20/25 = 0.8 years.",
+            "hint": "Deduct fixed hub cost and inventory carrying cost.",
+            "tolerance": 0.02
+          },
+          "shock": "A demand review reduces Karnataka shipments to 20,000/year. Other region volumes, unit freight saving, hub fixed cost, inventory and carrying rate remain unchanged. Compare the hub with serving this same lower volume from Chennai.",
+          "stressCalc": {
+            "question": "Recalculate net annual hub savings at the lower Karnataka volume. Enter ₹ lakh.",
+            "answer": 8,
+            "unit": "₹ lakh",
+            "working": "20,000×₹170/100,000 − ₹18 lakh − ₹8 lakh = ₹8 lakh; setup payback 2.5 years.",
+            "hint": "Compare two networks at the same volume.",
+            "tolerance": 0.02
+          },
+          "probe": "What inventory and service evidence is needed before opening the hub?",
+          "model": "The hub passes the initial scenario but misses both economic hurdles at lower volume. A staged or smaller hub may be worth investigating, but do not invent lower costs; obtain a new quote and validate service."
+        },
+        {
+          "id": "process",
+          "title": "Carrier and warehouse release",
+          "focus": "Test a lower-capital service improvement.",
+          "evidence": "A carrier-and-cutoff programme saves ₹60/Karnataka shipment. It requires ₹5 lakh annual systems and coordination cost and ₹4 lakh one-time setup. Current Karnataka volume is 30,000/year. Other regions are unchanged.",
+          "question": "Can a process change meet the full savings objective, or only part of it?",
+          "calc": {
+            "question": "Calculate net annual recurring savings. Enter ₹ lakh.",
+            "answer": 13,
+            "unit": "₹ lakh",
+            "working": "30,000×₹60/100,000 − ₹5 lakh = ₹13 lakh. Payback is 4/13 = 0.31 years, but savings miss the ₹20 lakh hurdle.",
+            "hint": "Separate setup from recurring cost.",
+            "tolerance": 0.02
+          },
+          "shock": "A control-adjusted pilot shows only ₹35 saving per Karnataka shipment. Annual coordination cost remains ₹5 lakh, volume 30,000 and setup ₹4 lakh. Service improves from 78% to 90% on time in the pilot, but peak-season performance is untested.",
+          "stressCalc": {
+            "question": "Calculate revised recurring savings. Enter ₹ lakh.",
+            "answer": 5.5,
+            "unit": "₹ lakh",
+            "working": "30,000×₹35/100,000 − ₹5 lakh = ₹5.5 lakh. Setup payback ≈0.73 years.",
+            "hint": "Update only the verified unit saving.",
+            "tolerance": 0.02
+          },
+          "probe": "Would you accept partial savings with improved service? What would you negotiate with the COO?",
+          "model": "A pilot can be justified for service and quick payback, but it does not meet the full saving target. Make the gap explicit and seek additional levers or revised scope before making a full commitment."
+        }
+      ],
+      "strong": [
+        "Includes carrying cost and distinguishes cash tied in inventory from setup cost.",
+        "Compares alternatives at equal demand and uses net recurring savings.",
+        "Connects the service diagnosis to both carrier and internal-process changes."
+      ],
+      "pitfalls": [
+        "Counting gross freight savings as net savings.",
+        "Ignoring inventory cash or treating inventory as an annual expense in full.",
+        "Meeting payback while silently dropping the annual savings target."
+      ]
+    },
+    "education": {
+      "clarifications": [
+        [
+          "What is an additional outcome?",
+          "A student who meets mastery because of the programme relative to their no-programme outcome. The arithmetic uses stated uplift assumptions; evidence must still establish causality."
+        ],
+        [
+          "Is equity a formal quota?",
+          "No quota is specified. Explain whose access is improved or worsened and what trade-off you propose."
+        ],
+        [
+          "How should uncertain data be used?",
+          "Show conditional calculations and design a credible evaluation. Do not present the voluntary pilot as causal evidence."
+        ]
+      ],
+      "extra": [
+        {
+          "id": "measurement",
+          "title": "Measurement plan",
+          "text": "Use a common pre/post assessment and comparison group; track attendance, attrition and outcomes by access group. Discuss fair allocation and informed participation with programme leaders.",
+          "category": "Investigation"
+        }
+      ],
+      "branches": [
+        {
+          "id": "digital",
+          "title": "Digital engagement",
+          "focus": "Test the engagement assumption and delivery scale.",
+          "evidence": "A redesigned digital programme costs ₹12 lakh fixed + ₹400/enrolled student. It can reach 12,000 students with reliable access. Assume 90% engage; engaged learners gain 30 percentage points of mastery, non-engaged learners zero. There is no additional device budget.",
+          "question": "Can redesign meet the target, and who remains excluded?",
+          "calc": {
+            "question": "Calculate expected additional mastery outcomes.",
+            "answer": 3240,
+            "unit": "students",
+            "working": "12,000×90%×0.30 = 3,240; cost ₹12 lakh + ₹48 lakh = ₹60 lakh.",
+            "hint": "Use enrolment × engagement × absolute uplift.",
+            "tolerance": 1
+          },
+          "shock": "The wider trial finds engagement is only 65% at the same enrolment and assumed engaged-student uplift. Programme cost is unchanged. These observations do not yet resolve selection bias.",
+          "stressCalc": {
+            "question": "Recalculate expected additional mastery outcomes.",
+            "answer": 2340,
+            "unit": "students",
+            "working": "12,000×65%×0.30 = 2,340; shortfall 660.",
+            "hint": "Only engagement changes.",
+            "tolerance": 1
+          },
+          "probe": "How would you distinguish ineffective teaching from poor access or engagement?",
+          "model": "The scaled scenario misses the target. Test engagement supports and causality before rollout; acknowledge the 8,000 students without reliable digital access. Do not claim the initial estimate as a verified impact."
+        },
+        {
+          "id": "blended",
+          "title": "Community-supported learning",
+          "focus": "Compare access and impact under the same budget.",
+          "evidence": "Community learning costs ₹10 lakh fixed plus ₹1,000/enrolled student; enrol 5,000. Assume 95% engage and engaged students gain 50 percentage points of mastery. Non-engaged students have zero uplift. The eligible group has the same assumed 40% baseline, so a 50-point uplift is arithmetically feasible.",
+          "question": "How does this compare with the digital option on impact and inclusion?",
+          "calc": {
+            "question": "Calculate expected additional mastery outcomes.",
+            "answer": 2375,
+            "unit": "students",
+            "working": "5,000×95%×0.50 = 2,375; cost ₹60 lakh.",
+            "hint": "A 50-percentage-point uplift is 0.50.",
+            "tolerance": 1
+          },
+          "shock": "Facilitator constraints reduce feasible engagement to 80%, with the same enrolment, cost and uplift assumption. Community sites can include students without digital access.",
+          "stressCalc": {
+            "question": "Recalculate expected additional mastery outcomes.",
+            "answer": 2000,
+            "unit": "students",
+            "working": "5,000×80%×0.50 = 2,000; target shortfall 1,000.",
+            "hint": "Count engagement explicitly.",
+            "tolerance": 1
+          },
+          "probe": "What is a defensible recommendation if neither model meets the target?",
+          "model": "The supported model broadens access but misses the numeric target. Recommend a learning pilot or a mixed-design study, explicitly negotiate the target or budget and test outcomes with a credible comparison group."
+        }
+      ],
+      "strong": [
+        "Separates percentage points from relative changes.",
+        "Distinguishes projected impact from causally demonstrated impact.",
+        "Discusses exclusion and recommends what to do when no scenario meets the target."
+      ],
+      "pitfalls": [
+        "Counting every enrolled student as an incremental success.",
+        "Treating a selected voluntary pilot as a causal estimate.",
+        "Ignoring students without access because the digital unit cost is lower."
+      ]
+    }
+  }
+}
