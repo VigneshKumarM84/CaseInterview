@@ -1,6 +1,6 @@
 # Case Room
 
-Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode, behavioural (HR) interview practice with a story bank and campus placement aptitude practice sit alongside the cases.
+Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode, behavioural (HR) interview practice with a story bank, campus placement aptitude practice and a résumé checker sit alongside the cases.
 
 ## Product and analytics cases
 
@@ -64,6 +64,20 @@ Open **Aptitude** in the header, or link straight to `/#aptitude`. Practice for 
 - **Questions:** every question is multiple choice with four distinct options and exactly one correct answer. Wrong options come from common mistakes, such as adding percentages instead of compounding, dividing by the wrong base, swapping left and right, or stopping a series one step early. Indian context and units (₹, lakh, crore, km/h) are used where natural.
 - Generated questions are reproducible from a seed (`src/aptitude-questions.js`, no DOM, unit-tested in Node). Progress stays in this browser (`cr-aptitude-*` keys). Stored data is validated when read, and anything corrupt is ignored. Delete history from the aptitude page.
 
+## Résumé and job-description checker
+
+Open **Résumé check** in the header, or link straight to `/#resume`. It flags weak bullet points and shows which job-description keywords are missing. Free, with no AI and no server: **your file is read in your browser and nothing is uploaded.**
+
+- **Getting the résumé in:** choose or drag a PDF, Word (.docx) or .txt file (up to 5 MB), paste the text, or load a fictional sample. Images, `.doc`, `.pages` and `.odt` are rejected with a message suggesting PDF, Word or pasting. The extracted text goes into the résumé box with a note to check it; **the checks always run on that box, never on the file**, so extraction mistakes can be fixed first. The page shows the file name, type, and how many lines and bullets were found. The file itself is never stored.
+  - **.txt** is read as UTF-8.
+  - **.docx** is unzipped in the browser (stored and deflated entries, via `DecompressionStream('deflate-raw')`) and `word/document.xml` is parsed with `DOMParser`. Word list paragraphs become "•" bullets, heading styles and short all-caps lines become section headings, tabs become spaces and line breaks start new lines. Headers, footers and text boxes are ignored, and text in tables or text boxes may be missed.
+  - **.pdf** uses Mozilla's pdf.js, stored in `vendor/pdfjs/` and loaded only when a PDF is chosen. Lines are rebuilt from the text positions: spaces from gaps, paragraph and page breaks, bullet glyphs turned into "•", words hyphenated across lines rejoined, and wrapped bullets joined (by indent, or because the line reaches the right margin and carries on). Simple two-column layouts are detected and read left column first; the page still warns that columns can come out in the wrong order. A PDF with under about 200 characters of text is reported as scanned or image-only (there is no OCR). Password-protected PDFs get their own message. PDF reading needs the hosted site or `npm start`; from a file opened directly from disk, upload a .docx or paste instead.
+- **Bullet checks** (a checklist, not a score): a strong past-tense action verb from a list of about 200 (weak openers such as "responsible for", "worked on", "helped" and first-person "I"/"my" are flagged); a number or measurable result (digits, %, ₹/$, lakh/crore, "3x", number words; years do not count; a warning, not a fail); passive voice (a "be" + participle pattern, labelled a heuristic); length (under 8 or over 30 words, or past about two lines); filler and vague words ("various", "etc.", "successfully", "team player"…); the same opening verb on three or more bullets, or twice in one role, with similar verbs to try; and, per role, present tense in a finished role or a mix of tenses. Bullets are found from •, -, *, –, ▪ and numbering, plus plain lines under Experience, Projects and Positions of Responsibility. Each bullet expands to show why, and can be edited in place: the checks, the summary, the match and the résumé box update as you type.
+- **Job-description match** (optional): keywords and two- and three-word phrases are extracted from the advert, generic hiring words ("candidate", "requirements", "years", "experience" on its own) and names are dropped, and terms are ranked by frequency, by section (requirements weigh more) and by a list of common skills and tools. Matching handles case, plurals, simple stemming, British and American spellings and variants (analyse/analyze/analysis, MS Excel/Excel, ML/machine learning, JS/JavaScript). Results are grouped as **Matched**, **Only in Skills, not in any bullet** (weaker evidence) and **Missing**, with the share of the top 20 found. The page says plainly that this is word overlap, not how a recruiter or an applicant tracking system will judge the résumé, and that a missing keyword should be added only where the student genuinely has that experience.
+- **Output:** copy the improved bullets, or download a text report.
+- **Saving is optional and off by default.** Tick "Remember my text on this device" to keep the résumé and job-description text (never the file) in this browser (`cr-resume-*` keys). Unticking it, or "Delete saved text", removes it.
+- The analysis (`src/resume-check.js`) has no DOM access and is unit-tested in Node, including the PDF line rebuilding and the .docx XML conversion. Word lists and the samples are in `content/resume-words.js`. File reading is in `src/resume-files.js`. Apart from loading pdf.js from this site, the tool makes no network requests; a test fails if `fetch`, `XMLHttpRequest` or `navigator.sendBeacon` is called during analysis.
+
 ## Included AI features
 
 - **Feedback:** assesses the candidate's actual responses across six reasoning dimensions, with exact-excerpt verification, improvement priorities and a practice exercise. No hiring-readiness score.
@@ -94,20 +108,23 @@ npm install
 npm start
 ```
 
-Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice, the maths drill, peer interviews, behavioural practice and aptitude practice, but in-app AI needs the server.
+Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice, the maths drill, peer interviews, behavioural practice, aptitude practice and the résumé checker (pasted text, .txt and .docx), but in-app AI and PDF reading need the server.
 
 ### Project layout
 
 - `index.html`: page shell. It loads the files below in order.
-- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css`, `behavioural.css` and `aptitude.css` for those tools).
+- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css`, `behavioural.css`, `aptitude.css` and `resume.css` for those tools).
 - `content/cases.js`: the authored case catalogue. Edit cases here.
 - `content/aptitude-verbal.js`: the original verbal aptitude bank (items and reading passages). Edit verbal questions here.
+- `content/resume-words.js`: the résumé checker's word lists (action verbs, weak openers, filler words, section names, stop words, skills and variants) and the fictional sample résumé and job description.
 - `src/core.js`: shared helpers (storage, toast, modal, download).
 - `src/cases.js`: case library, sessions, reports and history, plus the shared read-aloud and dictation helpers (`speak()`, `attachDictation()`).
 - `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
 - `src/peer.js`: peer interview guide, candidate screen, feedback and printable sheet. It reads the case catalogue and reuses the case flow helpers in `src/cases.js`.
 - `src/behavioural-content.js` and `src/behavioural.js`: behavioural question bank and answer heuristics (no DOM, unit-tested in Node), and the practice, story bank and printable sheet UI.
 - `src/aptitude-questions.js` and `src/aptitude.js`: aptitude question generators, scoring and progress statistics (no DOM, unit-tested in Node), and the practice, timed test and results UI.
+- `src/resume-check.js`, `src/resume-files.js` and `src/resume.js`: résumé analysis (structure, bullet checks, keyword matching, PDF line rebuilding, .docx XML conversion; no DOM, unit-tested in Node), reading files on the device (zip, inflate, pdf.js loading), and the checker UI.
+- `vendor/pdfjs/`: Mozilla's pdf.js 6.5.438 (Apache-2.0), stored in the repository and loaded only when a PDF is chosen. See `vendor/pdfjs/README.md`.
 - `src/ai-client.js`: optional BYOK AI. `src/boot.js` starts the app.
 - `lib/`, `api/`: the AI proxy used by Vercel and `npm start`.
 
@@ -118,7 +135,7 @@ npm test
 npm run build
 ```
 
-There are no production npm dependencies. jsdom is a development-only test dependency.
+There are no production npm dependencies. jsdom is a development-only test dependency. pdf.js is stored as two files in `vendor/pdfjs/` rather than installed from npm. Its integration tests need Node 22.13 or newer and are skipped on older Node. `tests/fixtures/make-pdfs.cjs` regenerates the small PDF fixtures.
 
 ## Vercel deployment
 
@@ -129,7 +146,7 @@ Import this repository. `vercel.json` configures:
 - Output directory: `public`
 - Serverless function: `api/ai.js`
 
-**If the project was previously deployed as a static-only site, remove or update old Vercel dashboard overrides (blank build command and output `.`).** The build copies `index.html`, `assets/`, `content/` and `src/` into `public`, and generates the canonical server-side case catalog from `content/cases.js`. Do not edit `data/cases.json` independently.
+**If the project was previously deployed as a static-only site, remove or update old Vercel dashboard overrides (blank build command and output `.`).** The build copies `index.html`, `assets/`, `content/`, `src/` and `vendor/` into `public`, and generates the canonical server-side case catalog from `content/cases.js`. Do not edit `data/cases.json` independently.
 
 No provider secret is required in Vercel for the default bring-your-own-key mode. Never add a key to this repository. The function forwards the key provided by the user only to the selected provider.
 
@@ -146,11 +163,12 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 - Provider rate limits and charges apply. Each request has a bounded output, a timeout, no automatic retry, and a 100 KB input limit. Answers are capped at 5,000 characters for AI review. An in-memory per-key rate guard is best-effort per server instance, not a distributed quota or spend cap. Use provider account spend controls and Vercel firewall/rate limits for wider public access.
 - Cancellation prevents stale results from changing the interface; a provider may still finish and bill an already-started request.
 - Only exact quote existence is verified, not the correctness of an AI interpretation. Numerical checks remain deterministic. AI follow-ups can still be imperfect.
+- The résumé checker reads files in the browser and uploads nothing. It stores résumé and job-description text only if you tick "Remember my text", and never stores the file.
 - Browser speech services may process audio/text online. This integration does not send recordings to the AI provider and does not retain audio recordings.
 
 ## Validation
 
-Automated API and jsdom interaction tests cover all 24 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Aptitude tests check every generated question kind at every level against independently written solvers: formulas, brute-force counting for permutations and probability, a brute-force seating solver, Venn-diagram model checking for syllogisms and a family-tree walk for blood relations. They also check that the four options are distinct, that exactly one is correct and that answers carry no float noise. The verbal bank is checked for one correct option per item and for passages that have questions. jsdom tests run a full timed test with auto-submit, negative marking, mark-for-review, sectional timers, resume after reload, corrupt storage and isolation from the other tools. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
+Automated API and jsdom interaction tests cover all 24 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Aptitude tests check every generated question kind at every level against independently written solvers: formulas, brute-force counting for permutations and probability, a brute-force seating solver, Venn-diagram model checking for syllogisms and a family-tree walk for blood relations. They also check that the four options are distinct, that exactly one is correct and that answers carry no float noise. The verbal bank is checked for one correct option per item and for passages that have questions. jsdom tests run a full timed test with auto-submit, negative marking, mark-for-review, sectional timers, resume after reload, corrupt storage and isolation from the other tools. Résumé checker tests cover section and bullet detection on several layouts, each check with positive and negative examples, keyword extraction and variants, the match groups, .docx files built in the test (deflated, stored and corrupt), PDF line rebuilding from synthetic text items, the stored pdf.js on a text PDF and an image-only PDF, rejected files, upload-edit-recheck in the page, saving and deleting, corrupt storage, HTML escaping, no network calls and isolation from the other tools. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
 
 Research references are in the app's Research & case design section. Provider implementation references:
 

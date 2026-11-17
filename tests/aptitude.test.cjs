@@ -345,7 +345,7 @@ test('aptitude practice does not interfere with case sessions, the drill, peer i
     assert.deepEqual(snap(), before);
     assert.equal(f.run('history.length'), 0, 'aptitude attempts are not case sessions'); assert.equal(f.run('CaseDrill.state().runs.length'), 0); assert.equal(f.run('PeerMock.state().past.length'), 0); assert.equal(f.run('Behavioural.state().attempts.length'), 0);
     assert.deepEqual(Object.keys(f.w.localStorage).filter(k => k.startsWith('cr-aptitude-')).sort(), ['cr-aptitude-history', 'cr-aptitude-prefs', 'cr-aptitude-run']);
-    f.$('homeNav').click(); assert.equal(f.w.location.hash, ''); assert.equal(doc(f).querySelectorAll('.tool-callouts .tool-callout').length, 4);
+    f.$('homeNav').click(); assert.equal(f.w.location.hash, ''); assert.equal(doc(f).querySelectorAll('.tool-callouts .tool-callout').length, 5);
     f.$('aptitudeCallout').click(); assert.equal(f.run('view'), 'aptitude'); assert(f.$('aptResume'), 'the replaced practice set can be resumed');
     f.$('drillNav').click(); assert.equal(f.w.location.hash, '#drill'); assert(f.$('drillResume'), 'the drill round is still there');
     f.$('aptitudeNav').click(); assert.equal(f.w.location.hash, '#aptitude');
