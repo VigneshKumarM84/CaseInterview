@@ -1,6 +1,16 @@
 # Case Room
 
-Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode and behavioural (HR) interview practice with a story bank sit alongside the cases.
+Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode and behavioural (HR) interview practice with a story bank sit alongside the cases.
+
+## Product and analytics cases
+
+Three cases for product manager, product analyst and business analyst interviews. Filter the library by **Product & analytics** to find them.
+
+- **Where did the orders go?** (metric drop): a quick-commerce app loses 13% of orders in a week. Locate the drop in the funnel, segment it, size it, then act and measure.
+- **Did the streak work?** (metrics and experiments): read an A/B test of a learning-app streak. Choose a primary metric and guardrails, separate relative from absolute lift, and check whether the effect lasts and whether the experiment is sound.
+- **Which feature first?** (product sense and prioritisation): choose one of three features for kirana shopkeepers using research, RICE scoring and revenue sizing, then plan a test.
+
+They use the same eight-stage flow, with their own stage names, prompts, closing notes and review criteria (`archetype` `analytics`, `metrics` and `product` in `content/cases.js`), and work in peer interview mode and with optional AI coaching. Cases with `track: 'product'` appear under the Product & analytics filter.
 
 ## Case maths drill
 
@@ -14,7 +24,7 @@ Open **Maths drill** in the header, or link straight to `/#drill`. Short rounds 
 
 ## Peer interview
 
-Open **Peer interview** in the header, or link straight to `/#peer`. Two people practise together: one runs the case from an interviewer guide, the other answers out loud. Any of the nine cases works.
+Open **Peer interview** in the header, or link straight to `/#peer`. Two people practise together: one runs the case from an interviewer guide, the other answers out loud. Any of the twelve cases works.
 
 - The guide walks through all eight stages. For each one it shows what to ask, what to share when the candidate asks (clarifications, exhibits, path data, new evidence), what a strong answer sounds like, a follow-up question, and an answer key with the hint to offer if they are stuck.
 - The interviewer types the candidate's number and the guide says whether it is within the case's tolerance.
@@ -120,7 +130,7 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 
 ## Validation
 
-Automated API and jsdom interaction tests cover all 18 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
+Automated API and jsdom interaction tests cover all 24 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
 
 Research references are in the app's Research & case design section. Provider implementation references:
 

@@ -3,3 +3,9 @@
 /* Home-page tiles that link to the other practice tools (added by each tool). */
 .tool-callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:0 0 36px}
 .tool-callouts .tool-callout{flex-direction:column;align-items:flex-start;justify-content:space-between;margin:0}
+/* Library filter: consulting cases and product & analytics cases. */
+.track-filter{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 0}
+.track-filter button{padding:8px 14px;font-size:13px;border-radius:20px}
+.track-filter button span{color:var(--muted);margin-left:4px}
+.track-filter button[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
+.track-filter button[aria-pressed=true] span{color:#cfe0c5}

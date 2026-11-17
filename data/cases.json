@@ -594,6 +594,196 @@
       "decisionFeedback": "Compare NPV under consistent assumptions, test downside scenarios and consider control, dependence and reversibility. A positive NPV does not establish service feasibility.",
       "model": "Both base options have positive NPV under the supplied assumptions, with the partner requiring less upfront capital. A defensible decision tests demand, service and contract risks before committing; it may favour a conditional partnership rather than an unconditional launch.",
       "drill": "Compare two investments with different capital requirements using consistent cash-flow timing, then test what could invalidate the preferred option."
+    },
+    {
+      "id": "metricdrop",
+      "track": "product",
+      "title": "Where did the orders go?",
+      "company": "Quick commerce • Product analytics",
+      "level": "Intermediate",
+      "minutes": 35,
+      "icon": "↘",
+      "color": "#e3ebf2",
+      "summary": "Orders fell 13% in a week. Find where in the funnel, for whom, and what to do now.",
+      "brief": "BasketNow is a 20-minute grocery delivery app in five cities. Weekly orders fell from 4,00,000 to 3,47,500 in the week starting 3 March, about 13% down on the week before. Leadership wants to know what happened, how sure you are, and what to do this week. All data is fictional.",
+      "objective": [
+        "Explain the order drop with a clear confidence level and recommend an action for this week."
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "orders",
+          "title": "Weekly orders trend",
+          "category": "Metric",
+          "critical": true,
+          "text": "Weekly orders in the three weeks before 3 March: 4,02,000; 3,98,000; 4,00,000. Week starting 3 March: 3,47,500. The same week last year was 1% up on the week before. An order is counted when payment succeeds."
+        },
+        {
+          "id": "funnel",
+          "title": "Funnel, prior week vs latest week",
+          "category": "Funnel",
+          "critical": true,
+          "text": "App sessions: 20,00,000 → 20,00,000. Sessions with an item added to cart: 8,00,000 → 8,00,000. Checkouts started: 5,00,000 → 5,00,000. Payments succeeded: 4,00,000 → 3,47,500."
+        },
+        {
+          "id": "platform",
+          "title": "Platforms and releases",
+          "category": "Product",
+          "critical": true,
+          "text": "Android carries 70% of checkouts and iOS 30%, in both weeks. Android app version 8.2 was released to half of Android users on 3 March. It moved payment to a new in-app checkout page and added a saved-UPI option. It passed QA on test devices."
+        },
+        {
+          "id": "market",
+          "title": "Market and pricing",
+          "category": "External",
+          "text": "No competitor launches, price changes or delivery-fee changes in the period. Marketing spend was unchanged. Weather and holidays were normal in all five cities."
+        },
+        {
+          "id": "cities",
+          "title": "City split",
+          "category": "Segments",
+          "text": "Each of the five cities shows orders down between 12% and 14%. Sessions in every city are within 1% of the prior week."
+        }
+      ],
+      "calc": {
+        "question": "Payment success is payments succeeded ÷ checkouts started. By how many percentage points did it fall between the prior week and the latest week?",
+        "answer": 10.5,
+        "tolerance": 0.1,
+        "unit": "percentage points",
+        "working": "Prior week: 4,00,000 ÷ 5,00,000 = 80%. Latest week: 3,47,500 ÷ 5,00,000 = 69.5%. Fall: 80 − 69.5 = 10.5 percentage points. Every earlier funnel step is flat, so the whole drop sits at payment.",
+        "hint": "Work out the conversion rate for each week, then subtract. A change in a rate is measured in percentage points."
+      },
+      "hypothesisFeedback": "Sessions, carts and checkouts are flat, so demand has not changed. The whole drop is at the payment step, which points to the payment flow rather than the market.",
+      "decisionFeedback": "Act on what is established, such as pausing or rolling back the release for affected users, while verifying the exact cause. Measure recovery against users who were never affected.",
+      "model": "Demand is unchanged: the drop sits at payment success, which fell from 80% to 69.5% when Android 8.2 shipped. Pause or roll back the release now, verify the exact cause, and confirm that orders recover to about 4,00,000 a week.",
+      "drill": "Practise funnel maths: work out step-by-step conversion for two periods and find the step where the change happens."
+    },
+    {
+      "id": "experiment",
+      "track": "product",
+      "title": "Did the streak work?",
+      "company": "Learning app • Metrics & experiments",
+      "level": "Intermediate",
+      "minutes": 35,
+      "icon": "◔",
+      "color": "#ece6f4",
+      "summary": "A streak feature lifted retention in an A/B test. Decide whether it really helps learners and the business.",
+      "brief": "PadhoPlus is a vocabulary-learning app with a 14-day free trial, then a paid subscription. It ran an A/B test of a daily streak: a counter showing how many days in a row a learner has practised, plus a 9 pm reminder. Leadership wants to know whether to launch it to everyone. They care about learning and paid subscribers, not just app opens. All data is fictional.",
+      "objective": [
+        "Decide whether to launch the streak, using a primary metric chosen in advance plus guardrails for learning quality and revenue."
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "design",
+          "title": "Experiment design",
+          "category": "Experiment",
+          "critical": true,
+          "text": "New sign-ups over four weeks were split at random, 50/50. Control: 40,000 learners. Streak: 40,000 learners. The primary metric, written down before the test, is week-4 retention: the share of learners active in their fourth week."
+        },
+        {
+          "id": "results",
+          "title": "Topline results",
+          "category": "Results",
+          "critical": true,
+          "text": "Week-1 retention: control 30%, streak 36%. Week-4 retention: control 18.0%, streak 19.8%. Lessons completed per active learner per week: control 12, streak 11. The data team says the week-4 difference is statistically significant."
+        },
+        {
+          "id": "quality",
+          "title": "Learning quality",
+          "category": "Guardrail",
+          "critical": true,
+          "text": "Average score on review quizzes: control 72%, streak 64%. Streak learners did more of the shortest 1-minute quick-review lessons, which keep a streak alive."
+        },
+        {
+          "id": "notifications",
+          "title": "Notifications",
+          "category": "Guardrail",
+          "text": "Streak learners got a 9 pm reminder if they had not practised that day. Turned off notifications by week 4: control 2%, streak 5%."
+        },
+        {
+          "id": "business",
+          "title": "Business goal",
+          "category": "Context",
+          "text": "The goal this year is more paid subscribers. Retention is used as a leading indicator because most learners who pay are still active at the end of their trial."
+        }
+      ],
+      "calc": {
+        "question": "What is the relative lift in week-4 retention for the streak group compared with control? Enter %.",
+        "answer": 10,
+        "tolerance": 0.1,
+        "unit": "%",
+        "working": "(19.8% − 18.0%) ÷ 18.0% = 1.8 ÷ 18 = 10% relative lift. In absolute terms that is 1.8 percentage points.",
+        "hint": "Relative lift is the difference divided by the control rate. Do not confuse it with the 1.8-point absolute difference."
+      },
+      "hypothesisFeedback": "The streak lifts early retention, but shorter lessons, lower quiz scores and more notification opt-outs suggest it may reward opening the app rather than learning.",
+      "decisionFeedback": "Weigh the primary metric against the guardrails. Launching, redesigning or testing further can all be defensible if tied to the evidence.",
+      "model": "Week-4 retention rose 10% in relative terms (18.0% to 19.8%), but lessons per learner and quiz scores fell. A defensible answer holds the launch and tests a streak that rewards full lessons, with learning-quality guardrails.",
+      "drill": "Practise relative versus absolute change: convert retention rates into percentage-point and percentage lifts, then into numbers of users."
+    },
+    {
+      "id": "prioritise",
+      "track": "product",
+      "title": "Which feature first?",
+      "company": "Payments app • Product strategy",
+      "level": "Advanced",
+      "minutes": 40,
+      "icon": "▤",
+      "color": "#e2eee6",
+      "summary": "Three feature ideas, one quarter. Choose what to build for small shopkeepers and how to test it.",
+      "brief": "KiranaPay is a UPI payments app used by 2 lakh kirana shopkeepers to accept payments. The team can build one major feature this quarter. Three ideas are on the table: instant settlement of payments to the bank, a simple stock tracker, and small working-capital loans through a lending partner. Recommend which to build first and how to test it. All data is fictional.",
+      "objective": [
+        "Choose the one feature to build first, based on the most important user problem, the size of the opportunity and the effort, and plan how to test it."
+      ],
+      "objectiveCorrect": 0,
+      "exhibits": [
+        {
+          "id": "users",
+          "title": "Shopkeeper segments",
+          "category": "Users",
+          "critical": true,
+          "text": "2,00,000 active shopkeepers. Small stores (under ₹5,000 of UPI sales a day): 1,40,000, averaging ₹2,000 a day. Larger stores: 60,000, averaging ₹10,000 a day, so they carry about 68% of payment value. Monthly churn: small stores 4%, larger stores 2%."
+        },
+        {
+          "id": "research",
+          "title": "User research",
+          "category": "Research",
+          "critical": true,
+          "text": "Interviews with 40 shopkeepers. Waiting until the next day for money to reach the bank: raised by 26, mostly larger stores that pay suppliers the same day. Needing ₹20,000–₹50,000 for festival stock: raised by 18, mostly larger stores. Running out of fast-moving stock: raised by 14, mostly small stores."
+        },
+        {
+          "id": "ideas",
+          "title": "The three ideas",
+          "category": "Options",
+          "critical": true,
+          "text": "Instant settlement: money reaches the bank within minutes, for a 0.3% fee on the value settled. Stock tracker: record sales by item and get low-stock alerts; free. Working-capital loans: average ₹25,000 through a lending partner; KiranaPay earns 2% of the amount lent."
+        },
+        {
+          "id": "effort",
+          "title": "Engineering estimates",
+          "category": "Effort",
+          "critical": true,
+          "text": "Instant settlement: 2 months, because the bank partner already supports it. Stock tracker: 4 months, because it needs an item catalogue and a new app section. Loans: 5 months, including partner integration, risk checks and regulatory review."
+        },
+        {
+          "id": "competition",
+          "title": "Competitors",
+          "category": "Market",
+          "text": "Two rival apps settle the next day for free. One offers loans to larger stores. None has a stock tracker."
+        }
+      ],
+      "calc": {
+        "question": "Larger stores average ₹10,000 of UPI sales a day. If 30% of them adopt instant settlement and settle all their sales instantly, what monthly fee revenue does it earn? Assume 30 days. Enter ₹ lakh.",
+        "answer": 162,
+        "tolerance": 0.5,
+        "unit": "₹ lakh",
+        "working": "60,000 × 30% = 18,000 stores. 18,000 × ₹10,000 × 30 days = ₹540 crore settled a month. 0.3% of ₹540 crore = ₹1.62 crore = ₹162 lakh a month.",
+        "hint": "Stores × sales per day × days gives the value settled; then apply the 0.3% fee. ₹1 crore = ₹100 lakh."
+      },
+      "hypothesisFeedback": "The most common problem in the research is slow settlement for larger stores, who carry about two-thirds of payment value. The stock tracker addresses a real but less frequent problem, mostly for small stores.",
+      "decisionFeedback": "Choose one feature and say what you are giving up. Test it with a small first version, a success metric and a condition for stopping.",
+      "model": "Instant settlement solves the most raised problem for the stores that carry about two-thirds of payment value, earns fee revenue (about ₹162 lakh a month at 30% adoption) and is the quickest to build. Build it first and pilot it with a group of larger stores.",
+      "drill": "Practise prioritisation maths: work out RICE scores and simple revenue estimates for two or three options, then find which input changes the ranking."
     }
   ],
   "rich": {
@@ -1431,6 +1621,318 @@
         "Subtracting capital expenditure from every annual cash flow.",
         "Comparing accounting profit with discounted cash flow.",
         "Ignoring the service hurdle because NPV is positive."
+      ]
+    },
+    "metricdrop": {
+      "archetype": "analytics",
+      "minutes": 35,
+      "stageNames": [
+        "Clarify the metric",
+        "Segment the drop",
+        "Size it",
+        "Choose a cut",
+        "Drill down",
+        "New data",
+        "Explain & act",
+        "Measure"
+      ],
+      "prompts": {
+        "0": "Orders fell about 13% week on week. Before guessing causes, what would you clarify about the metric and the timing, and how would you break the problem down?",
+        "1": "Which data would you look at first to separate internal causes from external ones? Request exhibits and state your leading hypothesis, and what would rule it out.",
+        "3": "Two cuts look promising: split the payment step by platform and app version, or check the drop against payment-gateway records first. Which would you do first, and what would each result tell you?",
+        "5": "New data has arrived. How does it change your explanation? Recalculate and say what you would now tell leadership.",
+        "6": "Explain what happened, how confident you are, and what the team should do this week. Separate the action from what still needs verifying.",
+        "7": "How would you know the fix worked? Name the metric, a guardrail, the comparison you would use and when you would check."
+      },
+      "assessmentInstruction": "Product analytics root-cause case. Assess metric definition, funnel decomposition, segmentation, sizing the impact, separating correlation from cause, and a proportionate action with a measurement plan. Accept a rollback, a paused rollout or a targeted fix when the evidence supports it.",
+      "finalDimension": "Explanation, action and measurement",
+      "closingNote": "Lead with what happened and how sure you are. Separate the action for this week from what still needs to be verified.",
+      "clarifications": [
+        [
+          "How is an order counted?",
+          "An order is counted when payment succeeds. Cash on delivery is not offered. Cancellations are tracked separately and did not change."
+        ],
+        [
+          "Did anything else change around 3 March?",
+          "Prices, delivery fees and marketing spend were unchanged. Product releases and other context are in the exhibits."
+        ],
+        [
+          "What does leadership need?",
+          "A clear explanation, how confident you are, and an action for this week. A permanent fix can come later."
+        ]
+      ],
+      "extra": [],
+      "branches": [
+        {
+          "id": "version",
+          "title": "Split by platform and version",
+          "focus": "Find which users the payment drop affects.",
+          "evidence": "Latest week, checkouts started and payments succeeded. Android 8.2: 1,75,000 checkouts, 87,500 payments. Android 8.1 (not updated): 1,75,000 checkouts, 1,40,000 payments. iOS: 1,50,000 checkouts, 1,20,000 payments. In the prior week every group converted at 80%.",
+          "question": "What does the breakdown tell you, and how big is the problem?",
+          "calc": {
+            "question": "How many weekly orders did Android 8.2 lose, assuming its users would otherwise have converted at the same 80% as everyone else? Enter orders.",
+            "answer": 52500,
+            "unit": "orders",
+            "working": "Android 8.2 converted at 87,500 ÷ 1,75,000 = 50%. Expected at 80%: 1,40,000. Lost: 1,40,000 − 87,500 = 52,500 orders, the whole fall from 4,00,000 to 3,47,500.",
+            "hint": "Compare actual payments with what 80% conversion would have produced for the same checkouts.",
+            "tolerance": 1
+          },
+          "shock": "Engineering finds that Android 8.2 fails only on phones with less than 3 GB of memory: the new checkout page crashes when the UPI app hands back. Those phones are 60% of Android 8.2 checkouts, and payment success on them is 30%. On other 8.2 phones it is 80%. A rollback to 8.1 can ship in 2 days; a proper fix needs 10 days.",
+          "stressCalc": {
+            "question": "Android 8.2 has about 25,000 checkouts a day. If you roll back in 2 days instead of waiting 10 days for the fix, how many orders do you save over those 8 days? Assume the rollback restores 80% success. Enter orders.",
+            "answer": 60000,
+            "unit": "orders",
+            "working": "Affected checkouts: 25,000 × 60% = 15,000 a day. Lost per day: 15,000 × (80% − 30%) = 7,500 orders. Over 8 days: 7,500 × 8 = 60,000 orders.",
+            "hint": "Only the low-memory phones are affected. Work out orders lost per day, then multiply by the days saved.",
+            "tolerance": 1
+          },
+          "probe": "What would you check before rolling back, so you do not throw away what 8.2 does well?",
+          "model": "The drop is a payment failure on Android 8.2, concentrated on low-memory phones, and it explains all 52,500 lost weekly orders. Roll back for affected phones now: that saves about 60,000 orders compared with waiting for the 10-day fix. Then ship the fix through a staged rollout guarded by crash rate and payment success, and confirm recovery to about 4,00,000 orders a week against users who stayed on 8.1."
+        },
+        {
+          "id": "reconcile",
+          "title": "Check the payment records",
+          "focus": "Confirm the drop is real and find where in payment it happens.",
+          "evidence": "The payment gateway settled 3,47,200 transactions in the latest week; the app recorded 3,47,500, a normal gap from refund timing. Dark stores packed 3,47,100 orders. Payment attempts that did not succeed: 1,00,000 in the prior week and 1,52,500 in the latest week. Gateway error codes are unchanged; the extra failures show as “user did not return from UPI app”.",
+          "question": "Is the drop real, and where in the payment step is it happening?",
+          "calc": {
+            "question": "By what percentage did failed payment attempts rise week on week? Enter %.",
+            "answer": 52.5,
+            "unit": "%",
+            "working": "(1,52,500 − 1,00,000) ÷ 1,00,000 = 52.5% more failed payments. The gateway and dark-store counts match the app, so this is a real drop, not a tracking error.",
+            "hint": "Percentage change = (new − old) ÷ old.",
+            "tolerance": 0.1
+          },
+          "shock": "Failures split by app version: Android 8.2 had 1,75,000 checkouts and 87,500 failed payments. All other users had 3,25,000 checkouts and 65,000 failures, the same 20% failure rate as the prior week.",
+          "stressCalc": {
+            "question": "How many more failed payments did Android 8.2 have than the normal 20% failure rate would produce? Enter failed payments.",
+            "answer": 52500,
+            "unit": "failed payments",
+            "working": "Expected failures at 20%: 1,75,000 × 20% = 35,000. Actual: 87,500. Extra: 87,500 − 35,000 = 52,500, which matches the whole fall in orders.",
+            "hint": "Compare actual failures with what the normal rate predicts for the same checkouts.",
+            "tolerance": 1
+          },
+          "probe": "The release passed QA. What would you change so a problem like this is caught before it reaches half of Android users?",
+          "model": "The drop is real: gateway and dark-store records agree with the app. It sits entirely at the payment step, with about 52,500 extra failures, all from Android 8.2 users not returning from their UPI app. Pause the 8.2 rollout or roll back now, reproduce the UPI hand-back on real devices, and resume only through a staged rollout guarded by payment success. Still unknown: which phones are affected, and whether the new checkout page or saved UPI causes it."
+        }
+      ],
+      "strong": [
+        "Clarifies how the metric is counted and checks the drop against normal variation before hunting for causes.",
+        "Uses the funnel to find the step where the drop happens, then segments that step to find who is affected.",
+        "Separates the urgent action from verifying the cause, and says how recovery will be measured."
+      ],
+      "pitfalls": [
+        "Listing every possible cause (competitors, weather, pricing) without using the data to narrow down.",
+        "Blaming the release only because of the timing, without checking that unaffected users stayed normal.",
+        "Recommending a fix with no way to measure whether orders recovered."
+      ]
+    },
+    "experiment": {
+      "archetype": "metrics",
+      "minutes": 35,
+      "stageNames": [
+        "Clarify the goal",
+        "Choose metrics",
+        "Read the result",
+        "Choose a check",
+        "Dig deeper",
+        "New evidence",
+        "Decide",
+        "Plan the launch"
+      ],
+      "prompts": {
+        "0": "What is the streak meant to achieve for learners and for the business? Before looking at results, what would success look like, and what could go wrong?",
+        "1": "Choose a primary metric and a few guardrail metrics. Request the experiment data you need and explain why each metric matters.",
+        "3": "Before you trust the result, which would you check first: whether the effect lasts, or whether the experiment itself is sound? Explain what each check could reveal.",
+        "5": "New evidence has arrived. How does it change your reading of the experiment? Recalculate and say what you now believe.",
+        "6": "Should PadhoPlus launch the streak to everyone, launch a changed version, or keep testing? Give your decision, the numbers behind it and the main risk.",
+        "7": "How would you roll it out or test it next? Name the decision metric, the guardrails that would make you stop, and when you would review."
+      },
+      "assessmentInstruction": "Product metrics and experimentation case. Assess metric choice tied to the goal, guardrails, correct reading of absolute versus relative lift, checks on durability and experiment validity, and a decision proportionate to the evidence. Do not require a formal significance test; the brief says the result is significant. Accept launch, redesign or further testing when justified.",
+      "finalDimension": "Decision and launch plan",
+      "closingNote": "Tie the decision to the primary metric and the guardrails. Say what result would change your mind.",
+      "clarifications": [
+        [
+          "What is the company goal?",
+          "More paid subscribers this year. Retention is a leading indicator, but leadership will not trade real learning for app opens."
+        ],
+        [
+          "Was the primary metric chosen before the test?",
+          "Yes. Week-4 retention was written down as the primary metric before the test started."
+        ],
+        [
+          "Do I need to test statistical significance?",
+          "No. The data team confirms the week-4 difference is statistically significant at this sample size. Focus on what the result means."
+        ]
+      ],
+      "extra": [],
+      "branches": [
+        {
+          "id": "durability",
+          "title": "Does the effect last?",
+          "focus": "Look at retention over time and the quality of practice.",
+          "evidence": "Retention by week, control vs streak: week 1, 30% vs 36%; week 2, 24% vs 27.6%; week 3, 20% vs 21.6%; week 4, 18.0% vs 19.8%. Among learners still active in week 4, 40% of streak learners did only 1-minute quick reviews, against 15% in control.",
+          "question": "Is the streak building a learning habit, or just more app opens?",
+          "calc": {
+            "question": "How many extra learners out of 40,000 are still active in week 4 because of the streak? Enter learners.",
+            "answer": 720,
+            "unit": "learners",
+            "working": "40,000 × (19.8% − 18.0%) = 40,000 × 1.8% = 720 extra learners. The relative lift shrinks from 20% in week 1 to 10% in week 4.",
+            "hint": "Multiply the group size by the percentage-point difference.",
+            "tolerance": 1
+          },
+          "shock": "Week-8 retention has now come in: control 14.0%, streak 14.7%. Streak learners’ quiz scores are still 8 points lower, and their notification opt-outs have risen to 7%.",
+          "stressCalc": {
+            "question": "What is the relative lift in week-8 retention? Enter %.",
+            "answer": 5,
+            "unit": "%",
+            "working": "(14.7% − 14.0%) ÷ 14.0% = 0.7 ÷ 14 = 5%. The lift has halved since week 4 and is still falling.",
+            "hint": "Divide the difference by the control rate.",
+            "tolerance": 0.1
+          },
+          "probe": "If the lift keeps shrinking, what would you need to see before launching?",
+          "model": "The streak raises early engagement, but the retention lift fades (10% relative at week 4, 5% at week 8) and learning quality falls: more 1-minute reviews, lower quiz scores and rising opt-outs. Do not launch it as it is. Test a redesigned streak that counts only full lessons, with quiz score and notification opt-outs as guardrails and week-8 retention as the decision metric."
+        },
+        {
+          "id": "validity",
+          "title": "Is the experiment sound?",
+          "focus": "Check who was really exposed and what the metric means.",
+          "evidence": "The split was 40,000 and 40,000, as planned. But 4,000 learners in the streak group were on an old app version and never saw the streak. They are still counted in the streak group, and they retained like control, at 18.0% in week 4.",
+          "question": "Can you trust the 10% lift, and what does it mean for learners who actually saw the streak?",
+          "calc": {
+            "question": "What is week-4 retention among the 36,000 streak-group learners who actually saw the feature? Enter %.",
+            "answer": 20,
+            "unit": "%",
+            "working": "Streak group active in week 4: 40,000 × 19.8% = 7,920. Unexposed learners active: 4,000 × 18.0% = 720. Exposed learners active: 7,920 − 720 = 7,200. 7,200 ÷ 36,000 = 20%.",
+            "hint": "Work in numbers of learners, not percentages: remove the unexposed learners from both the top and the bottom.",
+            "tolerance": 0.1
+          },
+          "shock": "Trial-to-paid conversion at day 14 is now in: control 6.0% of sign-ups, streak 5.7%. Each paid subscriber is worth ₹2,000 in their first year.",
+          "stressCalc": {
+            "question": "What is the change in first-year subscription revenue per 40,000 sign-ups if the streak launches? Enter ₹ lakh, negative if it falls.",
+            "answer": -2.4,
+            "unit": "₹ lakh",
+            "working": "Paid subscribers: control 40,000 × 6.0% = 2,400; streak 40,000 × 5.7% = 2,280. Change: −120 × ₹2,000 = −₹2,40,000 = −₹2.4 lakh per 40,000 sign-ups.",
+            "hint": "Turn both conversion rates into subscribers first, then multiply the difference by the value per subscriber.",
+            "tolerance": 0.02
+          },
+          "probe": "Retention went up but paid conversion went down. How would you explain that to leadership, and what would you test next?",
+          "model": "The experiment holds up once unexposed learners are accounted for: learners who saw the streak retained at 20% against 18%. But paid conversion fell from 6.0% to 5.7%, about ₹2.4 lakh less first-year revenue per 40,000 sign-ups, so more retention is not turning into more value. Do not launch to everyone yet. Find out why conversion fell, such as weaker learning or reminder fatigue, and test a revised streak with paid conversion as a guardrail."
+        }
+      ],
+      "strong": [
+        "Defines success by the company goal and names guardrail metrics before reading the results.",
+        "Separates absolute and relative lift, and turns rates into numbers of learners or rupees.",
+        "Checks whether the effect lasts and whether the experiment is sound before recommending a launch."
+      ],
+      "pitfalls": [
+        "Declaring success because week-1 retention rose 20%, ignoring the week-4 metric chosen in advance.",
+        "Ignoring guardrails (quiz scores, opt-outs, paid conversion) that moved the wrong way.",
+        "Mixing up percentage points with percentage change."
+      ]
+    },
+    "prioritise": {
+      "archetype": "product",
+      "minutes": 40,
+      "stageNames": [
+        "Understand users",
+        "Find the problem",
+        "Size the opportunity",
+        "Choose a method",
+        "Prioritise",
+        "New constraint",
+        "Recommend",
+        "Plan the test"
+      ],
+      "prompts": {
+        "0": "Who are KiranaPay’s users, and what do they need from the app? What would you clarify before comparing the three ideas?",
+        "1": "Which user problems matter most, and for whom? Request the research and data you need, and say which segment you would focus on.",
+        "3": "There are two ways to compare the ideas: score them on reach, impact, confidence and effort, or estimate what each could earn. Which would you lead with, and why?",
+        "5": "A new constraint has come up. How does it change your ranking? Recalculate and explain what you would now build.",
+        "6": "Which feature should KiranaPay build first? Give the user problem it solves, the numbers behind your choice, the main risk, and what you are choosing not to build.",
+        "7": "How would you test the feature before a full launch? Describe the first version, who gets it, the success metric, the guardrails and the result that would make you stop."
+      },
+      "assessmentInstruction": "Product sense and prioritisation case. Assess user segmentation, problem selection grounded in the research, opportunity sizing, explicit trade-offs, sensitivity to uncertain inputs, and a testable first version. Accept any well-supported feature choice, including switching after the new constraint.",
+      "finalDimension": "Recommendation and test plan",
+      "closingNote": "Name the user problem first, then the feature. Be explicit about what you are choosing not to build, and why.",
+      "clarifications": [
+        [
+          "What is the company goal this year?",
+          "Grow the payment value processed and reduce shopkeeper churn. Revenue matters, but leadership will accept a feature that mainly protects retention."
+        ],
+        [
+          "Can we build more than one feature?",
+          "Only one major feature this quarter. Small experiments, such as a survey, a landing page or a manual pilot, can run alongside it."
+        ],
+        [
+          "Can I make assumptions about what shopkeepers want?",
+          "Yes, but ground them in the research and data in the exhibits, and say how you would check them."
+        ]
+      ],
+      "extra": [],
+      "branches": [
+        {
+          "id": "rice",
+          "title": "Score the ideas (RICE)",
+          "focus": "Compare reach, impact, confidence and effort.",
+          "evidence": "RICE score = reach × impact × confidence ÷ effort in months. Reach is shopkeepers likely to use the feature in a quarter. Instant settlement: reach 18,000, impact 2, confidence 80%, effort 2. Stock tracker: reach 30,000, impact 1, confidence 50%, effort 4. Loans: reach 6,000, impact 3, confidence 50%, effort 5.",
+          "question": "How do the three ideas compare, and how far do you trust the scores?",
+          "calc": {
+            "question": "What is the RICE score for instant settlement? Enter the score.",
+            "answer": 14400,
+            "unit": "points",
+            "working": "18,000 × 2 × 0.8 ÷ 2 = 14,400. Stock tracker: 30,000 × 1 × 0.5 ÷ 4 = 3,750. Loans: 6,000 × 3 × 0.5 ÷ 5 = 1,800.",
+            "hint": "Multiply reach, impact and confidence (as a decimal), then divide by effort.",
+            "tolerance": 1
+          },
+          "shock": "The bank partner says instant settlement now needs a new compliance review: effort rises from 2 to 4 months and the team’s confidence falls to 60%. Separately, the stock-tracker team finds a ready-made item catalogue, cutting its effort to 2 months.",
+          "stressCalc": {
+            "question": "Recalculate the RICE score for instant settlement. Enter the score.",
+            "answer": 5400,
+            "unit": "points",
+            "working": "18,000 × 2 × 0.6 ÷ 4 = 5,400. Stock tracker is now 30,000 × 1 × 0.5 ÷ 2 = 7,500, so it ranks first. Loans stay at 1,800.",
+            "hint": "Change only the effort and confidence for settlement.",
+            "tolerance": 1
+          },
+          "probe": "The scores now favour the stock tracker. Would you switch? What would you check about the scores first?",
+          "model": "On the original scores instant settlement leads clearly (14,400 against 3,750 and 1,800), and it matches the most raised problem for larger stores. After the compliance delay it falls to 5,400, below the stock tracker at 7,500. RICE is only as good as its inputs: the tracker’s 50% confidence is a guess and its impact is unproven. A strong answer either runs a quick stock-tracker test while settlement clears compliance, or keeps settlement first because it solves the top researched problem for the most valuable stores, and explains the trade-off."
+        },
+        {
+          "id": "value",
+          "title": "Estimate the revenue",
+          "focus": "Compare what each idea could earn in its first year.",
+          "evidence": "Year-one estimates. Instant settlement: ₹162 lakh a month at 30% adoption among larger stores, but with the ramp-up there are about 6 full months of revenue in year one. Loans: 6,000 loans in the year, averaging ₹25,000, with KiranaPay keeping 2%. Stock tracker: free, so no direct revenue; the team hopes it cuts monthly churn for the 30,000 small stores using it from 4% to 3%.",
+          "question": "Which idea creates the most value, and is revenue the right way to compare them?",
+          "calc": {
+            "question": "What is year-one revenue from instant settlement? Enter ₹ lakh.",
+            "answer": 972,
+            "unit": "₹ lakh",
+            "working": "₹162 lakh × 6 months = ₹972 lakh, about ₹9.7 crore. Loans: 6,000 × ₹25,000 × 2% = ₹30 lakh. The stock tracker earns nothing directly.",
+            "hint": "Use the 6 months of revenue, not 12.",
+            "tolerance": 0.5
+          },
+          "shock": "Rival app PayDukaan has just launched free instant settlement. To stay competitive KiranaPay would have to cut its fee from 0.3% to 0.1%, with adoption still expected at 30% of larger stores. Without instant settlement, the team expects larger-store churn to rise from 2% to 4% a month.",
+          "stressCalc": {
+            "question": "Recalculate year-one revenue from instant settlement at a 0.1% fee. Enter ₹ lakh.",
+            "answer": 324,
+            "unit": "₹ lakh",
+            "working": "Revenue scales with the fee: ₹972 lakh × (0.1% ÷ 0.3%) = ₹324 lakh. Or: ₹540 crore × 0.1% = ₹54 lakh a month × 6 months = ₹324 lakh.",
+            "hint": "Only the fee changes; adoption and volume stay the same.",
+            "tolerance": 0.5
+          },
+          "probe": "If a rival gives it away free, is instant settlement still a growth feature, or has it become something every app must have? How does that change your recommendation?",
+          "model": "At a 0.3% fee instant settlement earns about ₹972 lakh in year one, far more than loans (₹30 lakh) and the stock tracker (no direct revenue). After the rival’s move it earns ₹324 lakh at 0.1%, but its main value is now defensive: without it, larger stores, who carry about two-thirds of payment value, may leave at twice the rate. Build instant settlement first, priced to match, and judge it on larger-store churn as well as revenue. Revisit loans once settlement data shows which stores have steady cash flow."
+        }
+      ],
+      "strong": [
+        "Segments the users and ties the choice to a specific problem from the research.",
+        "Sizes the opportunity and the effort, and says which uncertain inputs could change the ranking.",
+        "Proposes a small first version with a success metric, guardrails and a condition for stopping."
+      ],
+      "pitfalls": [
+        "Choosing the most exciting idea (loans) without weighing effort, regulation or which users asked for it.",
+        "Treating a RICE score as a precise answer instead of a rough comparison built on guesses.",
+        "Recommending a full launch with no test, metric or stop condition."
       ]
     }
   }

@@ -31,6 +31,36 @@
       ['Gives a final range and the main assumptions behind it', 'Reconciles the methods without treating either as the truth'],
       ['Names the two data points that would most improve the estimate', 'Explains how to collect them and avoid sampling bias']
     ],
+    analytics: [
+      ['Asks how the metric is defined and counted', 'Checks whether the drop is unusual (last year, normal week-to-week variation)', 'Asks what changed around the date: releases, pricing, marketing, outside events', 'Breaks the metric into a funnel before guessing causes'],
+      ['Asks for funnel or segment data, not a list of guesses', 'States a hypothesis and what data would rule it out', 'Separates internal causes (product, pricing) from external ones (market, season)'],
+      ['Works out conversion at each step for both periods', 'Uses percentage points for a change in a rate', 'Says which step the drop sits in'],
+      ['Picks a cut and says what each possible result would mean', 'Either cut is fine: score the reasoning, not the choice'],
+      ['Finds which users are affected and which are not', 'Sizes the impact in orders, not only percentages', 'Notices that unaffected groups stayed normal'],
+      ['Updates the explanation with the new data', 'Weighs the cost of waiting against acting now', 'Keeps cause and coincidence apart'],
+      ['Leads with what happened and how sure they are', 'Recommends a proportionate action for this week', 'Says what still needs to be verified'],
+      ['Names the metric that shows recovery, and a guardrail', 'Compares against unaffected users, not only before and after', 'Sets a time to check and a trigger to act']
+    ],
+    metrics: [
+      ['Links the feature to the company goal, not just engagement', 'Names what could go wrong as well as right', 'Asks how the experiment was run before looking at results'],
+      ['Chooses one primary metric and explains why', 'Adds guardrails for quality, notifications and revenue', 'Notices whether a metric was chosen before or after seeing results'],
+      ['Calculates the relative lift correctly', 'Separates percentage points from percentage change', 'Turns the lift into a number of users'],
+      ['Picks a check and says what each result would mean', 'Either check is fine: score the reasoning, not the choice'],
+      ['Reads past the headline number', 'Spots whether the effect fades, or who was really exposed', 'Calculates correctly'],
+      ['Updates their view when guardrails move the wrong way', 'Recalculates the key number', 'Separates engagement from value'],
+      ['Makes a clear call: launch, change or keep testing', 'Backs it with the primary metric and the guardrails', 'Says what result would change their mind'],
+      ['Proposes a staged rollout or a follow-up test', 'Names stop conditions on the guardrails', 'Sets a review date and a decision metric']
+    ],
+    product: [
+      ['Identifies distinct user segments and what each needs', 'Asks about the company goal and constraints before comparing ideas', 'Does not jump to a favourite feature'],
+      ['Grounds the problem in the research, not personal opinion', 'Chooses a segment to focus on, and says why', 'Notices how often, and for whom, each problem comes up'],
+      ['Sets up the sizing clearly: users × adoption × value', 'Keeps units straight (₹ per day, per month, lakh, crore)', 'Sense-checks the result'],
+      ['Picks a comparison method and names its limits', 'Either method is fine: score the reasoning, not the choice'],
+      ['Calculates correctly and compares all three ideas', 'Says which inputs are guesses and how much they matter'],
+      ['Re-ranks the ideas with the new numbers', 'Decides whether to switch, and explains why', 'Considers defensive value, not only revenue'],
+      ['Leads with the user problem, then the feature', 'Says what they are choosing not to build', 'Names the main risk'],
+      ['Describes a small first version and who gets it', 'Gives a success metric, guardrails and a stop condition', 'Sets a timeline for deciding']
+    ],
     diagnosis: [
       ['Pins down the symptom: what changed, where and since when', 'Lists competing explanations before picking one', 'Asks whether the measurement itself could be wrong'],
       ['Requests evidence that separates a real change from a measurement change', 'Says what each observation supports or rules out'],
@@ -43,6 +73,7 @@
     ]
   };
 
+  const TYPE_LABELS = { diagnosis: 'Diagnosis-only case.', guesstimate: 'Guesstimate.', investment: 'Investment case.', analytics: 'Product analytics case.', metrics: 'Metrics and experiment case.', product: 'Product sense case.' };
   const caseOf = id => CASES.find(c => c.id === id);
   const cuesFor = id => CUES[RICH[id].archetype] || CUES.standard;
   const pathOf = (r, caseId = r.caseId) => RICH[caseId].branches.find(b => b.id === r.branch);
@@ -111,7 +142,7 @@
     const resume = run ? (() => { const c = caseOf(run.caseId); return `<section class="panel peer-resume"><div><b>Interview in progress: ${esc(c.title)}</b><p class="note">Stage ${run.step + 1} of 8 · ${clock(durationOf(run))} elapsed</p></div><div class="actions"><button class="primary" id="peerResume">Resume interview →</button><button id="peerDiscard">Discard</button></div></section>`; })() : '';
     $('#app').innerHTML = `<section class="peer-head"><div class="eyebrow">PEER INTERVIEW</div><h1 class="peer-title">Practise with a friend. <em>Anyone can interview.</em></h1><p class="lead">One of you runs the case from an interviewer guide that shows what to ask, what to share, what a strong answer sounds like and the correct numbers. The other answers out loud, the way a real case interview works. Then swap roles. No AI, no account, no cost.</p></section>${resume}
     <ol class="peer-how"><li><b>The interviewer picks a case</b><p class="note">Open the guide on the interviewer's device, or print the interviewer sheet. It contains the answers, so keep it away from the candidate.</p></li><li><b>The candidate sees only what you share</b><p class="note">Open the candidate screen in a second window and share it on your video call, or turn the screen when you share something. The printed sheet includes a one-page brief to hand over.</p></li><li><b>Score each stage, then talk it through</b><p class="note">Rate each stage and note what you heard. At the end you get written feedback to download or print.</p></li></ol>
-    <div class="row"><div><div class="eyebrow">CHOOSE A CASE TO RUN</div><h2 class="section-title">Nine cases, about 30–45 minutes each</h2></div></div>
+    <div class="row"><div><div class="eyebrow">CHOOSE A CASE TO RUN</div><h2 class="section-title">${CASES.length} cases, about 30–45 minutes each</h2></div></div>
     <div class="peer-cases">${CASES.map(c => `<article class="peer-case"><div><span class="peer-icon" style="background:${esc(c.color)}">${esc(c.icon)}</span></div><div><h3>${esc(c.title)}</h3><p class="subtle">${esc(c.company)} · ${esc(c.level)} · ${esc(c.minutes)} min</p><p class="note">${esc(c.summary)}</p><div class="peer-case-actions"><button class="primary" data-peer-start="${esc(c.id)}">Interview with this case</button><button data-peer-sheet="${esc(c.id)}">Printable sheet</button></div></div></article>`).join('')}</div>
     <section class="panel peer-past"><h2>Past peer interviews</h2>${past.length ? `<ul class="peer-past-list">${past.map(r => `<li><div><b>${esc(caseOf(r.caseId).title)}</b><span class="note">${new Date(r.finished).toLocaleString()} · ${Math.max(1, Math.round(durationOf(r) / 60))} min</span></div><button data-peer-report="${esc(r.uid)}">View feedback →</button></li>`).join('')}</ul><button class="drill-link" id="peerClear">Delete peer interview history</button>` : '<p class="note">Finished interviews and their feedback are kept in this browser only.</p>'}</section>`;
     if ($('#peerResume')) $('#peerResume').onclick = () => { enter('guide', '#peer'); renderGuide(); };
@@ -172,7 +203,7 @@
     const body = stageContent(step, c, r);
     pushScreen();
     $('#app').innerHTML = `<div class="row peer-bar"><div><div class="eyebrow">PEER INTERVIEW · INTERVIEWER GUIDE</div><h2 class="section-title">${esc(c.title)}</h2><span class="subtle">${esc(c.company)}${b ? ' · Path: ' + esc(b.title) : ''}</span></div><div class="peer-tools"><span class="badge" id="peerTimer">${clock(durationOf(run))} · aim for ${esc(c.minutes)} min</span><button id="peerScreen">Open candidate screen ↗</button><button id="peerExit">Save & exit</button></div></div>
-    <p class="peer-warning">Keep this screen away from the candidate: it contains the answers.</p>${r.assessmentInstruction && step === 0 ? `<p class="peer-type"><b>${esc(r.archetype === 'diagnosis' ? 'Diagnosis-only case.' : r.archetype === 'guesstimate' ? 'Guesstimate.' : 'Case type note.')}</b> ${esc(r.assessmentInstruction)}</p>` : ''}
+    <p class="peer-warning">Keep this screen away from the candidate: it contains the answers.</p>${r.assessmentInstruction && step === 0 ? `<p class="peer-type"><b>${esc(TYPE_LABELS[r.archetype] || 'Case type note.')}</b> ${esc(r.assessmentInstruction)}</p>` : ''}
     <div class="peer-stages" role="group" aria-label="Interview stages">${STAGES.map(i => `<button data-peer-stage="${i}" class="${i === step ? 'active' : ''}" ${i === step ? 'aria-current="step"' : ''}><span class="dot ${esc(run.ratings[i] || '')}"></span>${i + 1}. ${esc(labels[i])}</button>`).join('')}</div>
     <div class="peer-grid"><section class="panel"><div class="eyebrow">STAGE ${step + 1} OF 8 · ${esc(labels[step])}</div><h3>Ask</h3><div class="interviewer"><p>${esc(q)}</p>${cal && step !== 2 ? `<p class="peer-then">Then: ${esc(cal.question)}</p>` : ''}</div>${body}</section>
     <aside class="panel peer-score"><h3>Listen for</h3><ul class="peer-cues">${cues.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${probe ? `<h3>Follow-up to ask</h3><p class="peer-probe">“${esc(probe)}”</p><label class="selfcheck"><input type="checkbox" id="peerAsked" ${run.asked.includes(step) ? 'checked' : ''}> I asked the follow-up</label>` : ''}
