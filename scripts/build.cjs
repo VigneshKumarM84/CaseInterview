@@ -2,9 +2,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
-// Everything the browser loads. index.html references these paths relatively, so the same layout
+// Everything the browser loads. vendor/ holds pdf.js, which the résumé checker loads only when a PDF is chosen. index.html references these paths relatively, so the same layout
 // works from public/, from Vercel and when index.html is opened directly from disk.
-const STATIC = ['index.html', 'assets', 'content', 'src'];
+const STATIC = ['index.html', 'assets', 'content', 'src', 'vendor'];
 function catalog() {
   const source = fs.readFileSync(path.join(root, 'content/cases.js'), 'utf8');
   const context = vm.createContext({});
