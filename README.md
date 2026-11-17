@@ -1,6 +1,16 @@
 # Case Room
 
-Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching.
+Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill sits alongside the cases.
+
+## Case maths drill
+
+Open **Maths drill** in the header, or link straight to `/#drill`. Short rounds of generated questions across nine skills: percentages, growth and decline, profit and margin, break-even and payback, lakh/crore/million conversions and scaling, compounding and CAGR, present value and NPV, quick estimates, and reading a bar-chart exhibit.
+
+- Choose skills, difficulty (Foundation, Interview, Stretch), 5/10/20 questions and an optional 30s or 60s time target.
+- Every answer is checked instantly against a stated tolerance (exact calculations allow small rounding; estimates allow ±8%). Each question then shows its worked steps and a mental-maths shortcut.
+- Optional read-aloud and listening practice, which hides the written question the way an interviewer would say the numbers.
+- Results show accuracy and time per question, let you retry only the ones you missed, and export a text summary. Per-skill accuracy and median time from your last 30 attempts suggest which skill to practise next.
+- No AI and no server: questions are generated in the browser (`src/drill-questions.js`) and progress stays in this browser's localStorage (`cr-drill-*` keys). An unfinished round resumes after a reload.
 
 ## Included AI features
 
@@ -32,7 +42,20 @@ npm install
 npm start
 ```
 
-Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice, but in-app AI needs the server.
+Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice and the maths drill, but in-app AI needs the server.
+
+### Project layout
+
+- `index.html`: page shell. It loads the files below in order.
+- `assets/`: stylesheets (`app.css` shared, `drill.css` for the drill).
+- `content/cases.js`: the authored case catalogue. Edit cases here.
+- `src/core.js`: shared helpers (storage, toast, modal, download).
+- `src/cases.js`: case library, sessions, reports and history.
+- `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
+- `src/ai-client.js`: optional BYOK AI. `src/boot.js` starts the app.
+- `lib/`, `api/`: the AI proxy used by Vercel and `npm start`.
+
+To add another tool, give it its own `src/<tool>.js` (and stylesheet if needed), load it before `src/ai-client.js` in `index.html`, and register a nav button and view as `src/drill.js` does.
 
 ```bash
 npm test
@@ -50,7 +73,7 @@ Import this repository. `vercel.json` configures:
 - Output directory: `public`
 - Serverless function: `api/ai.js`
 
-**If the project was previously deployed as a static-only site, remove or update old Vercel dashboard overrides (blank build command and output `.`).** The build copies `index.html` and `ai-client.js` into `public`, and extracts the canonical server-side case catalog from the authored HTML. Do not edit `data/cases.json` independently.
+**If the project was previously deployed as a static-only site, remove or update old Vercel dashboard overrides (blank build command and output `.`).** The build copies `index.html`, `assets/`, `content/` and `src/` into `public`, and generates the canonical server-side case catalog from `content/cases.js`. Do not edit `data/cases.json` independently.
 
 No provider secret is required in Vercel for the default bring-your-own-key mode. Never add a key to this repository. The function forwards the key provided by the user only to the selected provider.
 
@@ -71,7 +94,7 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 
 ## Validation
 
-Automated API and jsdom interaction tests cover all 18 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
+Automated API and jsdom interaction tests cover all 18 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
 
 Research references are in the app's Research & case design section. Provider implementation references:
 

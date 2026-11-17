@@ -1,0 +1,93 @@
+/* Case maths drill. Builds on the tokens and components in app.css. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.drill-head{max-width:760px;padding-bottom:12px}
+.drill-title{font-size:44px}
+.drill-title em{font-style:normal;color:#758948}
+.drill-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:22px;align-items:start;margin-top:18px}
+.drill-grid h2,.drill-stats h2{font:600 20px Manrope,sans-serif;margin:0 0 14px}
+.drill-stats h3{font-size:14px;margin:24px 0 8px}
+.drill-setup fieldset{border:0;padding:0;margin:0 0 22px}
+.drill-setup legend{font-weight:700;font-size:13px;margin-bottom:10px}
+.drill-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.drill-chip,.drill-level{position:relative;font-weight:400}
+.drill-chip input,.drill-level input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.drill-chip span,.drill-level span{display:block;height:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer}
+.drill-chip b,.drill-level b{display:block;font-size:13px}
+.drill-chip small,.drill-level small{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.drill-chip input:checked+span,.drill-level input:checked+span{border-color:var(--green);background:#f0f5e9;box-shadow:inset 0 0 0 1px var(--green)}
+.drill-chip input:focus-visible+span,.drill-level input:focus-visible+span{outline:3px solid #9ab84c;outline-offset:2px}
+.drill-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.drill-inline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.drill-inline button{padding:7px 12px;font-size:12px}
+.drill-options{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.drill-options label{font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:6px}
+.drill-setup .selfcheck{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:13px;margin:8px 0}
+.drill-setup .selfcheck input{margin-top:3px;accent-color:var(--green)}
+.drill-resume{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:10px;border-color:var(--green);background:#f0f5e9;padding:18px 24px}
+.drill-resume .actions{margin:0}
+.drill-resume p{margin:2px 0 0}
+.drill-table{width:100%;border-collapse:collapse;font-size:13px}
+.drill-table th,.drill-table td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.drill-table thead th{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.drill-table tbody th{font-weight:600}
+.drill-table tbody th small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.drill-meter{display:inline-block;width:64px;height:7px;border-radius:4px;background:#e6ebe1;margin-right:8px;vertical-align:middle;overflow:hidden}
+.drill-meter span{display:block;height:100%;background:var(--green)}
+.drill-suggest{margin-top:18px;padding:14px 16px;border-radius:8px;background:#f6f8e9;border:1px solid #dfe8b9}
+.drill-suggest p{margin:0 0 10px}
+.drill-recent{list-style:none;padding:0;margin:0;font-size:13px}
+.drill-recent li{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line)}
+.drill-link{border:0;background:none;padding:0;margin-top:14px;font-size:12px;color:var(--muted);text-decoration:underline}
+.drill-link:hover{background:none;color:var(--ink)}
+.drill-bar{height:6px;border-radius:4px;background:#e6ebe1;margin:10px 0 20px;overflow:hidden}
+.drill-bar span{display:block;height:100%;background:var(--lime);transition:width .3s}
+#drillTimer{font-variant-numeric:tabular-nums;min-width:52px;text-align:center}
+#drillTimer.over{background:#f6dcc8}
+.drill-card{max-width:820px}
+.drill-prompt{font:500 22px/1.5 Manrope,sans-serif;margin:10px 0 18px}
+.drill-hidden{color:var(--muted);font-style:italic}
+.drill-answer{margin-top:22px}
+.drill-input-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.drill-input-row input{flex:1 1 200px;max-width:320px;padding:13px;border:1px solid #bcc8b8;border-radius:8px;font-size:18px;font-variant-numeric:tabular-nums}
+.drill-choices{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:20px}
+.drill-choices button{padding:14px;font-weight:600}
+.drill-feedback{margin-top:22px;padding:20px 22px;border-radius:10px;border:1px solid var(--line)}
+.drill-feedback.ok{background:#eef6e6;border-color:#a9c98d}
+.drill-feedback.miss{background:#fbf3ea;border-color:#e6c6a3}
+.drill-feedback h3{margin:0 0 6px}
+.drill-feedback p{margin:6px 0}
+.drill-steps{margin:10px 0;padding-left:22px;line-height:1.8;font-variant-numeric:tabular-nums}
+.drill-chart{margin:8px 0 14px;max-width:620px}
+.drill-chart figcaption{font-weight:700;font-size:13px;margin-bottom:4px}
+.drill-chart svg{width:100%;height:auto;display:block}
+.drill-chart .bar.y0{fill:#b9c9a0}
+.drill-chart .bar.y1{fill:var(--green)}
+.drill-chart .axis{stroke:#bcc8b8}
+.drill-chart text{fill:var(--ink);font:12px 'DM Sans',sans-serif;text-anchor:middle}
+.drill-chart .cat{font-weight:700}
+.drill-chart .leg{text-anchor:start}
+.drill-results h2{font:600 20px Manrope,sans-serif;margin:0 0 10px}
+.drill-results .drill-table+h2{margin-top:30px}
+.drill-review{border-bottom:1px solid var(--line);padding:10px 0}
+.drill-review summary{cursor:pointer;line-height:1.5}
+.drill-review summary span{display:inline-block;width:20px;font-weight:700}
+.drill-review.ok summary span{color:#4f7a36}
+.drill-review.miss summary span{color:#b0602a}
+.drill-callout{display:flex;justify-content:space-between;align-items:center;gap:24px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--lime);border-radius:12px;padding:20px 26px;margin:0 0 36px}
+.drill-callout h3{margin:6px 0 2px;font:600 18px Manrope,sans-serif}
+.drill-callout p{margin:0}
+.drill-callout button{flex-shrink:0}
+@media(max-width:800px){
+  nav{overflow-x:auto;max-width:62vw}
+  nav button{white-space:nowrap}
+  .drill-title{font-size:34px}
+  .drill-grid{grid-template-columns:1fr}
+  .drill-chips{grid-template-columns:1fr 1fr}
+  .drill-levels{grid-template-columns:1fr}
+  .drill-choices{grid-template-columns:1fr 1fr}
+  .drill-prompt{font-size:19px}
+  .drill-callout{flex-direction:column;align-items:flex-start}
+  .drill-table td.note{display:none}
+  .drill-chart text{font-size:20px}
+}
+@media print{.drill-callout,.drill-bar,#drillTimer{display:none}.drill-review{break-inside:avoid}.drill-review>*{display:block}}
