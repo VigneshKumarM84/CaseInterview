@@ -1,6 +1,6 @@
 # Case Room
 
-Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill and a peer interview mode sit alongside the cases.
+Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode and behavioural (HR) interview practice with a story bank sit alongside the cases.
 
 ## Case maths drill
 
@@ -22,6 +22,19 @@ Open **Peer interview** in the header, or link straight to `/#peer`. Two people 
 - The interviewer rates each stage (strong, solid, needs work), takes notes, ticks the case's strengths and common traps, and writes one thing to keep and one to change. That becomes feedback to download or print. It is a peer's judgement, not a score.
 - **Printable sheet** (`/#peer-sheet/<case id>`): a one-page candidate handout followed by the full interviewer sheet with both paths, answers and scoring boxes, for practising on paper.
 - No AI and no server. Interviews in progress and finished feedback stay in this browser (`cr-peer-*` keys).
+
+## Behavioural interview practice
+
+Open **Behavioural** in the header, or link straight to `/#behavioural`. Practice for the HR round, with no AI.
+
+- An original bank of 66 questions across nine competencies: tell me about yourself, why this company or role, leadership, teamwork, conflict, failure or mistake, handling pressure, initiative, and ethics. Each competency has "listen for" cues, follow-up questions and a target length (60–120 s for the opening pitch, 45–90 s for motivation, 90–120 s for stories).
+- Pick a competency or mixed questions. The question can be read aloud. Answer by dictation or typing; a visible timer starts when you start answering.
+- Feedback is computed in the browser and labelled as heuristics, not a score: word count and estimated speaking time, pace (dictated answers only), filler words ("um", "uh", "like", "basically", "actually", "you know", "kind of" and a few more, with common legitimate uses such as "I like" excluded), and "I" versus "we".
+- STAR check: tag each sentence of your transcript as Situation, Task, Action or Result (or Present/Past/Future for "tell me about yourself" and Them/Role/You for "why us"). The page shows each part's share and flags missing parts, a long set-up, an Action that is not the largest part, a Result without an outcome or number, and, for failure questions, a missing lesson. Dictation without full stops is split into chunks you can re-split by editing the transcript.
+- Answers are saved with your tags, self-review ticks and notes. The behavioural home shows history per competency, with view, delete and text download.
+- **Story bank** (`/#behavioural-stories`): write 6–8 STAR stories, tag the competencies each one covers, and see which competencies have no story yet. Link a practice answer to a story. Export and import the bank as JSON.
+- **Practise with a friend** (`/#behavioural-sheet/<competency>` or `/#behavioural-sheet/all`): a printable interviewer sheet with the questions, follow-ups, "listen for" ticks and a 1–5 scoring line, in the same style as the peer interview sheet.
+- No AI and no server. Everything stays in this browser (`cr-behavioural-*` keys). Questions and checks live in `src/behavioural-content.js` (no DOM, unit-tested in Node).
 
 ## Included AI features
 
@@ -53,17 +66,18 @@ npm install
 npm start
 ```
 
-Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice and the maths drill, but in-app AI needs the server.
+Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice, the maths drill, peer interviews and behavioural practice, but in-app AI needs the server.
 
 ### Project layout
 
 - `index.html`: page shell. It loads the files below in order.
-- `assets/`: stylesheets (`app.css` shared, `drill.css` and `peer.css` for those tools).
+- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css` and `behavioural.css` for those tools).
 - `content/cases.js`: the authored case catalogue. Edit cases here.
 - `src/core.js`: shared helpers (storage, toast, modal, download).
-- `src/cases.js`: case library, sessions, reports and history.
+- `src/cases.js`: case library, sessions, reports and history, plus the shared read-aloud and dictation helpers (`speak()`, `attachDictation()`).
 - `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
 - `src/peer.js`: peer interview guide, candidate screen, feedback and printable sheet. It reads the case catalogue and reuses the case flow helpers in `src/cases.js`.
+- `src/behavioural-content.js` and `src/behavioural.js`: behavioural question bank and answer heuristics (no DOM, unit-tested in Node), and the practice, story bank and printable sheet UI.
 - `src/ai-client.js`: optional BYOK AI. `src/boot.js` starts the app.
 - `lib/`, `api/`: the AI proxy used by Vercel and `npm start`.
 
