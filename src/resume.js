@@ -23,7 +23,7 @@
   function render() {
     stopMedia(); view = 'resume'; window.scrollTo(0, 0);
     $('#app').innerHTML = `<div class="rc-head"><div class="eyebrow">RÉSUMÉ CHECKER · FREE · NO AI</div><h1 class="drill-title">Sharpen your résumé <em>bullets</em></h1>
-      <p class="lead">Flags weak bullet points and shows which job-description keywords your résumé is missing. Every check is a rule of thumb you can argue with, not a score.</p></div>
+      <p class="lead">Checks your whole résumé and every bullet point, with or without a job description. Add one to see which of its keywords you are missing. Every check is a rule of thumb you can argue with, not a score.</p></div>
       <p class="rc-privacy" id="rcPrivacy"><b>Your file is read in your browser. Nothing is uploaded.</b> There is no AI and no server: the checks run on this device, and nothing is stored unless you tick “Remember my text”.</p>
       <section class="panel rc-input">
         <h2>1. Your résumé</h2>
@@ -114,7 +114,7 @@
   }
 
   /* ---------- Results ---------- */
-  const mark = status => status === 'pass' ? '<span class="rc-mark ok" aria-label="Pass">✓</span>' : '<span class="rc-mark warn" aria-label="Look at this">!</span>';
+  const mark = status => status === 'pass' ? '<span class="rc-mark ok" aria-label="Pass">✓</span>' : status === 'info' ? '<span class="rc-mark info" aria-label="Suggestion">i</span>' : '<span class="rc-mark warn" aria-label="Look at this">!</span>';
   function checksHtml(b) {
     return b.checks.map(c => `<li class="${c.status}">${mark(c.status)}<div><b>${esc(c.label)}</b> ${esc(c.reason)}${c.status === 'warn' && c.fix ? `<span class="rc-fix">Try: ${esc(c.fix)}</span>` : ''}</div></li>`).join('');
   }
@@ -123,6 +123,13 @@
     const s = analysis.summary;
     return `<ul class="rc-summary">${RC.CHECK_IDS.map(id => `<li class="${s.counts[id] ? 'warn' : 'pass'}">${mark(s.counts[id] ? 'warn' : 'pass')}<span><b>${esc(s.labels[id])}</b> ${s.counts[id] ? `${s.counts[id]} of ${s.total} bullets to look at` : 'nothing flagged'}</span></li>`).join('')}</ul>
       <p class="rc-share"><b>${s.withNumber} of ${s.total}</b> bullets include a number or measurable result (${Math.round(s.numberShare * 100)}%). <b>${s.clean}</b> ${s.clean === 1 ? 'has' : 'have'} no warnings.</p>`;
+  }
+  /** The whole-résumé checklist: it needs no job description. */
+  function generalHtml() {
+    const g = analysis.general, warn = g.filter(c => c.status === 'warn').length;
+    return `<section class="panel rc-general" id="rcGeneral"><h2>Whole résumé</h2>
+      <p class="note">General checks that run with or without a job description: contact details, sections, length, personal details, the summary, roles, dates, formatting, spelling and whether your listed skills show up in your bullets. ${warn ? `<b>${plural(warn, 'thing')} to look at.</b>` : '<b>Nothing flagged.</b>'}</p>
+      <ul class="rc-checks rc-general-list">${g.map(c => `<li class="${c.status}" data-check="${c.id}">${mark(c.status)}<div><b>${esc(c.label)}</b> ${esc(c.reason)}${c.status !== 'pass' && c.fix ? `<span class="rc-fix">${c.status === 'info' ? 'Optional' : 'Try'}: ${esc(c.fix)}</span>` : ''}</div></li>`).join('')}</ul></section>`;
   }
   function bulletsHtml() {
     const out = []; let lastRole = null, lastSection = null;
@@ -140,7 +147,7 @@
   function chips(list, cls) { return list.length ? `<ul class="rc-chips ${cls}">${list.map(k => `<li${k.skill ? ' class="skill"' : ''}>${esc(k.display)}</li>`).join('')}</ul>` : '<p class="note">None.</p>'; }
   function matchHtml() {
     const m = analysis.match;
-    if (!m) return `<section class="panel rc-match" id="rcMatch"><h2>Job description match</h2><p class="note">Paste a job description in box 2 and check again to see which of its keywords your résumé shows.</p></section>`;
+    if (!m) return `<section class="panel rc-match" id="rcMatch"><h2>Job description match <span class="note">(optional)</span></h2><p class="note">The checks above work without a job description. To also see which of an advert's keywords your résumé shows, paste it in box 2.</p></section>`;
     if (!m.keywords.length) return `<section class="panel rc-match" id="rcMatch"><h2>Job description match</h2><p class="note">No keywords found in that job description. Paste the full advert, including the requirements.</p></section>`;
     return `<section class="panel rc-match" id="rcMatch"><h2>Job description match</h2>
       <p class="rc-headline" id="rcPercent"><b>${m.found} of the top ${m.top}</b> job-description keywords appear in your résumé (${m.percent}%)${m.foundInSkillsOnly ? `, ${m.foundInSkillsOnly} of them only in your Skills section` : ''}.</p>
@@ -156,7 +163,7 @@
     const el = $('#rcResults'); if (!el || !analysis) return;
     const s = analysis.summary;
     const none = !s.total;
-    el.innerHTML = `<section class="panel rc-results"><h2>Checklist</h2>
+    el.innerHTML = `${generalHtml()}<section class="panel rc-results"><h2>Bullet checklist</h2>
       <p class="note">Heuristics computed in your browser: an action-verb list, a number check, a passive-voice word pattern, length limits (${RC.LIMITS.minWords}–${RC.LIMITS.maxWords} words, about two lines), a filler-word list, repeated opening verbs and tense within each role. Not a score: use them as prompts and keep what is true.</p>
       ${none ? `<p class="rc-msg error" role="alert">No bullets found to check. Start each bullet with • or - on its own line, under a heading such as EXPERIENCE, PROJECTS or POSITIONS OF RESPONSIBILITY.</p>` : summaryHtml()}
       ${none ? '' : `<h2 class="rc-bullets-head">Bullets <span class="note">(${s.total} checked; open one to see why and to edit it)</span></h2><div id="rcBullets">${bulletsHtml()}</div>`}
@@ -187,6 +194,7 @@
       $('#rcCount' + k).textContent = countLabel(nb); $('#rcChecks' + k).innerHTML = checksHtml(nb); $('#rcText' + k).textContent = nb.text;
     });
     const sum = $('#rcResults .rc-summary'); if (sum) { const wrap = document.createElement('div'); wrap.innerHTML = summaryHtml(); sum.nextElementSibling.remove(); sum.replaceWith(...wrap.children); }
+    const gen = $('#rcGeneral'); if (gen) { const wrap = document.createElement('div'); wrap.innerHTML = generalHtml(); gen.replaceWith(wrap.firstElementChild); }
     const m = $('#rcMatch'); if (m) { const wrap = document.createElement('div'); wrap.innerHTML = matchHtml(); m.replaceWith(wrap.firstElementChild); }
   }
 
@@ -204,7 +212,7 @@
     priorHome(); if (location.hash === '#resume') setHash(false);
     const tools = $('#app .tool-callouts'); if (!tools) return;
     const tile = document.createElement('div'); tile.className = 'drill-callout tool-callout';
-    tile.innerHTML = `<div><div class="eyebrow">NEW · RÉSUMÉ CHECKER</div><h3>Check your résumé against the job</h3><p class="note">Flags weak bullets and missing job-description keywords. Upload a PDF or Word file, or paste the text. Free, no AI, and nothing is uploaded.</p></div><button class="primary" id="resumeCallout">Check my résumé →</button>`;
+    tile.innerHTML = `<div><div class="eyebrow">NEW · RÉSUMÉ CHECKER</div><h3>Check your résumé against the job</h3><p class="note">Checks your whole résumé and every bullet, and, if you paste a job description, which of its keywords you are missing. PDF, Word or pasted text. Free, no AI, and nothing is uploaded.</p></div><button class="primary" id="resumeCallout">Check my résumé →</button>`;
     tools.append(tile); $('#resumeCallout').onclick = open;
   };
 

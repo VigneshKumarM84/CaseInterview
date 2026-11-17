@@ -140,6 +140,28 @@
   const NUMBER_WORDS = ['two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'fifteen', 'twenty', 'thirty', 'forty', 'fifty', 'hundred', 'hundreds',
     'thousand', 'thousands', 'million', 'millions', 'billion', 'lakh', 'lakhs', 'lac', 'lacs', 'crore', 'crores', 'dozen', 'dozens', 'double', 'doubled', 'tripled', 'halved', 'twice', 'thrice', 'half', 'quarter'];
 
+  /* ---------- Whole-résumé checks (they run with or without a job description) ---------- */
+  // Personal details Indian campus résumés often carry but recruiters do not need. [label, pattern]
+  const PERSONAL = [
+    ['date of birth', /\b(date of birth|d\.\s?o\.\s?b\.?|dob|birth ?date|born on)\b/i], ['age', /\bage\s*[:\-–]\s*\d{2}\b|\b\d{2}\s*(years|yrs)\s*old\b/i],
+    ['gender', /\b(gender|sex)\s*[:\-–]/i], ['marital status', /\bmarital status\b|\b(unmarried)\b/i], ['religion or caste', /\b(religion|caste|community)\s*[:\-–]/i],
+    ['nationality', /\bnationality\b/i], ["parents' names", /\b(father|mother)('?s)?\s+(name|occupation)\b/i], ['passport number', /\bpassport\s*(no|number|#)/i],
+    ['declaration', /\bi hereby declare\b|^\s*declaration\s*:?\s*$/im], ['"references available on request"', /\breferences\s+(are\s+)?(available\s+)?(up)?on\s+request\b/i]
+  ];
+  // Stock phrases that make a summary or objective sound like everyone else's.
+  const OBJECTIVE_CLICHES = ['challenging position', 'challenging role', 'challenging career', 'challenging environment', 'challenging opportunity', 'reputed organisation', 'reputed organization',
+    'reputed company', 'reputed firm', 'utilise my skills', 'utilize my skills', 'utilise my knowledge', 'utilize my knowledge', 'growth of the organisation', 'growth of the organization',
+    'growth of the company', 'seeking a position', 'seeking a job', 'seeking a role', 'to secure a position', 'dynamic environment', 'dynamic organisation', 'dynamic organization',
+    'hard-working', 'hardworking', 'quick learner', 'fast learner', 'team player', 'self-motivated', 'go-getter', 'results-driven', 'result-oriented', 'passionate about learning',
+    'best of my abilities', 'mutual growth', 'enhance my skills', 'professional growth'];
+  // Spoken languages and proficiency words: no bullet needs to prove them.
+  const SPOKEN_LANGUAGES = ['english', 'hindi', 'tamil', 'telugu', 'kannada', 'malayalam', 'marathi', 'bengali', 'bangla', 'gujarati', 'punjabi', 'urdu', 'odia', 'oriya', 'assamese', 'konkani',
+    'sanskrit', 'french', 'german', 'spanish', 'japanese', 'mandarin', 'chinese', 'korean', 'arabic', 'italian', 'russian', 'portuguese'];
+  const SKILL_QUALIFIERS = ['basic', 'basics', 'beginner', 'intermediate', 'advanced', 'proficient', 'expert', 'fluent', 'native', 'working knowledge', 'familiar', 'good', 'excellent', 'strong', 'certified'];
+  // Word stems spelt -ise in British English and -ize in American English. A résumé should pick one.
+  const SPELLING_STEMS = ['organi', 'analy', 'optimi', 'prioriti', 'visuali', 'standardi', 'minimi', 'maximi', 'summari', 'recogni', 'speciali', 'utili', 'customi', 'categori',
+    'moderni', 'synthesi', 'characteri', 'capitali', 'emphasi', 'finali', 'personali', 'digiti', 'moneti', 'mobili', 'centrali'];
+
   const SAMPLE_RESUME = `Riya Menon
 Bengaluru · riya.menon@example.com · +91 90000 00000
 
@@ -203,6 +225,6 @@ Nice to have
 Benefits
 Hybrid working, learning budget and a mentor in your first year.`;
 
-  const api = { VERB_GROUPS, WEAK_OPENERS, FIRST_PERSON, IRREGULAR_PRESENT, SAME_TENSE, FILLER, SUGGEST, SECTIONS, STOP, GENERIC, SKILLS, VARIANTS, JD_SECTIONS, NUMBER_WORDS, SAMPLE_RESUME, SAMPLE_JD };
+  const api = { PERSONAL, OBJECTIVE_CLICHES, SPOKEN_LANGUAGES, SKILL_QUALIFIERS, SPELLING_STEMS, VERB_GROUPS, WEAK_OPENERS, FIRST_PERSON, IRREGULAR_PRESENT, SAME_TENSE, FILLER, SUGGEST, SECTIONS, STOP, GENERIC, SKILLS, VARIANTS, JD_SECTIONS, NUMBER_WORDS, SAMPLE_RESUME, SAMPLE_JD };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ResumeWords = api;
 })(this);
