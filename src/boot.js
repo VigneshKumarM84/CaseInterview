@@ -1,2 +1,10 @@
-/* Loaded last, after every tool has registered its views. #drill links straight to the maths drill. */
-if (location.hash === '#drill') CaseDrill.open(); else home();
+/* Loaded last, after every tool has registered its views. The hash links straight to a tool:
+   #drill (maths drill), #peer (peer interview), #peer-screen (candidate screen), #peer-sheet/<case> (printable sheet). */
+(() => {
+  const h = location.hash;
+  if (h === '#drill') CaseDrill.open();
+  else if (h === '#peer') PeerMock.open();
+  else if (h === '#peer-screen') PeerMock.candidate();
+  else if (h.startsWith('#peer-sheet/')) PeerMock.sheet(decodeURIComponent(h.slice(12)));
+  else home();
+})();
