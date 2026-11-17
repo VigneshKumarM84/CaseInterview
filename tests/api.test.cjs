@@ -4,7 +4,7 @@ const catalog=require('../data/cases.json');
 const key='test-key-not-a-real-key';
 const session=(changes={})=>({id:'cement',version:3,step:1,opened:['economics'],answers:{structure:'I would separate price and volume.',diagnosis:'Fuel price has increased.'},...changes});
 const fetchJSON=value=>async()=>({ok:true,status:200,json:async()=>({choices:[{message:{content:JSON.stringify(value)},finish_reason:'stop'}],usage:{prompt_tokens:10,completion_tokens:5}})});
-test('build catalog matches the HTML and every case retains two complete branches',()=>{assert.deepEqual(require('../scripts/build.cjs').catalog(),catalog);assert.equal(catalog.cases.length,9);for(const c of catalog.cases){assert.equal(catalog.rich[c.id].branches.length,2);for(const b of catalog.rich[c.id].branches){assert(Number.isFinite(b.calc.answer));assert(Number.isFinite(b.stressCalc.answer))}}});
+test('build catalog matches the HTML and every case retains two complete branches',()=>{assert.deepEqual(require('../scripts/build.cjs').catalog(),catalog);assert.equal(catalog.cases.length,12);for(const c of catalog.cases){assert.equal(catalog.rich[c.id].branches.length,2);for(const b of catalog.rich[c.id].branches){assert(Number.isFinite(b.calc.answer));assert(Number.isFinite(b.stressCalc.answer))}}});
 test('stage gating never exposes future branch evidence',()=>{let s=prepareSession(session());assert(!availableFacts(s).some(x=>x.id.startsWith('branch:')));assert.deepEqual(knownFacts(s).map(x=>x.id),['exhibit:economics']);s=prepareSession(session({step:4,branch:'fuel'}));assert(availableFacts(s).some(x=>x.id==='branch:fuel'));assert(!availableFacts(s).some(x=>x.id==='update:fuel'));s=prepareSession(session({step:5,branch:'fuel'}));assert(availableFacts(s).some(x=>x.id==='update:fuel'));assert(!availableFacts(s).some(x=>x.id.includes('pricing')))});
 test('information responses only contain canonical allowed facts',async()=>{const r=await handle({action:'information',provider:'groq',model:'test-model',session:session(),question:'Fuel costs?'},key,{skipRateLimit:true,fetchImpl:fetchJSON({factIds:['exhibit:economics','update:fuel','made-up'],text:'Revenue is 900 trillion'})});assert.equal(r.result.facts.length,1);assert.equal(r.result.facts[0].text,catalog.cases[0].exhibits[0].text);assert(!JSON.stringify(r).includes('900 trillion'))});
 test('follow-up prompt excludes answer keys and hidden exhibits',()=>{const p=promptFor({action:'followup',session:session()});assert(!p.user.includes(catalog.cases[0].calc.working));assert(!p.user.includes('alternative fuel blend'));assert(p.user.includes('Fuel price has increased.'));assert.throws(()=>promptFor({action:'followup',session:session({answers:{}})}),/Add your answer/)});
@@ -33,9 +33,28 @@ test('new archetype reference calculations agree with independent arithmetic',()
  check(r.investment.branches[0].stressCalc.answer,60*3.791-250);
  check(r.investment.branches[1].calc.answer,34*3.791-20);
  check(r.investment.branches[1].stressCalc.answer,(60000*60/100000-8-6)*3.791-20);
+ // Product and analytics cases
+ check(cases.metricdrop.calc.answer,(400000/500000-347500/500000)*100);
+ check(175000+175000+150000,500000);check(87500+140000+120000,347500);
+ check(r.metricdrop.branches[0].calc.answer,175000*0.8-87500);
+ check(0.6*0.3+0.4*0.8,87500/175000);
+ check(r.metricdrop.branches[0].stressCalc.answer,25000*0.6*(0.8-0.3)*8);
+ check(r.metricdrop.branches[1].calc.answer,(152500-100000)/100000*100);
+ check((175000-140000)+(150000-120000),65000);
+ check(r.metricdrop.branches[1].stressCalc.answer,87500-175000*0.2);
+ check(cases.experiment.calc.answer,(19.8-18)/18*100);
+ check(r.experiment.branches[0].calc.answer,40000*(0.198-0.18));
+ check(r.experiment.branches[0].stressCalc.answer,(14.7-14)/14*100);
+ check(r.experiment.branches[1].calc.answer,(40000*0.198-4000*0.18)/36000*100);
+ check(r.experiment.branches[1].stressCalc.answer,40000*(0.057-0.06)*2000/1e5);
+ check(cases.prioritise.calc.answer,60000*0.3*10000*30*0.003/1e5);
+ check(r.prioritise.branches[0].calc.answer,18000*2*0.8/2);
+ check(r.prioritise.branches[0].stressCalc.answer,18000*2*0.6/4);
+ check(r.prioritise.branches[1].calc.answer,cases.prioritise.calc.answer*6);
+ check(r.prioritise.branches[1].stressCalc.answer,60000*0.3*10000*30*0.001/1e5*6);
 });
 test('AI coaching follows diagnosis-only and open-estimation requirements',()=>{
- for(const id of ['diagnosis','guesstimate']){
+ for(const id of ['diagnosis','guesstimate','metricdrop','experiment','prioritise']){
   const raw=session({id,step:7,branch:catalog.rich[id].branches[0].id,answers:{implementation:'My verification plan',number:'1500000'}});
   const follow=promptFor({action:'followup',session:raw});const user=JSON.parse(follow.user);
   assert.equal(user.stage,catalog.rich[id].stageNames[7]);assert.equal(user.prompt,catalog.rich[id].prompts[7]);
