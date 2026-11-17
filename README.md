@@ -1,6 +1,6 @@
 # Case Room
 
-Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode and behavioural (HR) interview practice with a story bank sit alongside the cases.
+Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode, behavioural (HR) interview practice with a story bank and campus placement aptitude practice sit alongside the cases.
 
 ## Product and analytics cases
 
@@ -46,6 +46,24 @@ Open **Behavioural** in the header, or link straight to `/#behavioural`. Practic
 - **Practise with a friend** (`/#behavioural-sheet/<competency>` or `/#behavioural-sheet/all`): a printable interviewer sheet with the questions, follow-ups, "listen for" ticks and a 1–5 scoring line, in the same style as the peer interview sheet.
 - No AI and no server. Everything stays in this browser (`cr-behavioural-*` keys). Questions and checks live in `src/behavioural-content.js` (no DOM, unit-tested in Node).
 
+## Placement aptitude practice
+
+Open **Aptitude** in the header, or link straight to `/#aptitude`. Practice for the online aptitude tests (quantitative, logical and verbal) that Indian campus placements use before any interview. Free, no AI and no server.
+
+- **Topic practice:** choose a section and one or more topics, a difficulty (Easy, Medium, Hard), 5/10/20 questions and an optional per-question target. Every answer gets instant feedback, a worked solution and a shortcut. "Show solution" counts as a miss.
+- **Timed test:** choose sections, 5/10/20/30 questions per section, difficulty (or Mixed), time (36 s, 1 minute or 90 s per question) and negative marking (none, −0.25, −1/3 or −0.5).
+  - Pick one timer for the whole test, or a separate timer for each section (finished sections are locked).
+  - A question palette shows answered, not answered, not visited and marked-for-review questions and lets you jump around. Clear a response, or mark it for review (answered marked questions still count).
+  - There is no feedback until you submit. The test submits itself when time runs out.
+  - The clock runs only while the test is on screen. "Save & exit", leaving the page or reloading pauses it, and the test resumes with the remaining time it had.
+- **Results:** score with the negative-marking working, accuracy of attempted questions, average time per question, a per-topic breakdown, and a review of every question with your answer, the correct one and the worked solution. Also "retry the ones I missed" (wrong and unanswered, as a practice set) and a text download. Your last 30 answered questions per topic give accuracy and median time, and the weakest topic is suggested with a one-click practice set.
+- **Sections and topics:**
+  - **Quantitative** (all generated): percentages, profit & loss, simple & compound interest, ratio & proportion, averages & mixtures, time & work, pipes & cisterns, time-speed-distance (trains, boats), number system (divisibility, HCF/LCM, remainders, unit digits), permutations & combinations, probability, and data interpretation from a generated table or bar chart.
+  - **Logical** (generated): number and letter series, coding–decoding, blood relations (built from a generated family tree), direction sense, seating (clues are added to a generated arrangement until a brute-force search leaves exactly one solution), syllogisms (validity is checked against every Venn diagram), and odd one out.
+  - **Verbal** (original authored bank in `content/aptitude-verbal.js`): synonyms and antonyms, fill in the blank, error spotting, sentence ordering (para-jumbles), and five reading-comprehension passages with 3–4 questions each.
+- **Questions:** every question is multiple choice with four distinct options and exactly one correct answer. Wrong options come from common mistakes, such as adding percentages instead of compounding, dividing by the wrong base, swapping left and right, or stopping a series one step early. Indian context and units (₹, lakh, crore, km/h) are used where natural.
+- Generated questions are reproducible from a seed (`src/aptitude-questions.js`, no DOM, unit-tested in Node). Progress stays in this browser (`cr-aptitude-*` keys). Stored data is validated when read, and anything corrupt is ignored. Delete history from the aptitude page.
+
 ## Included AI features
 
 - **Feedback:** assesses the candidate's actual responses across six reasoning dimensions, with exact-excerpt verification, improvement priorities and a practice exercise. No hiring-readiness score.
@@ -76,18 +94,20 @@ npm install
 npm start
 ```
 
-Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice, the maths drill, peer interviews and behavioural practice, but in-app AI needs the server.
+Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel. Opening `index.html` directly also supports authored practice, the maths drill, peer interviews, behavioural practice and aptitude practice, but in-app AI needs the server.
 
 ### Project layout
 
 - `index.html`: page shell. It loads the files below in order.
-- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css` and `behavioural.css` for those tools).
+- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css`, `behavioural.css` and `aptitude.css` for those tools).
 - `content/cases.js`: the authored case catalogue. Edit cases here.
+- `content/aptitude-verbal.js`: the original verbal aptitude bank (items and reading passages). Edit verbal questions here.
 - `src/core.js`: shared helpers (storage, toast, modal, download).
 - `src/cases.js`: case library, sessions, reports and history, plus the shared read-aloud and dictation helpers (`speak()`, `attachDictation()`).
 - `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
 - `src/peer.js`: peer interview guide, candidate screen, feedback and printable sheet. It reads the case catalogue and reuses the case flow helpers in `src/cases.js`.
 - `src/behavioural-content.js` and `src/behavioural.js`: behavioural question bank and answer heuristics (no DOM, unit-tested in Node), and the practice, story bank and printable sheet UI.
+- `src/aptitude-questions.js` and `src/aptitude.js`: aptitude question generators, scoring and progress statistics (no DOM, unit-tested in Node), and the practice, timed test and results UI.
 - `src/ai-client.js`: optional BYOK AI. `src/boot.js` starts the app.
 - `lib/`, `api/`: the AI proxy used by Vercel and `npm start`.
 
@@ -130,7 +150,7 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 
 ## Validation
 
-Automated API and jsdom interaction tests cover all 24 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
+Automated API and jsdom interaction tests cover all 24 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Aptitude tests check every generated question kind at every level against independently written solvers: formulas, brute-force counting for permutations and probability, a brute-force seating solver, Venn-diagram model checking for syllogisms and a family-tree walk for blood relations. They also check that the four options are distinct, that exactly one is correct and that answers carry no float noise. The verbal bank is checked for one correct option per item and for passages that have questions. jsdom tests run a full timed test with auto-submit, negative marking, mark-for-review, sectional timers, resume after reload, corrupt storage and isolation from the other tools. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
 
 Research references are in the app's Research & case design section. Provider implementation references:
 
