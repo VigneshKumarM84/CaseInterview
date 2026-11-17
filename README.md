@@ -1,6 +1,6 @@
 # Case Room
 
-Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill sits alongside the cases.
+Nine original fictional cases, eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill and a peer interview mode sit alongside the cases.
 
 ## Case maths drill
 
@@ -11,6 +11,17 @@ Open **Maths drill** in the header, or link straight to `/#drill`. Short rounds 
 - Optional read-aloud and listening practice, which hides the written question the way an interviewer would say the numbers.
 - Results show accuracy and time per question, let you retry only the ones you missed, and export a text summary. Per-skill accuracy and median time from your last 30 attempts suggest which skill to practise next.
 - No AI and no server: questions are generated in the browser (`src/drill-questions.js`) and progress stays in this browser's localStorage (`cr-drill-*` keys). An unfinished round resumes after a reload.
+
+## Peer interview
+
+Open **Peer interview** in the header, or link straight to `/#peer`. Two people practise together: one runs the case from an interviewer guide, the other answers out loud. Any of the nine cases works.
+
+- The guide walks through all eight stages. For each one it shows what to ask, what to share when the candidate asks (clarifications, exhibits, path data, new evidence), what a strong answer sounds like, a follow-up question, and an answer key with the hint to offer if they are stuck.
+- The interviewer types the candidate's number and the guide says whether it is within the case's tolerance.
+- The candidate sees only the brief and what the interviewer shares. Either open the candidate screen (`/#peer-screen`) in a second window and share it on a video call (it updates live from the guide on the same device), or turn the screen when you share something.
+- The interviewer rates each stage (strong, solid, needs work), takes notes, ticks the case's strengths and common traps, and writes one thing to keep and one to change. That becomes feedback to download or print. It is a peer's judgement, not a score.
+- **Printable sheet** (`/#peer-sheet/<case id>`): a one-page candidate handout followed by the full interviewer sheet with both paths, answers and scoring boxes, for practising on paper.
+- No AI and no server. Interviews in progress and finished feedback stay in this browser (`cr-peer-*` keys).
 
 ## Included AI features
 
@@ -47,11 +58,12 @@ Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel
 ### Project layout
 
 - `index.html`: page shell. It loads the files below in order.
-- `assets/`: stylesheets (`app.css` shared, `drill.css` for the drill).
+- `assets/`: stylesheets (`app.css` shared, `drill.css` and `peer.css` for those tools).
 - `content/cases.js`: the authored case catalogue. Edit cases here.
 - `src/core.js`: shared helpers (storage, toast, modal, download).
 - `src/cases.js`: case library, sessions, reports and history.
 - `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
+- `src/peer.js`: peer interview guide, candidate screen, feedback and printable sheet. It reads the case catalogue and reuses the case flow helpers in `src/cases.js`.
 - `src/ai-client.js`: optional BYOK AI. `src/boot.js` starts the app.
 - `lib/`, `api/`: the AI proxy used by Vercel and `npm start`.
 
@@ -94,7 +106,7 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 
 ## Validation
 
-Automated API and jsdom interaction tests cover all 18 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
+Automated API and jsdom interaction tests cover all 18 paths, provider request formats, canonical fact filtering, future-evidence gating, transcript and feedback persistence, quote checking, credential non-persistence, error responses, branch resets, cancellation and legacy/offline behaviour. Peer interview tests render every stage of every case and path for gaps, run a full interview through to feedback, and check the candidate screen never shows answers. Drill tests check every question type against independently written formulas across all levels and many seeds, plus answer parsing, tolerance, progress statistics, resume after reload, listening mode and isolation from case sessions. Provider responses are mocked: real keys, live provider quality, Vercel deployment and microphone/speaker behaviour require a live smoke test.
 
 Research references are in the app's Research & case design section. Provider implementation references:
 
