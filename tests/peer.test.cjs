@@ -20,7 +20,7 @@ test('every case and path renders a complete interviewer guide and printable she
 }finally{f.dom.window.close()}});
 
 test('a full peer interview: share, check numbers, score, wrap up and get feedback',()=>{const f=fixture();try{
-  f.$('peerNav').click();assert.equal(f.w.location.hash,'#peer');f.w.document.querySelector('[data-peer-start="cement"]').click();
+  f.$('casesNav').click();f.$('caseTool-peer').click();assert.equal(f.w.location.hash,'#peer');f.w.document.querySelector('[data-peer-start="cement"]').click();
   assert(text(f).includes('Keep this screen away from the candidate'));
   // Sharing without a candidate window shows the item on this screen and records it for the candidate screen.
   f.w.document.querySelector('[data-share="clar:0"]').click();assert(f.$('modal').open);assert(f.$('modalContent').textContent.includes('Recover the ₹40 crore'));f.$('closeModal').click();
@@ -41,7 +41,7 @@ test('a full peer interview: share, check numbers, score, wrap up and get feedba
   assert.equal(JSON.parse(f.w.localStorage.getItem('cr-peer-screen')).finished,true);
   let file;f.w.HTMLAnchorElement.prototype.click=function(){file=this.download};f.$('peerDownload').click();assert.equal(file,'case-room-peer-cement-feedback.txt');
   f.$('peerHome').click();assert(f.w.document.querySelector('[data-peer-report]'));assert.equal(f.run('history.length'),0,'peer interviews are not case sessions');
-  f.$('homeNav').click();assert.equal(f.w.location.hash,'');assert(f.$('drillCallout')&&f.$('peerCallout'),'home links to both tools');assert.deepEqual(f.errors,[]);
+  f.$('homeNav').click();assert.equal(f.w.location.hash,'');f.$('round-case').click();assert(f.$('caseTool-drill')&&f.$('caseTool-peer'),'the case interview page links to both tools');assert.deepEqual(f.errors,[]);
 }finally{f.dom.window.close()}});
 
 test('the candidate screen shows only the brief and shared items, and updates live',()=>{const f=fixture();let g;try{

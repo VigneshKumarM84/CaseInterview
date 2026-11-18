@@ -73,6 +73,7 @@
   const priorRender=renderSession;renderSession=function(){cancel();priorRender();renderCoach();badge()};
   const priorReport=showReport;showReport=function(s){cancel();priorReport(s);renderAIReport(s);if(el('externalAIReview'))el('externalAIReview').hidden=!enabled();badge()};
   const priorHome=home;home=function(){cancel();priorHome();badge()};
+  const priorCases=casesPage;casesPage=function(){cancel();priorCases();badge()};
   const priorHistory=showHistory;showHistory=function(){cancel();priorHistory();badge()};
   el('homeNav').onclick=home;document.querySelector('.brand').onclick=e=>{e.preventDefault();home()};el('historyNav').onclick=showHistory;
   window.addEventListener('pagehide',()=>{apiKey='';consented=false;cancel()});

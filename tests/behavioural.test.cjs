@@ -182,8 +182,8 @@ test('does not interfere with case sessions, the maths drill or peer interviews'
   assert.equal(f.run('history.length'),0,'behavioural answers are not case sessions');assert.equal(f.run('CaseDrill.state().runs.length'),0);assert.equal(f.run('PeerMock.state().past.length'),0);
   const mine=Object.keys(f.w.localStorage).filter(k=>k.startsWith('cr-behavioural-')).sort();assert.deepEqual(mine,['cr-behavioural-attempts','cr-behavioural-draft','cr-behavioural-prefs','cr-behavioural-stories']);
   // Home shows every tool, and leaving the behavioural route clears its hash.
-  f.$('homeNav').click();assert.equal(f.w.location.hash,'');assert(f.$('drillCallout')&&f.$('peerCallout')&&f.$('behaviouralCallout'));assert.equal(f.w.document.querySelectorAll('.tool-callouts .tool-callout').length,5);
-  f.$('behaviouralCallout').click();assert.equal(f.run('view'),'behavioural');f.$('drillNav').click();assert.equal(f.w.location.hash,'#drill');f.$('peerNav').click();assert.equal(f.w.location.hash,'#peer');
+  f.$('homeNav').click();assert.equal(f.w.location.hash,'');assert.equal(f.w.document.querySelectorAll('.round-tile').length,5);
+  f.$('round-hr').click();assert.equal(f.run('view'),'behavioural');f.$('casesNav').click();f.$('caseTool-drill').click();assert.equal(f.w.location.hash,'#drill');f.$('casesNav').click();f.$('caseTool-peer').click();assert.equal(f.w.location.hash,'#peer');
   f.$('privacy').click();assert(f.$('modalContent').textContent.includes('Behavioural practice'));
   assert.deepEqual(f.errors,[]);
 }finally{f.dom.window.close()}});

@@ -3,6 +3,7 @@ const { WARMUP: W, parseAmount, judge } = require('../content/warmup.js');
 const { fixture } = require('./dom.cjs');
 const type = (f, id, value) => { const el = f.$(id); el.value = value; el.dispatchEvent(new f.w.Event('input', { bubbles: true })); };
 const step = id => W.steps.find(s => s.id === id);
+const openWarmup = f => { f.$('round-case').click(); f.$('caseTool-warmup').click(); };
 
 test('the warm-up figures add up', () => {
   const { lastYear: L, thisYear: T } = W.fest;
@@ -29,24 +30,25 @@ test('typed amounts are read and the calculation is judged, with specific help f
   assert.equal(judge(calc, 'not sure').status, 'empty');
 });
 
-test('a new visitor sees the warm-up beside "Explore the cases" and above the library', () => {
+test('a new visitor finds the warm-up first on the Case interview page, one click from home', () => {
   const f = fixture(); try {
-    assert.equal(f.$('warmupHero').parentElement, f.$('begin').parentElement, 'in the same row as "Explore the cases"');
-    assert.equal(f.$('warmupHero').textContent, 'New to cases? 10-minute warm-up');
-    assert(f.$('warmupBanner')); assert.equal(f.$('warmupBanner').nextElementSibling, f.w.document.querySelector('#library .cards'));
-    f.$('warmupBannerStart').click(); assert.equal(f.run('view'), 'warmup'); assert.equal(f.w.location.hash, '#warmup');
+    f.$('round-case').click(); assert.equal(f.run('view'), 'cases'); assert.equal(f.w.location.hash, '#cases');
+    const start = f.$('caseTool-warmup'); assert.equal(start.textContent, 'Start the warm-up →'); assert(start.classList.contains('primary'));
+    assert(start.closest('.case-tool').classList.contains('first')); assert.match(start.closest('.case-tool').textContent, /NEW TO CASES\? START HERE/);
+    assert(f.$('caseTools').compareDocumentPosition(f.w.document.querySelector('#library .cards')) & f.w.Node.DOCUMENT_POSITION_FOLLOWING, 'before the full cases');
+    start.click(); assert.equal(f.run('view'), 'warmup'); assert.equal(f.w.location.hash, '#warmup');
     assert.match(f.$('app').textContent, /Your first case, in four small steps/); assert(f.$('wuSkip'));
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
 
-test('"Skip the walkthrough" goes to the cases and stops showing the library banner', () => {
+test('"Skip the walkthrough" goes to the case library and stops putting the warm-up first', () => {
   const f = fixture(); let g; try {
-    f.$('warmupHero').click(); f.$('wuSkip').click();
-    assert.equal(f.run('view'), 'home'); assert.equal(f.w.location.hash, ''); assert(f.$('library'));
-    assert.equal(f.$('warmupBanner'), null); assert(f.$('warmupHero'), 'the hero button stays for anyone who changes their mind');
+    openWarmup(f); f.$('wuSkip').click();
+    assert.equal(f.run('view'), 'cases'); assert.equal(f.w.location.hash, '#cases'); assert(f.$('library'));
+    const tile = () => f.$('caseTool-warmup'); assert(!tile().classList.contains('primary')); assert.equal(tile().textContent, 'Start the warm-up →', 'still there for anyone who changes their mind');
     g = fixture({ storage: { 'cr-warmup-seen': f.w.localStorage.getItem('cr-warmup-seen') } });
-    assert.equal(g.$('warmupBanner'), null);
+    g.$('casesNav').click(); assert(!g.$('caseTool-warmup').closest('.case-tool').classList.contains('first'));
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); g?.dom.window.close(); }
 });
@@ -54,7 +56,7 @@ test('"Skip the walkthrough" goes to the cases and stops showing the library ban
 test('the full walkthrough: an answer, then an example and why it helps, at every step', () => {
   const f = fixture(); try {
     let calls = 0; f.w.fetch = () => { calls++; throw Error('Unexpected request'); };
-    f.$('warmupHero').click(); f.$('wuStart').click();
+    openWarmup(f); f.$('wuStart').click();
     const text = () => f.$('app').textContent;
     // 1. Clarify: an empty answer is not accepted; a typed one is shown with the example and the reply.
     assert.match(text(), /STEP 1 OF 4/); assert(f.w.document.querySelector('.wu-brief').open);
@@ -85,14 +87,14 @@ test('the full walkthrough: an answer, then an example and why it helps, at ever
     assert.equal(f.run('WarmupTool.state().screen'), 'done'); assert.match(text(), /met 2 of 4 points/); assert.match(text(), /Clarify → Frame/);
     assert.equal(f.w.localStorage.getItem('cr-warmup-seen'), '"done"');
     f.$('wuFull').click(); assert.equal(f.run('view'), 'session'); assert.equal(f.run('session.id'), 'cement');
-    f.run('session=null; home()'); assert.equal(f.$('warmupBanner'), null); assert.equal(f.$('warmupHero').textContent, 'Redo the 10-minute warm-up');
+    f.run('session=null; casesPage()'); assert.equal(f.$('caseTool-warmup').textContent, 'Redo the warm-up');
     assert.equal(calls, 0); assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
 
 test('a warm-up in progress survives reload, #warmup opens it, and corrupt storage is ignored', () => {
   const f = fixture(); let g, h; try {
-    f.$('warmupHero').click(); f.$('wuStart').click(); type(f, 'wuAnswer', 'Revenue or surplus?'); f.$('wuCheck').click(); f.$('wuNext').click();
+    openWarmup(f); f.$('wuStart').click(); type(f, 'wuAnswer', 'Revenue or surplus?'); f.$('wuCheck').click(); f.$('wuNext').click();
     type(f, 'wuAnswer', 'Average price per ticket');
     const storage = {}; for (const k of Object.keys(f.w.localStorage)) storage[k] = f.w.localStorage.getItem(k);
     g = fixture({ url: 'https://case.example/#warmup', storage });
@@ -103,14 +105,14 @@ test('a warm-up in progress survives reload, #warmup opens it, and corrupt stora
     try { assert.equal(early.$('wuContinue').textContent, 'Continue from step 1 →'); early.$('wuContinue').click(); assert.equal(early.$('wuAnswer').value, 'Revenue or surplus?'); } finally { early.dom.window.close(); }
     h = fixture({ url: 'https://case.example/#warmup', storage: { 'cr-warmup-run': '{"step":99,"answers":"x"}', 'cr-warmup-seen': '"bogus"' } });
     assert.equal(h.run('view'), 'warmup'); assert(h.$('wuStart')); assert.equal(h.$('wuContinue'), null);
-    h.$('homeNav').click(); assert(h.$('warmupBanner'));
+    h.$('casesNav').click(); assert(h.$('caseTool-warmup').classList.contains('primary'), 'corrupt storage counts as a new visitor');
     for (const x of [f, g, h]) assert.deepEqual(x.errors, []);
   } finally { f.dom.window.close(); g?.dom.window.close(); h?.dom.window.close(); }
 });
 
 test('typed answers are shown as text, never as HTML', () => {
   const f = fixture(); try {
-    f.$('warmupHero').click(); f.$('wuStart').click();
+    openWarmup(f); f.$('wuStart').click();
     type(f, 'wuAnswer', '<img src=x onerror="window.__x=1"><script>window.__x=2</script>'); f.$('wuCheck').click();
     assert.equal(f.w.document.querySelectorAll('#wuFeedback img, #wuFeedback script').length, 0); assert.equal(f.w.__x, undefined);
     assert.deepEqual(f.errors, []);

@@ -227,11 +227,8 @@
   const priorHome = home;
   home = function () {
     priorHome(); if (location.hash === '#resume') setHash(false);
-    const tools = $('#app .tool-callouts'); if (!tools) return;
-    const tile = document.createElement('div'); tile.className = 'drill-callout tool-callout';
-    tile.innerHTML = `<div><div class="eyebrow">NEW · RÉSUMÉ CHECKER</div><h3>Check your résumé against the job</h3><p class="note">Checks your whole résumé and every bullet, and, if you paste a job description, which of its keywords you are missing. PDF, Word or pasted text. Free, no AI, and nothing is uploaded.</p></div><button class="primary" id="resumeCallout">Check my résumé →</button>`;
-    tools.append(tile); $('#resumeCallout').onclick = open;
   };
+
 
   window.ResumeTool = { open, check, takeFile, state: () => ({ draft, analysis, saving, fileInfo }) };
 })();

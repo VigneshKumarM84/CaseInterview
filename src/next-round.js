@@ -28,7 +28,12 @@
   function suggest() { state.items = state.round ? N.plan({ round: state.round, role: state.role, minutes: state.minutes, warmupDone: warmupDone() }) : []; state.done = []; state.edited = false; }
 
   function setHash(on) { try { window.history.replaceState(null, '', location.pathname + location.search + (on ? '#next-round' : '')); } catch { /* file:// or sandboxed frames */ } }
-  function open() { stopMedia(); view = 'next-round'; setHash(true); window.scrollTo(0, 0); render(); }
+  /** Opens the picker. Passing a round (from the home page's round tiles) chooses it, keeping the time and role. */
+  function open(round) {
+    stopMedia(); view = 'next-round'; setHash(true); window.scrollTo(0, 0);
+    if (typeof round === 'string' && roundOf(round) && state.round !== round) { state.round = round; suggest(); persist(); }
+    render();
+  }
 
   /* ---------- Page ---------- */
   const chip = (name, value, title, checked) => `<label class="drill-chip nr-chip"><input type="radio" name="${name}" value="${value}" ${checked ? 'checked' : ''}><span><b>${esc(title)}</b></span></label>`;
@@ -40,10 +45,10 @@
         <fieldset><legend>Your next round</legend><div class="nr-chips">${N.ROUNDS.map(r => chip('nrRound', r.id, r.title, state.round === r.id)).join('')}</div></fieldset>
         <fieldset><legend>Time you have now</legend><div class="nr-chips">${N.TIMES.map(t => chip('nrTime', t.minutes, t.title, state.minutes === t.minutes)).join('')}</div></fieldset>
         <fieldset><legend>Role you are applying for <span class="note">(optional)</span></legend><div class="nr-chips">${N.ROLES.map(r => chip('nrRole', r.id, r.title, state.role === r.id)).join('')}</div></fieldset>
-        <p class="note">Want a full case straight away? <button class="wu-link" id="nrCases">Go to the case library</button></p>
+        <p class="note">Want a full case straight away? <button class="wu-link" id="nrCases">Go to the case interview page</button></p>
       </section><section class="panel nr-plan" id="nrPlan" aria-live="polite">${planHtml()}</section></div>`;
     document.querySelectorAll('[name=nrRound],[name=nrTime],[name=nrRole]').forEach(r => r.onchange = choose);
-    $('#nrCases').onclick = () => { home(); const lib = $('#library'); if (lib && lib.scrollIntoView) lib.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    $('#nrCases').onclick = () => casesPage();
     bindPlan();
   }
   function choose() {
@@ -105,12 +110,7 @@
 
   /* ---------- Integration with the rest of Case Room ---------- */
   const priorHome = home;
-  home = function () {
-    priorHome(); if (location.hash === '#next-round') setHash(false);
-    const begin = $('#begin'); if (!begin) return;
-    const b = document.createElement('button'); b.id = 'nextRoundHero'; b.textContent = state.round ? 'My next-round plan' : 'Prepare for my next round';
-    begin.after(b); b.onclick = open;
-  };
+  home = function () { priorHome(); if (location.hash === '#next-round') setHash(false); };
 
   window.NextRoundTool = { open, go, state: () => state };
 })();

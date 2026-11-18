@@ -83,7 +83,7 @@ function answer(f,correct){const s=f.run('CaseDrill.state()'),q=s.run.questions[
   return q}
 
 test('a full drill round records results, shows working and feeds progress',()=>{const f=fixture();try{
-  assert(f.$('drillCallout'),'library promotes the drill');f.$('drillNav').click();assert.equal(f.run('view'),'drill');assert.equal(f.w.location.hash,'#drill');
+  f.$('round-case').click();assert(f.$('caseTool-drill'),'the case interview page leads to the drill');f.$('caseTool-drill').click();assert.equal(f.run('view'),'drill');assert.equal(f.w.location.hash,'#drill');
   f.w.document.querySelectorAll('[name=drillSkill]').forEach(x=>x.checked=['percent','exhibit'].includes(x.value));f.$('drillCount').value='5';f.$('drillCount').dispatchEvent(new f.w.Event('change'));
   f.$('drillStart').click();assert.equal(f.run('CaseDrill.state().run.questions.length'),5);
   for(let i=0;i<5;i++){
@@ -124,8 +124,8 @@ test('listening practice hides the written question and reads it aloud once',()=
 
 test('drill and case sessions do not interfere with each other',()=>{const f=fixture();try{
   f.run("start('cement')");f.$('answer').value='Keep my case answer';f.$('answer').dispatchEvent(new f.w.Event('input'));
-  f.$('drillNav').click();f.$('drillStart').click();answer(f,true);f.$('homeNav').click();
-  assert(f.$('resume'),'the case session can still be resumed');f.$('resume').click();assert.equal(f.$('answer').value,'Keep my case answer');
+  f.$('casesNav').click();f.$('caseTool-drill').click();f.$('drillStart').click();answer(f,true);f.$('homeNav').click();
+  const cont=f.w.document.querySelector('[data-continue="case"]');assert(cont,'the case session is listed under Continue');cont.click();assert.equal(f.$('answer').value,'Keep my case answer');
   assert.equal(f.run('history.length'),0,'drill rounds are not case sessions');assert(f.run('CaseDrill.state().run'),'the drill round is kept');assert.deepEqual(f.errors,[]);
 }finally{f.dom.window.close()}});
 

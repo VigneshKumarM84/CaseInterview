@@ -313,16 +313,12 @@
   setInterval(() => { if (view === 'peer' && screen === 'guide' && run && $('#peerTimer')) $('#peerTimer').textContent = `${clock(durationOf(run))} · aim for ${caseOf(run.caseId).minutes} min`; }, 1000);
 
   /* ---------- Integration with the rest of Case Room ---------- */
-  $('#peerNav').onclick = open;
   const priorHome = home;
   home = function () {
     document.body.classList.remove('peer-candidate');
     priorHome(); if (location.hash.startsWith('#peer')) setHash('');
-    const tools = $('#app .tool-callouts'); if (!tools) return;
-    const tile = document.createElement('div'); tile.className = 'drill-callout tool-callout';
-    tile.innerHTML = `<div><div class="eyebrow">NEW · PEER INTERVIEW</div><h3>Run a mock interview with a friend</h3><p class="note">One of you interviews from a guide with the answers and scoring cues; the other answers out loud. Then swap.</p></div><button class="primary" id="peerCallout">Start a peer interview →</button>`;
-    tools.append(tile); $('#peerCallout').onclick = open;
   };
+
 
   window.PeerMock = { open, candidate, sheet, start, state: () => ({ run, past, screen }) };
 })();
