@@ -31,7 +31,7 @@ test('typed amounts are read and the calculation is judged, with specific help f
 
 test('a new visitor sees the warm-up beside "Explore the cases" and above the library', () => {
   const f = fixture(); try {
-    assert.equal(f.$('warmupHero').previousElementSibling, f.$('begin'));
+    assert.equal(f.$('warmupHero').parentElement, f.$('begin').parentElement, 'in the same row as "Explore the cases"');
     assert.equal(f.$('warmupHero').textContent, 'New to cases? 10-minute warm-up');
     assert(f.$('warmupBanner')); assert.equal(f.$('warmupBanner').nextElementSibling, f.w.document.querySelector('#library .cards'));
     f.$('warmupBannerStart').click(); assert.equal(f.run('view'), 'warmup'); assert.equal(f.w.location.hash, '#warmup');

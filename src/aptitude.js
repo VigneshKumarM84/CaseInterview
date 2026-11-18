@@ -169,12 +169,24 @@
     run = { mode: 'practice', id: 'p' + Date.now().toString(36), origin, level, target: prefs.target, questions, results: questions.map(() => null), index: 0, started: Date.now(), qStarted: Date.now() };
     persist(); renderPractice();
   }
-  function beginTest() {
+  function beginTest({ sections = prefs.sections, perSection = prefs.perSection } = {}) {
     if (!replaceRun()) return;
-    const questions = A.buildTest({ sections: prefs.sections, perSection: prefs.perSection, level: prefs.testLevel, seed: Date.now() }), n = questions.length;
-    run = { mode: 'test', id: 't' + Date.now().toString(36), level: prefs.testLevel, sections: prefs.sections.slice(), perSection: prefs.perSection, pace: prefs.pace, timing: prefs.timing, negative: prefs.negative,
-      questions, answers: Array(n).fill(null), marked: Array(n).fill(false), visited: Array(n).fill(false), seconds: Array(n).fill(0), index: 0, elapsed: 0, sectionIndex: 0, sectionElapsed: prefs.sections.map(() => 0), started: Date.now() };
+    const questions = A.buildTest({ sections, perSection, level: prefs.testLevel, seed: Date.now() }), n = questions.length;
+    run = { mode: 'test', id: 't' + Date.now().toString(36), level: prefs.testLevel, sections: sections.slice(), perSection, pace: prefs.pace, timing: prefs.timing, negative: prefs.negative,
+      questions, answers: Array(n).fill(null), marked: Array(n).fill(false), visited: Array(n).fill(false), seconds: Array(n).fill(0), index: 0, elapsed: 0, sectionIndex: 0, sectionElapsed: sections.map(() => 0), started: Date.now() };
     persist(); renderTest();
+  }
+  /* Entry points for the next-round planner. They start straight away and leave saved preferences unchanged. */
+  const ALL_SECTIONS = A.SECTIONS.map(s => s.id);
+  /** A short practice set across the given sections, or on the weakest topic when there is enough history. */
+  function quickPractice({ sections = ALL_SECTIONS, count = 10, weakest = false } = {}) {
+    const weak = weakest ? A.weakest(A.summarise(history)) : null;
+    const topics = weak ? [weak.topic] : A.TOPICS.filter(t => sections.includes(t.section)).map(t => t.id);
+    setHash(true); beginPractice(A.buildSet({ topics, level: prefs.level, count, seed: Date.now() }), weak ? 'weakest' : 'plan', prefs.level);
+  }
+  /** A timed mock with the given sections and questions per section, at the student's saved pace and marking. */
+  function quickTest({ sections = ALL_SECTIONS, perSection = 10 } = {}) {
+    setHash(true); beginTest({ sections: ALL_SECTIONS.filter(s => sections.includes(s)), perSection: PER_SECTION.includes(perSection) ? perSection : 10 });
   }
 
   /* ---------- Topic practice ---------- */
@@ -264,7 +276,7 @@
     const entry = { id: run.id, at: Date.now(), mode: 'test', level: run.level, sections: run.sections, perSection: run.perSection, pace: run.pace, timing: run.timing, negative: run.negative, auto: !!auto,
       score: s.score, correct: s.correct, wrong: s.wrong, unanswered: s.unanswered, total: s.total, elapsed: Math.round(run.elapsed / 1000),
       results: run.questions.map((q, i) => ({ topic: q.topic, ok: run.answers[i] === q.answer, answered: run.answers[i] != null, seconds: Math.round(run.seconds[i] * 10) / 10 })) };
-    record(entry, { mode: 'test', auto: !!auto, level: run.level, negative: run.negative, timing: run.timing, pace: run.pace, elapsed: run.elapsed, score: s, items: run.questions.map((q, i) => ({ q, choice: run.answers[i], seconds: run.seconds[i], marked: run.marked[i] })) });
+    record(entry, { mode: 'test', auto: !!auto, level: run.level, sections: run.sections, perSection: run.perSection, negative: run.negative, timing: run.timing, pace: run.pace, elapsed: run.elapsed, score: s, items: run.questions.map((q, i) => ({ q, choice: run.answers[i], seconds: run.seconds[i], marked: run.marked[i] })) });
   }
   function timeUp() {
     if (run.timing === 'sectional' && run.sectionIndex < run.sections.length - 1) {
@@ -314,7 +326,7 @@
         <p>${choice == null ? 'Not answered.' : `You chose <b>${LETTERS[choice]}</b>.`} Answer: <b>${LETTERS[q.answer]}. ${esc(q.display)}</b></p>${solutionMarkup(q)}</details>`; }).join('')}
       <div class="actions">${missed.length ? `<button class="primary" id="aptRetry">Retry the ${missed.length} I missed</button>` : ''}<button ${missed.length ? '' : 'class="primary"'} id="aptAgain">${res.mode === 'test' ? 'New test, same settings' : 'New practice, same settings'}</button><button id="aptBack">Aptitude home</button><button id="aptDownload">Download summary</button></div></section>`;
     if ($('#aptRetry')) $('#aptRetry').onclick = () => beginPractice(missed.map(x => JSON.parse(JSON.stringify(x.q))), 'retry', res.level === 'mixed' ? 'medium' : res.level);
-    $('#aptAgain').onclick = () => res.mode === 'test' ? beginTest() : beginPractice(A.buildSet({ topics: prefs.topics[prefs.section], level: prefs.level, count: prefs.count, seed: Date.now() }), 'new', prefs.level);
+    $('#aptAgain').onclick = () => res.mode === 'test' ? beginTest(res.sections ? { sections: res.sections, perSection: res.perSection } : {}) : beginPractice(A.buildSet({ topics: prefs.topics[prefs.section], level: prefs.level, count: prefs.count, seed: Date.now() }), 'new', prefs.level);
     $('#aptBack').onclick = renderHome;
     $('#aptDownload').onclick = () => download(summaryText(res), `case-room-aptitude-${new Date(e.at).toISOString().slice(0, 10)}.txt`);
     bindWeak();
@@ -341,5 +353,5 @@
     tools.append(tile); $('#aptitudeCallout').onclick = open;
   };
 
-  window.Aptitude = { open, tick, state: () => ({ run, history, prefs, screen, lastResult }) };
+  window.Aptitude = { open, tick, quickPractice, quickTest, state: () => ({ run, history, prefs, screen, lastResult }) };
 })();

@@ -1,0 +1,32 @@
+/* "Prepare for my next round": choices on the left, the plan on the right. Chip styles come from drill.css. */
+.nr-head{max-width:760px;padding-bottom:8px}
+.nr-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:20px;align-items:start;margin-top:12px}
+.nr-grid .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 24px}
+.nr-choices fieldset{border:0;padding:0;margin:0 0 20px;min-width:0}
+.nr-choices legend{font-weight:700;font-size:13px;margin-bottom:10px;padding:0}
+.nr-chips{display:flex;flex-wrap:wrap;gap:8px}
+.nr-chip span{padding:9px 12px}
+.nr-note{background:#f0f4e9;border-radius:8px;padding:12px 14px;margin:8px 0 14px}
+.nr-note.outside{background:#fbf0e5;border:1px solid #e3c19f}
+.nr-first{margin:0 0 12px}
+.nr-items{list-style:none;padding:0;margin:0;counter-reset:nr}
+.nr-item{counter-increment:nr;display:flex;gap:14px;justify-content:space-between;border-top:1px solid var(--line);padding:14px 0}
+.nr-item:first-child{border-top:0;padding-top:4px}
+.nr-item-main{min-width:0}
+.nr-item-main .eyebrow::before{content:counter(nr) " · "}
+.nr-item h3{font:600 17px Manrope,sans-serif;margin:4px 0 2px}
+.nr-item p{margin:0 0 10px}
+.nr-item.done h3{text-decoration:line-through;text-decoration-thickness:1px;color:var(--muted)}
+.nr-item-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.nr-done{font-size:13px;white-space:nowrap}
+.nr-done input{margin-right:6px}
+.nr-remove{padding:2px 10px;font-size:18px;line-height:1.2;color:var(--muted)}
+.nr-tips{margin:0}
+.nr-tips ol{padding-left:20px;line-height:1.6}
+.nr-total{font-weight:600;margin:12px 0}
+.nr-edit{border-top:1px solid var(--line);padding-top:12px}
+.nr-edit label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.nr-add{display:flex;gap:8px}
+.nr-add select{flex:1;min-width:0;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+@media(max-width:800px){.nr-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.nr-grid .panel{padding:18px 16px}.nr-item{flex-direction:column}.nr-item-side{flex-direction:row;align-items:center;justify-content:space-between}}
