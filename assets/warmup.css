@@ -1,0 +1,46 @@
+/* Guided warm-up: the 10-minute first case. */
+.wu-head{max-width:760px;padding-bottom:8px}
+.wu-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 26px;margin:16px 0}
+.wu-panel .brief{font-size:16px}
+.wu-plan{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:16px 0;list-style:none;counter-reset:wu}
+.wu-plan li{counter-increment:wu;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px}
+.wu-plan li::before{content:counter(wu) " · ";color:var(--muted)}
+.wu-link{border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;color:var(--muted)}
+.wu-link:hover{background:transparent;color:var(--ink)}
+.wu-top{align-items:flex-start}
+.wu-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:0;margin:8px 0 16px;list-style:none}
+.wu-progress li{border-top:4px solid var(--line);padding-top:6px;font-size:12px;color:var(--muted)}
+.wu-progress li.past{border-color:#9ab84c}
+.wu-progress li.now{border-color:var(--green);color:var(--ink);font-weight:700}
+.wu-brief{margin:0 0 12px}
+.wu-brief summary{cursor:pointer;font-weight:600}
+.wu-brief .brief{margin:8px 0 0}
+.wu-facts{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 18px;margin:12px 0}
+.wu-facts h3{font-size:14px;margin:4px 0}
+.wu-facts ul{margin:4px 0;padding-left:20px;line-height:1.6}
+.wu-label{display:block;font-weight:600;margin:6px 0}
+.wu-panel textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;resize:vertical}
+.wu-number{display:flex;align-items:center;gap:8px;max-width:260px}
+.wu-number span{font-size:20px}
+.wu-number input{flex:1;min-width:0;padding:12px;border:1px solid var(--line);border-radius:8px;font-size:18px;font-variant-numeric:tabular-nums}
+.wu-hint{margin:0 0 12px}
+.wu-timer{display:flex;align-items:center;gap:12px;margin:0 0 10px}
+.wu-clock{font:600 22px Manrope,sans-serif;font-variant-numeric:tabular-nums}
+.wu-clock.over{color:#b0602a}
+.wu-result{padding:10px 14px;border-radius:8px;margin:12px 0}
+.wu-result.ok{background:#eef6e6;border:1px solid #b9d79e}
+.wu-result.miss{background:#fbf0e5;border:1px solid #e3c19f}
+.wu-feedback>:first-child{margin-top:0}
+.wu-feedback h3{font-size:15px;margin:18px 0 4px}
+.wu-yours{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0}
+.wu-example{margin:6px 0;padding:12px 16px;border-left:3px solid var(--lime);background:#f7faef;line-height:1.65}
+.wu-also{margin:12px 0}
+.wu-selfcheck{border:1px solid var(--line);border-radius:8px;padding:8px 16px;margin:16px 0}
+.wu-selfcheck legend{font-weight:600;padding:0 6px}
+.wu-selfcheck .selfcheck{display:flex;gap:8px;align-items:flex-start;padding:6px 0}
+.wu-selfcheck .selfcheck input{margin:4px 0 0;flex-shrink:0}
+.wu-reply{margin:16px 0}
+.wu-map{padding-left:22px;line-height:1.8}
+.wu-map details{margin:0 0 6px}
+.wu-banner{margin:20px 0 0}
+@media(max-width:600px){.wu-panel{padding:18px 16px}.wu-progress{grid-template-columns:repeat(2,minmax(0,1fr))}.wu-top{flex-direction:column;gap:4px}.wu-banner{flex-direction:column;align-items:flex-start}}
