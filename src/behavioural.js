@@ -1,12 +1,14 @@
-/* Behavioural (HR) interview practice: timed questions, heuristic feedback with STAR tagging, a STAR story bank
-   and a printable sheet for practising with a friend. No AI: every check is computed in the browser by
+/* Behavioural (HR) interview practice: practice interviews of a few questions in a row (answer, quick feedback,
+   next question, summary), detailed feedback with STAR tagging, a STAR story bank and a printable sheet for
+   practising with a friend. No AI: every check is computed in the browser by
    BehaviouralContent. Uses core.js helpers and speak()/stopMedia()/attachDictation()/voiceControls()/bindSpeech()
    from cases.js. Everything is stored in this browser under cr-behavioural-* keys. */
 (() => {
   const B = BehaviouralContent;
-  const ATTEMPTS_KEY = 'cr-behavioural-attempts', STORIES_KEY = 'cr-behavioural-stories', DRAFT_KEY = 'cr-behavioural-draft', PREFS_KEY = 'cr-behavioural-prefs';
+  const ATTEMPTS_KEY = 'cr-behavioural-attempts', STORIES_KEY = 'cr-behavioural-stories', DRAFT_KEY = 'cr-behavioural-draft', PREFS_KEY = 'cr-behavioural-prefs', SET_KEY = 'cr-behavioural-set';
+  const SET_SIZES = [3, 5], MAX_SET = 50;
   const MAX_ATTEMPTS = 300, MAX_STORIES = 30, MAX_TEXT = 20000, EXPORT_KIND = 'case-room-behavioural-stories';
-  const LANGS = [['en-IN', 'English (India)'], ['en-US', 'English (US)'], ['en-GB', 'English (UK)']];
+  const LANGS = [['en-IN', 'English (India)'], ['en-US', 'English (US)'], ['en-GB', 'English (UK)']]; // kept only to read an older saved preference
   const isObj = o => !!o && typeof o === 'object' && !Array.isArray(o);
   const str = (v, max = MAX_TEXT) => typeof v === 'string' ? v.slice(0, max) : '';
   const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -54,13 +56,32 @@
   let stories = list(STORIES_KEY, cleanStory).slice(0, MAX_STORIES).filter((s, i, all) => all.findIndex(x => x.id === s.id) === i);
   let draft = cleanDraft(read(DRAFT_KEY, null));
   let prefs = read(PREFS_KEY, {}); if (!isObj(prefs)) prefs = {};
-  prefs = { mode: prefs.mode === 'mixed' || B.IDS.includes(prefs.mode) ? prefs.mode : 'mixed', lang: LANGS.some(l => l[0] === prefs.lang) ? prefs.lang : 'en-IN', aloud: !!prefs.aloud };
+  prefs = { mode: prefs.mode === 'mixed' || B.IDS.includes(prefs.mode) ? prefs.mode : 'mixed', lang: LANGS.some(l => l[0] === prefs.lang) ? prefs.lang : 'en-IN', aloud: !!prefs.aloud,
+    count: SET_SIZES.includes(prefs.count) ? prefs.count : 5 };
+  // Dictation language now lives in the shared Voice settings; carry over a choice made here before.
+  if (!settings.lang && prefs.lang !== 'en-IN') { settings.lang = prefs.lang; save('cr-voice', settings); }
+
+  /* A practice interview: the questions, where the student is, and the saved answer for each question.
+     Fixed sets (started here) end with a summary. Open sets (one question asked from elsewhere, such as a plan)
+     keep offering another question. review is true while the quick feedback for the current question is showing. */
+  function cleanSet(v) {
+    if (!isObj(v) || !Array.isArray(v.qids)) return null;
+    const qids = v.qids.filter(id => B.findQuestion(id)).slice(0, MAX_SET); if (!qids.length || qids.length !== v.qids.length) return null;
+    const index = Number.isInteger(v.index) && v.index >= 0 && v.index < qids.length ? v.index : 0;
+    const answers = qids.map((_, i) => Array.isArray(v.answers) && typeof v.answers[i] === 'string' ? v.answers[i].slice(0, 40) : null);
+    return { mode: v.mode === 'mixed' || B.IDS.includes(v.mode) ? v.mode : 'mixed', qids, index, answers, fixed: !!v.fixed, review: !!v.review && !!answers[index] };
+  }
+  let set = cleanSet(read(SET_KEY, null));
   let screen = 'home', current = null, editing = null, lastTick = Date.now();
+  // A saved answer in progress must belong to the saved set; otherwise keep the answer and drop the set.
+  if (set && draft && draft.qid !== set.qids[set.index]) set = null;
+  if (set && set.review && !attempts.some(a => a.id === set.answers[set.index])) set.review = false;
 
   const saveAttempts = () => save(ATTEMPTS_KEY, attempts);
   const saveStories = () => save(STORIES_KEY, stories);
   const persist = () => { if (draft) draft.at = Date.now(); save(DRAFT_KEY, draft); };
   const savePrefs = () => save(PREFS_KEY, prefs);
+  const saveSet = () => save(SET_KEY, set);
   const storyOf = id => stories.find(s => s.id === id);
   const questionOf = d => B.findQuestion(d.qid);
 
@@ -75,9 +96,9 @@
     if (!draft || screen !== 'question' || !$('#bhTimerText')) return;
     const s = elapsed(draft), [lo, hi] = comp(draft.competency).target, span = hi * 1.25, state = s > hi ? 'over' : s >= lo ? 'in' : '';
     $('#bhTimerText').textContent = `${clock(s)} · aim for ${range([lo, hi])}`;
-    $('#bhTimerBadge').textContent = clock(s); $('#bhTimerBadge').className = 'badge bh-timer-badge ' + state;
     $('#bhMeterFill').style.width = Math.min(100, s / span * 100) + '%'; $('#bhMeter').className = 'bh-meter ' + state;
     $('#bhTimerBtn').textContent = draft.runningSince ? 'Pause timer' : s ? 'Resume timer' : 'Start timer';
+    $('#bhTimerText').className = 'bh-time ' + state;
   }
   setInterval(() => {
     const now = Date.now();
@@ -96,16 +117,21 @@
   function renderHome() {
     pauseTimer(); stopMedia(); view = 'behavioural'; screen = 'home';
     if (stories.some(isEmptyStory)) { stories = stories.filter(s => !isEmptyStory(s)); saveStories(); }
-    const gaps = B.coverage(stories).filter(c => !c.count), dq = draft && questionOf(draft);
-    const resume = dq ? `<section class="panel bh-resume"><div><b>Unfinished answer</b><p class="note">${esc(comp(draft.competency).title)} · “${esc(dq.text)}” · ${B.wordCount(draft.text)} words · ${clock(elapsed(draft))} on the clock</p></div><div class="actions"><button class="primary" id="bhResume">Resume answer →</button><button id="bhDiscard">Discard</button></div></section>` : '';
+    const gaps = B.coverage(stories).filter(c => !c.count), dq = draft && questionOf(draft), where = set && set.fixed ? ` · question ${set.index + 1} of ${set.qids.length}` : '';
+    const resume = dq ? `<section class="panel bh-resume"><div><b>Unfinished practice interview</b><p class="note">${esc(comp(draft.competency).title)}${where} · “${esc(dq.text)}” · ${B.wordCount(draft.text)} words · ${clock(elapsed(draft))} on the clock</p></div><div class="actions"><button class="primary" id="bhResume">Carry on →</button><button class="wu-link" id="bhDiscard">Discard</button></div></section>`
+      : set && set.review ? `<section class="panel bh-resume"><div><b>Unfinished practice interview</b><p class="note">${set.fixed ? `Question ${set.index + 1} of ${set.qids.length} answered` : 'Your last answer'} · feedback waiting</p></div><div class="actions"><button class="primary" id="bhResume">Carry on →</button><button class="wu-link" id="bhDiscard">Discard</button></div></section>` : '';
     const rows = B.COMPETENCIES.map(c => ({ c, s: stats(c.id) })), practised = rows.filter(r => r.s.mine.length);
-    $('#app').innerHTML = `<section class="bh-head"><div class="eyebrow">BEHAVIOURAL INTERVIEW PRACTICE</div><h1 class="bh-title">Answer the HR round <em>with a story.</em></h1><p class="lead">Practise “tell me about yourself”, “why us” and the leadership, teamwork, conflict, failure, pressure, initiative and ethics questions. Answer out loud or type against a timer, then check your structure and delivery. No AI, no account, no cost.</p></section>${resume}
-    <div class="bh-grid"><section class="panel bh-setup"><h2>Practise a question</h2>
-      <fieldset><legend>Choose a competency</legend><div class="bh-comps">${[['mixed', 'Mixed questions', 'A random question from every competency']].concat(B.COMPETENCIES.map(c => [c.id, c.title, c.short])).map(([id, title, short]) => {
+    const focus = prefs.mode === 'mixed' ? 'A typical HR round' : comp(prefs.mode).title;
+    $('#app').innerHTML = `<section class="bh-head"><div class="eyebrow">HR INTERVIEW</div><h1 class="bh-title">Answer the HR round <em>with a story.</em></h1><p class="lead">A practice interview asks a few questions in a row, like the real round. Answer each one out loud or in writing, get quick feedback, then move on. No AI, no account, no cost.</p></section>${resume}
+    <div class="bh-grid"><section class="panel bh-setup"><h2>Start a practice interview</h2>
+      <p class="bh-setup-summary" id="bhSetupSummary"><b>${prefs.count} questions</b> · ${esc(focus)} · about ${prefs.count * 2} minutes</p>
+      <div class="actions"><button class="primary" id="bhStart">Start practice interview →</button></div>
+      <details class="bh-options"><summary>Change the questions</summary>
+      <fieldset><legend>How many questions</legend><div class="bh-counts">${SET_SIZES.map(n => `<label class="drill-chip"><input type="radio" name="bhCount" value="${n}" ${prefs.count === n ? 'checked' : ''}><span><b>${n} questions</b></span></label>`).join('')}</div></fieldset>
+      <fieldset><legend>Focus</legend><div class="bh-comps">${[['mixed', 'A typical HR round', 'Starts with “tell me about yourself” and “why this role”, then mixed questions']].concat(B.COMPETENCIES.map(c => [c.id, c.title, c.short])).map(([id, title, short]) => {
         const n = id === 'mixed' ? attempts.length : attempts.filter(a => a.competency === id).length;
         return `<label class="bh-comp"><input type="radio" name="bhMode" value="${id}" ${prefs.mode === id ? 'checked' : ''}><span><b>${esc(title)}</b><small>${esc(short)}${n ? ` · ${n} answer${n === 1 ? '' : 's'}` : ''}</small></span></label>`; }).join('')}</div></fieldset>
-      <label class="selfcheck"><input type="checkbox" id="bhAloud" ${prefs.aloud ? 'checked' : ''}> Read each question aloud, like an interviewer would</label>
-      <div class="actions"><button class="primary" id="bhStart">Ask me a question →</button></div>
+      <label class="selfcheck"><input type="checkbox" id="bhAloud" ${prefs.aloud ? 'checked' : ''}> Read each question aloud, like an interviewer would</label></details>
       <p class="note bh-honest">Feedback here is a set of heuristics, not a score: word counts, a filler-word list, “I” versus “we”, and the share of words you tag as Situation, Task, Action and Result. They spot habits. They cannot tell whether your story is convincing; use the “listen for” cues, or a friend, for that.</p></section>
     <div class="bh-side"><section class="panel"><h2>Story bank</h2><p class="note">Six to eight prepared stories cover most HR rounds. ${stories.length ? `You have ${stories.length} stor${stories.length === 1 ? 'y' : 'ies'}.` : 'You have not written any yet.'}</p>
       ${gaps.length ? `<p class="bh-gaps">${gaps.map(g => `<span>No ${esc(g.id)} story yet</span>`).join('')}</p>` : stories.length ? '<p class="bh-full">Every competency has at least one story.</p>' : ''}<button id="bhStories">Open story bank →</button></section>
@@ -116,11 +142,13 @@
       ${practised.map(({ c, s }) => `<details class="bh-past" data-bh-comp="${c.id}"><summary>${esc(c.title)} · ${s.mine.length} answer${s.mine.length === 1 ? '' : 's'}</summary><ul>${s.mine.map((a, i) => `<li><div><b>${esc(a.question)}</b><span class="note">${esc(day(a.at))} · ${s.analysed[i].words} words · ${s.analysed[i].fillers.total} fillers${a.storyId && storyOf(a.storyId) ? ` · story: ${esc(storyOf(a.storyId).title || 'Untitled story')}` : ''}</span></div><div class="bh-row-actions"><button data-bh-view="${esc(a.id)}">View</button><button data-bh-delete="${esc(a.id)}" aria-label="Delete this answer">Delete</button></div></li>`).join('')}</ul><button class="drill-link" data-bh-download="${c.id}">Download ${esc(c.title.toLowerCase())} answers (.txt)</button></details>`).join('')}
       <div class="actions"><button id="bhDownloadAll">Download all answers (.txt)</button><button id="bhClear">Delete all answers</button></div>` : '<p class="note">Your answers will appear here, grouped by competency, so you can compare attempts. They stay in this browser only.</p>'}</section>`;
     const pick = () => document.querySelector('[name=bhMode]:checked')?.value || 'mixed';
-    document.querySelectorAll('[name=bhMode]').forEach(x => x.onchange = () => { prefs.mode = pick(); savePrefs(); });
+    const summary = () => { $('#bhSetupSummary').innerHTML = `<b>${prefs.count} questions</b> · ${esc(prefs.mode === 'mixed' ? 'A typical HR round' : comp(prefs.mode).title)} · about ${prefs.count * 2} minutes`; };
+    document.querySelectorAll('[name=bhMode]').forEach(x => x.onchange = () => { prefs.mode = pick(); savePrefs(); summary(); });
+    document.querySelectorAll('[name=bhCount]').forEach(x => x.onchange = () => { prefs.count = Number(x.value); savePrefs(); summary(); });
     $('#bhAloud').onchange = e => { prefs.aloud = e.target.checked; savePrefs(); };
-    $('#bhStart').onclick = () => { prefs.mode = pick(); savePrefs(); ask(prefs.mode); };
+    $('#bhStart').onclick = () => { prefs.mode = pick(); savePrefs(); startSet(prefs.mode, prefs.count); };
     if ($('#bhResume')) $('#bhResume').onclick = () => renderQuestion();
-    if ($('#bhDiscard')) $('#bhDiscard').onclick = () => { if (!confirm('Discard this unfinished answer? It will not be saved.')) return; draft = null; persist(); renderHome(); };
+    if ($('#bhDiscard')) $('#bhDiscard').onclick = () => { if (draft && draft.text.trim() && !confirm('Discard this unfinished answer? It will not be saved.')) return; draft = null; persist(); set = null; saveSet(); renderHome(); };
     $('#bhStories').onclick = openStories;
     $('#bhSheetOpen').onclick = () => sheet($('#bhSheetPick').value);
     document.querySelectorAll('[data-bh-view]').forEach(b => b.onclick = () => feedback(b.dataset.bhView));
@@ -130,13 +158,59 @@
     if ($('#bhClear')) $('#bhClear').onclick = () => { if (!confirm('Delete every saved behavioural answer from this browser? Your story bank is kept. This cannot be undone.')) return; attempts = []; saveAttempts(); renderHome(); };
   }
 
-  /* ---------- Asking a question ---------- */
+  /* ---------- Practice interviews: one question at a time, quick feedback, then the next ---------- */
+  /** A typical HR round opens with "tell me about yourself" and "why this role", then mixes the rest. */
+  function buildSet(mode, count) {
+    const recent = attempts.slice(0, 12).map(a => a.qid), out = [];
+    const take = m => { const q = B.pickQuestion(m, recent.concat(out)); if (q && !out.includes(q.id)) out.push(q.id); };
+    if (mode === 'mixed') {
+      take('intro'); take('motivation');
+      const rest = B.IDS.filter(id => id !== 'intro' && id !== 'motivation').sort(() => Math.random() - 0.5);
+      for (const id of rest) { if (out.length >= count) break; take(id); }
+    } else for (let i = 0; i < count * 3 && out.length < count; i++) take(mode);
+    return out.slice(0, count);
+  }
+  function newDraft(storyId = null) {
+    const q = B.findQuestion(set.qids[set.index]);
+    draft = { mode: set.mode, qid: q.id, competency: q.competency, text: '', elapsedMs: 0, runningSince: null, voice: false, storyId, spoken: false, at: Date.now() };
+    persist();
+  }
+  const replaceDraft = () => !(draft && draft.text.trim()) || confirm('Replace your unfinished answer? It will not be saved.');
+  function startSet(mode, count = prefs.count) {
+    if (!replaceDraft()) return;
+    const qids = buildSet(mode, count);
+    set = { mode, qids, index: 0, answers: qids.map(() => null), fixed: true, review: false }; saveSet();
+    newDraft(); renderQuestion();
+  }
+  /** One question asked from elsewhere (a plan, or "practise this question again"): an open set that can keep going. */
   function ask(mode, opts = {}) {
-    if (draft && draft.text.trim() && !confirm('Replace your unfinished answer? It will not be saved.')) return;
+    if (!replaceDraft()) return;
     const recent = attempts.slice(0, 12).map(a => a.qid).concat(draft ? [draft.qid] : [], opts.exclude || []);
     const q = opts.qid ? B.findQuestion(opts.qid) : B.pickQuestion(mode, recent);
-    draft = { mode, qid: q.id, competency: q.competency, text: '', elapsedMs: 0, runningSince: null, voice: false, storyId: opts.storyId || null, spoken: false, at: Date.now() };
-    persist(); renderQuestion();
+    set = { mode, qids: [q.id], index: 0, answers: [null], fixed: false, review: false }; saveSet();
+    newDraft(opts.storyId || null); renderQuestion();
+  }
+  function next() {
+    stopMedia(); if (!set) return renderHome();
+    if (set.fixed && set.index >= set.qids.length - 1) return renderSummary();
+    if (!set.fixed) {
+      if (set.qids.length >= MAX_SET) return renderSummary();
+      const q = B.pickQuestion(set.mode, attempts.slice(0, 12).map(a => a.qid).concat(set.qids)); set.qids.push(q.id); set.answers.push(null);
+    }
+    set.index++; set.review = false; saveSet(); newDraft(); renderQuestion();
+  }
+  function skip() {
+    if (draft.text.trim() && !confirm('Skip this question? Your answer to it will not be saved.')) return;
+    if (set && set.fixed) { draft = null; persist(); return next(); }
+    const was = draft; draft = null; ask(was.mode, { exclude: [was.qid], storyId: was.storyId });
+  }
+
+  /** The top of every practice-interview screen: where you are, how to leave, and the question. */
+  function sessionHead(q, c) {
+    const i = set ? set.index : 0, n = set ? set.qids.length : 1, fixed = set && set.fixed;
+    const bar = fixed && n > 1 ? `<ol class="flow-progress" aria-hidden="true">${set.qids.map((_, k) => `<li class="${k < i || (k === i && set.review) ? 'done' : k === i ? 'now' : ''}"></li>`).join('')}</ol>` : '';
+    return `<div class="flow-head"><div><div class="eyebrow">HR INTERVIEW · ${fixed ? `QUESTION ${i + 1} OF ${n}` : `QUESTION ${i + 1}`}</div><h2 class="section-title">${esc(c.title)}</h2></div><button class="wu-link" id="bhExit">Exit · progress is saved</button></div>${bar}
+      <div class="interviewer flow-question"><div class="eyebrow">THE INTERVIEWER ASKS</div><p id="bhPrompt">${esc(q.text)}</p>${voiceControls()}</div>`;
   }
 
   function storyOptions(selected, compId) {
@@ -148,48 +222,92 @@
   const linkedNotes = s => s ? `<details class="bh-linked"><summary>Your notes for “${esc(s.title || 'Untitled story')}”</summary>${storyNotes(s)}</details>` : '';
   const storyNotes = s => `<dl class="bh-story-notes">${B.FRAMES.star.parts.map(p => `<dt>${p.label}</dt><dd>${esc(s[p.id]) || '<span class="subtle">Empty</span>'}</dd>`).join('')}</dl>`;
 
+  /* ---------- Answering ---------- */
   function renderQuestion() {
-    if (!draft) return renderHome();
+    if (!draft) return set && set.review ? renderReview() : renderHome();
     enter('question', '#behavioural');
     const q = questionOf(draft), c = comp(draft.competency), linked = storyOf(draft.storyId);
-    $('#app').innerHTML = `<div class="row"><div><div class="eyebrow">BEHAVIOURAL · ${esc(modeTitle(draft.mode).toUpperCase())}</div><h2 class="section-title">${esc(c.title)}</h2></div><span class="badge bh-timer-badge" id="bhTimerBadge">0:00</span></div>
-      <section class="panel bh-question"><div class="interviewer"><p id="bhPrompt">${esc(q.text)}</p></div>
-      ${q.hypothetical ? '<p class="note">This one is hypothetical. Say what you would do and why; if you have a real example, use it. The STAR check is less useful here.</p>' : ''}
-      ${voiceControls()}
-      <div class="bh-timer"><div class="bh-meter" id="bhMeter" aria-hidden="true"><span id="bhMeterFill"></span><i style="left:${80 * c.target[0] / c.target[1]}%"></i><i style="left:80%"></i></div><span id="bhTimerText" class="note" aria-live="off"></span><button id="bhTimerBtn">Start timer</button></div>
-      <p class="note">The timer starts when you start typing or dictating. If you answer out loud without dictation, start it yourself. ${c.frame === 'star' ? 'Structure: Situation, Task, Action, Result.' : `Structure: ${esc(B.FRAMES[c.frame].title)}.`} ${esc(c.tip)}</p>
-      <label for="bhAnswer">Your answer · speak or type</label><textarea id="bhAnswer" placeholder="Answer as you would out loud…">${esc(draft.text)}</textarea>
-      <div class="voice-row"><button id="bhMic" class="mic">◉ Dictate answer</button><select id="bhLanguage" aria-label="Dictation language">${LANGS.map(([v, t]) => `<option value="${v}" ${prefs.lang === v ? 'selected' : ''}>${t}</option>`).join('')}</select><span id="bhVoiceStatus" class="note" role="status"></span></div>
-      <p class="note">Stop dictation to edit. Speech services may process audio or text online. No audio recording is kept.</p>
-      ${storyOptions(draft.storyId, c.id)}<div id="bhLinked">${linkedNotes(linked)}</div>
-      <details id="bhProbe"><summary>Practise a follow-up</summary><ul class="bh-probes">${c.probes.concat(c.frame === 'star' ? B.GENERAL_PROBES : []).map(p => `<li>${esc(p)}</li>`).join('')}</ul><p class="note">Prepared follow-ups an interviewer might ask next. Add your answer to the box above, or practise it out loud.</p></details>
-      <details><summary>What the interviewer listens for</summary><ul class="bh-cues">${c.listenFor.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>
-      <div class="actions"><button id="bhExit">Save & exit</button><button id="bhSkip">Different question</button><button id="bhFinish" class="primary next">Finish & see feedback</button></div></section>`;
+    $('#app').innerHTML = `<section class="flow-screen bh-question">${sessionHead(q, c)}
+      ${q.hypothetical ? '<p class="note">Hypothetical: say what you would do and why. If you have a real example, use it.</p>' : ''}
+      <label for="bhAnswer" class="flow-label">Your answer</label><textarea id="bhAnswer" placeholder="Speak or type your answer, as you would say it in the room…">${esc(draft.text)}</textarea>
+      <div class="flow-tools"><button id="bhMic" class="mic">🎙 Speak your answer</button><span id="bhVoiceStatus" class="note" role="status"></span>
+        <span class="bh-clock"><span id="bhTimerText" aria-live="off"></span> <button class="wu-link" id="bhTimerBtn">Start timer</button></span></div>
+      <div class="bh-meter" id="bhMeter" aria-hidden="true"><span id="bhMeterFill"></span><i style="left:${80 * c.target[0] / c.target[1]}%"></i><i style="left:80%"></i></div>
+      <details class="flow-help"><summary>Need help with this question?</summary>
+        <p><b>Structure.</b> ${c.frame === 'star' ? 'Situation, Task, Action, Result.' : esc(B.FRAMES[c.frame].title) + '.'} ${esc(c.tip)}</p>
+        <p><b>What the interviewer listens for</b></p><ul class="bh-cues">${c.listenFor.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+        ${storyOptions(draft.storyId, c.id)}<div id="bhLinked">${linkedNotes(linked)}</div></details>
+      ${flowBar({ back: `<button class="wu-link" id="bhSkip">${set && set.fixed ? 'Skip this question' : 'Ask me a different question'}</button>`,
+        primary: '<button id="bhFinish" class="primary next">Done · see feedback →</button>', hint: draft.text.trim() ? '' : 'Speak or type your answer. The timer starts when you do.' })}</section>`;
     bindSpeech(q.text); paintTimer();
     const owner = draft, area = $('#bhAnswer');
-    area.oninput = () => { owner.text = area.value; if (area.value.trim()) startTimer(); persist(); };
-    attachDictation({ button: $('#bhMic'), target: area, status: $('#bhVoiceStatus'), language: () => $('#bhLanguage').value, isCurrent: () => draft === owner,
-      onStart: () => { owner.voice = true; startTimer(); persist(); }, onText: v => { owner.text = v; owner.voice = true; persist(); } });
-    $('#bhLanguage').onchange = e => { prefs.lang = e.target.value; savePrefs(); };
+    area.oninput = () => { owner.text = area.value; if (area.value.trim()) { startTimer(); $('#flowHint').textContent = ''; } persist(); };
+    attachDictation({ button: $('#bhMic'), target: area, status: $('#bhVoiceStatus'), language: dictationLang, isCurrent: () => draft === owner,
+      onStart: () => { owner.voice = true; startTimer(); $('#flowHint').textContent = ''; persist(); }, onText: v => { owner.text = v; owner.voice = true; persist(); } });
     $('#bhTimerBtn').onclick = () => { if (draft.runningSince) pauseTimer(); else startTimer(); paintTimer(); };
     if ($('#bhStory')) $('#bhStory').onchange = e => { draft.storyId = e.target.value || null; persist(); $('#bhLinked').innerHTML = linkedNotes(storyOf(draft.storyId)); };
     $('#bhExit').onclick = () => { pauseTimer(); renderHome(); };
-    $('#bhSkip').onclick = () => {
-      if (draft.text.trim() && !confirm('Skip to a different question? Your answer to this one will not be saved.')) return;
-      const was = draft; draft = null; ask(was.mode, { exclude: [was.qid], storyId: was.storyId });
-    };
+    $('#bhSkip').onclick = skip;
     $('#bhFinish').onclick = finish;
     if (prefs.aloud && !draft.spoken) { draft.spoken = true; persist(); speak(q.text); }
   }
 
   function finish() {
     if (!draft) return;
-    if (!draft.text.trim()) { toast('Answer the question first, by dictating or typing, so there is something to check.'); return; }
+    if (!draft.text.trim()) return nudge('Speak or type your answer first, so there is something to give feedback on.', '#bhAnswer');
     pauseTimer(); stopMedia();
     const q = questionOf(draft), a = { id: newId('b'), at: Date.now(), competency: draft.competency, mode: draft.mode, qid: q.id, question: q.text, text: draft.text.trim(),
-      seconds: draft.elapsedMs ? Math.round(draft.elapsedMs / 1000) : null, voice: draft.voice, storyId: draft.storyId, tags: {}, heard: [], notes: '' };
+      seconds: draft.elapsedMs ? Math.max(1, Math.round(draft.elapsedMs / 1000)) : null, voice: draft.voice, storyId: draft.storyId, tags: {}, heard: [], notes: '' };
     attempts.unshift(a); attempts = attempts.slice(0, MAX_ATTEMPTS); saveAttempts();
-    draft = null; persist(); feedback(a.id);
+    draft = null; persist();
+    if (!set || set.qids[set.index] !== a.qid) set = { mode: a.mode, qids: [a.qid], index: 0, answers: [null], fixed: false, review: false };
+    set.answers[set.index] = a.id; set.review = true; saveSet(); renderReview();
+  }
+
+  /* ---------- Quick feedback, on the same screen, then the next question ---------- */
+  function renderReview() {
+    const a = set && attempts.find(x => x.id === set.answers[set.index]); if (!a) { set = null; saveSet(); return renderHome(); }
+    enter('review', '#behavioural'); current = a.id;
+    const q = B.findQuestion(a.qid) || { text: a.question }, c = comp(a.competency), r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags });
+    const last = set.fixed && set.index === set.qids.length - 1, probe = c.probes[0];
+    $('#app').innerHTML = `<section class="flow-screen bh-review">${sessionHead(q, c)}
+      <details class="bh-yours-wrap"><summary>Your answer · ${r.words} words</summary><p class="transcript">${esc(a.text)}</p></details>
+      <h3 class="flow-label">Quick feedback</h3><p class="note">Counts and word lists, not a score. They point out habits; whether the story convinces is for you to judge below.</p>
+      <div id="bhMetrics">${metrics(a, r)}</div>
+      <fieldset class="bh-heard"><legend>Did your answer show these? Tick only what you clearly said.</legend>${c.listenFor.map((x, i) => `<label class="selfcheck"><input type="checkbox" data-bh-heard="${i}" ${a.heard.includes(i) ? 'checked' : ''}> ${esc(x)}</label>`).join('')}</fieldset>
+      ${probe ? `<p class="bh-followup"><b>The interviewer might follow up with:</b> “${esc(probe)}”</p>` : ''}
+      <p><button class="wu-link" id="bhDetail">Check your ${c.frame === 'star' ? 'STAR' : 'answer'} structure in detail</button></p>
+      ${flowBar({ back: `<button class="wu-link" id="bhAgain">Try this question again</button>${set.fixed ? '' : '<button class="wu-link" id="bhDone">Finish for now</button>'}`,
+        primary: `<button class="primary next" id="bhNext">${last ? 'See your summary →' : 'Next question →'}</button>` })}</section>`;
+    bindSpeech(q.text);
+    document.querySelectorAll('[data-bh-heard]').forEach(el => el.onchange = () => { const i = Number(el.dataset.bhHeard); a.heard = el.checked ? [...new Set([...a.heard, i])] : a.heard.filter(x => x !== i); saveAttempts(); });
+    $('#bhExit').onclick = renderHome;
+    $('#bhAgain').onclick = () => { set.review = false; saveSet(); newDraft(a.storyId); renderQuestion(); };
+    if ($('#bhDone')) $('#bhDone').onclick = renderSummary;
+    $('#bhNext').onclick = next;
+    $('#bhDetail').onclick = () => feedback(a.id);
+    $('#bhNext').focus({ preventScroll: true });
+  }
+
+  /* ---------- Summary at the end of a practice interview ---------- */
+  function renderSummary() {
+    const s = set; if (!s) return renderHome();
+    enter('summary', '#behavioural');
+    const rows = s.qids.map((qid, i) => ({ q: B.findQuestion(qid), a: attempts.find(x => x.id === s.answers[i]) })), answered = rows.filter(r => r.a);
+    const tips = [];
+    rows.forEach(({ a }, i) => {
+      if (!a) return;
+      const r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags });
+      for (const x of [r.time, r.fillers, r.pronouns]) if (x && x.level && x.level !== 'ok' && x.text) tips.push(`Question ${i + 1}: ${x.text}`);
+    });
+    $('#app').innerHTML = `<section class="flow-screen bh-summary"><div class="eyebrow">HR INTERVIEW · PRACTICE DONE</div><h1 class="bh-title">You answered ${answered.length} of ${rows.length} question${rows.length === 1 ? '' : 's'}.</h1>
+      ${tips.length ? `<section class="panel"><h2>What to work on next</h2><ul class="bh-worklist">${tips.slice(0, 4).map(t => `<li>${esc(t)}</li>`).join('')}</ul></section>` : answered.length ? '<p class="lead">No timing, filler or “I”/“we” habits stood out. Use the self-check on each answer to judge the content.</p>' : ''}
+      <ol class="bh-summary-list">${rows.map(({ q, a }) => `<li><div><b>${esc(q ? q.text : 'Question')}</b><span class="note">${a ? `${B.wordCount(a.text)} words · ${a.seconds ? secs(a.seconds) : 'not timed'} · ${a.heard.length} of ${comp(a.competency).listenFor.length} points ticked` : 'Skipped'}</span></div>${a ? `<button class="wu-link" data-bh-view="${esc(a.id)}">See feedback</button>` : ''}</li>`).join('')}</ol>
+      ${flowBar({ back: '<button class="wu-link" id="bhBack">Back to HR interview</button>', primary: '<button class="primary" id="bhStart">Start another practice interview →</button>' })}</section>`;
+    set = null; saveSet();
+    $('#bhBack').onclick = renderHome;
+    $('#bhStart').onclick = () => startSet(prefs.mode, prefs.count);
+    document.querySelectorAll('[data-bh-view]').forEach(b => b.onclick = () => feedback(b.dataset.bhView));
   }
 
   /* ---------- Feedback: heuristics, STAR tagging and self-review ---------- */
@@ -219,7 +337,7 @@
   function feedback(id) {
     const a = attempts.find(x => x.id === id); if (!a) return renderHome();
     enter('feedback', '#behavioural'); current = a.id;
-    const c = comp(a.competency), linked = storyOf(a.storyId);
+    const c = comp(a.competency), linked = storyOf(a.storyId), inSet = !!(set && set.review && set.answers[set.index] === a.id);
     $('#app').innerHTML = `<div class="eyebrow">YOUR ANSWER · ${esc(c.title.toUpperCase())} · ${esc(day(a.at))}</div><h1 class="bh-q">${esc(a.question)}</h1>
       <p class="bh-honest-box"><b>Heuristics, not a score.</b> These numbers come from counting words and matching word lists. They can point out habits such as a long set-up, lots of fillers or “we” where the interviewer wants “I”, but they cannot judge whether your answer is good. Judge that against the “listen for” cues below.</p>
       <div id="bhMetrics">${metrics(a, B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags }))}</div>
@@ -230,7 +348,8 @@
       <details><summary>Edit transcript</summary><label for="bhEdit" class="sr-only">Transcript</label><textarea id="bhEdit">${esc(a.text)}</textarea><p class="note">Fix dictation mistakes or add full stops. Tags stay on the parts you have not changed.</p></details>
       ${linked ? `<details><summary>Compare with your story notes: “${esc(linked.title || 'Untitled story')}”</summary>${storyNotes(linked)}</details>` : ''}
       <details><summary>Read your answer</summary><p class="transcript" id="bhTranscript">${esc(a.text)}</p></details>
-      <div class="actions"><button class="primary" id="bhAgain">Answer this question again</button><button id="bhNext">Next question</button><button id="bhDownload">Download (.txt)</button><button id="bhBack">Behavioural home</button></div></section>`;
+      ${flowBar({ back: '<button class="wu-link" id="bhBack">HR interview home</button><button class="wu-link" id="bhDownload">Download (.txt)</button>',
+        primary: inSet ? '<button class="primary" id="bhBackToSet">Back to the interview →</button>' : '<button class="primary" id="bhAgain">Practise this question again →</button>' })}</section>`;
     const refresh = (all = true) => {
       const r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags });
       if (all) $('#bhMetrics').innerHTML = metrics(a, r);
@@ -246,8 +365,8 @@
     document.querySelectorAll('[data-bh-heard]').forEach(el => el.onchange = () => { const i = Number(el.dataset.bhHeard); a.heard = el.checked ? [...new Set([...a.heard, i])] : a.heard.filter(x => x !== i); saveAttempts(); });
     $('#bhNotes').oninput = e => { a.notes = e.target.value.slice(0, 5000); saveAttempts(); };
     $('#bhEdit').oninput = e => { a.text = e.target.value.slice(0, MAX_TEXT); const keep = new Set(B.segments(a.text)); for (const k of Object.keys(a.tags)) if (!keep.has(k)) delete a.tags[k]; saveAttempts(); $('#bhTranscript').textContent = a.text; refresh(); };
-    $('#bhAgain').onclick = () => ask(a.mode, { qid: a.qid || undefined, storyId: a.storyId });
-    $('#bhNext').onclick = () => ask(a.mode);
+    if ($('#bhAgain')) $('#bhAgain').onclick = () => ask(a.mode, { qid: a.qid || undefined, storyId: a.storyId });
+    if ($('#bhBackToSet')) $('#bhBackToSet').onclick = renderReview;
     $('#bhDownload').onclick = () => download(attemptText(a), `case-room-behavioural-${a.competency}-${new Date(a.at).toISOString().slice(0, 10)}.txt`);
     $('#bhBack').onclick = renderHome;
   }
@@ -348,5 +467,5 @@
   };
 
 
-  window.Behavioural = { open, stories: openStories, sheet, ask, feedback, importStories, state: () => ({ attempts, stories, draft, prefs, screen, current, editing }) };
+  window.Behavioural = { open, stories: openStories, sheet, ask, startSet, feedback, importStories, resume: renderQuestion, state: () => ({ attempts, stories, draft, prefs, screen, current, editing, set }) };
 })();

@@ -1,0 +1,48 @@
+/* Multi-step screens (HR practice interview, case stages): one question, one answer area, and a bar at the
+   bottom with the one next step on the right and secondary links on the left. */
+.flow-screen{max-width:820px;margin:0 auto;padding-bottom:8px}
+.flow-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.flow-head-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.flow-progress{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;list-style:none;padding:0;margin:10px 0 4px}
+.flow-progress li{height:6px;border-radius:3px;background:var(--line)}
+.flow-progress li.done{background:#9ab84c}
+.flow-progress li.now{background:var(--green)}
+.flow-question{margin:16px 0}
+.flow-question .speech-controls{margin-top:8px}
+.flow-label{display:block;font:600 15px Manrope,sans-serif;margin:18px 0 6px}
+.flow-screen textarea{width:100%;min-height:170px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff;resize:vertical;line-height:1.6}
+.flow-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0 6px}
+.flow-tools .bh-clock{margin-left:auto;font-variant-numeric:tabular-nums}
+.bh-time.in{color:#4f7a36;font-weight:600}.bh-time.over{color:#b0602a;font-weight:600}
+.flow-screen .bh-meter{max-width:none;margin-bottom:8px}
+.flow-help{margin:16px 0;border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:#fff}
+.flow-help summary{cursor:pointer;font-weight:600}
+.speech-controls .listen{padding:6px 12px;font-size:13px}
+.evidence-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0}
+.evidence-row button{padding:7px 12px;font-size:13px}
+
+.flow-bar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:24px -4px 0;padding:12px 4px;background:var(--paper);border-top:1px solid var(--line)}
+.flow-secondary{display:flex;gap:14px;flex-wrap:wrap}
+.flow-hint{flex:1;margin:0;font-size:13px;color:var(--muted);text-align:right;min-width:0}
+.flow-hint.flash{color:#9a3428;animation:flow-flash .6s}
+@keyframes flow-flash{0%{opacity:.2}100%{opacity:1}}
+.flow-bar .primary{margin-left:auto;padding:12px 20px;font-size:15px}
+.panel .flow-bar{background:#fff}
+
+.bh-yours-wrap{margin:10px 0}
+.bh-heard{border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:16px 0;background:#fff}
+.bh-heard legend{font-weight:600;padding:0 6px}
+.bh-heard .selfcheck{display:flex;gap:8px;align-items:flex-start;padding:5px 0}
+.bh-heard .selfcheck input{margin:4px 0 0;flex-shrink:0}
+.bh-followup{background:#f0f4e9;border-radius:8px;padding:10px 14px}
+.bh-setup-summary{margin:4px 0 0}
+.bh-options{margin:16px 0}
+.bh-options summary{cursor:pointer;font-weight:600}
+.bh-counts{display:flex;gap:8px}
+.bh-summary-list{padding-left:20px}
+.bh-summary-list li{padding:8px 0;border-bottom:1px solid var(--line)}
+.bh-summary-list li>div{display:inline-flex;flex-direction:column;gap:2px;margin-right:12px}
+.bh-worklist{line-height:1.6}
+
+@media(max-width:600px){.flow-head{flex-direction:column;gap:4px}.flow-head-side{align-items:flex-start}.flow-hint{order:3;flex-basis:100%;text-align:left}.flow-bar .primary{flex:1}}
+@media print{.flow-bar{display:none}}

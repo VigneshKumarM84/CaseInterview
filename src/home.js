@@ -31,8 +31,9 @@
     if (a) out.push({ id: 'aptitude', label: 'Aptitude', title: a.mode === 'test' ? 'Timed mock test' : 'Practice set', detail: `Question ${a.index + 1} of ${a.questions.length}`, go: () => Aptitude.open() });
     const d = CaseDrill.state().run;
     if (d) out.push({ id: 'drill', label: 'Maths drill', title: 'Case maths round', detail: `Question ${d.index + 1} of ${d.questions.length}`, go: () => CaseDrill.open() });
-    const b = Behavioural.state().draft;
-    if (b && b.text && b.text.trim()) out.push({ id: 'behavioural', label: 'HR interview', title: 'An answer you started', detail: 'Not submitted yet', go: () => Behavioural.open() });
+    const { draft: b, set: hs } = Behavioural.state();
+    if ((hs && hs.fixed) || (b && b.text && b.text.trim()) || (hs && hs.review)) out.push({ id: 'behavioural', label: 'HR interview', title: hs && hs.fixed ? 'Practice interview' : 'An answer you started',
+      detail: hs && hs.fixed ? `Question ${hs.index + 1} of ${hs.qids.length}` : 'Not finished yet', go: () => Behavioural.resume() });
     const p = PeerMock.state().run;
     if (p) out.push({ id: 'peer', label: 'Peer interview', title: 'Mock interview with a friend', detail: 'In progress', go: () => PeerMock.open() });
     const plan = NextRoundTool.state();
