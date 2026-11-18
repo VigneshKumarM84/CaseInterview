@@ -85,7 +85,11 @@ test('a full attempt: pick a competency, hear the question, answer, tag STAR, se
   assert.equal(f.$('bhTimerBtn').textContent,'Start timer');assert(f.$('bhMic').disabled,'no recogniser in this browser');assert.match(f.$('bhVoiceStatus').textContent,/unavailable/);
   f.$('bhFinish').click();assert.equal(f.run('Behavioural.state().screen'),'question','empty answers are not saved');
   input(f,f.$('bhAnswer'),STORY_ANSWER);assert(f.run('Behavioural.state().draft.runningSince'),'typing starts the timer');assert.equal(f.$('bhTimerBtn').textContent,'Pause timer');
-  f.$('bhFinish').click();const st=f.run('Behavioural.state()');assert.equal(st.screen,'feedback');assert.equal(st.draft,null);assert.equal(st.attempts.length,1);
+  f.$('bhFinish').click();let st=f.run('Behavioural.state()');assert.equal(st.screen,'review','quick feedback first, on the same screen');assert.equal(st.draft,null);assert.equal(st.attempts.length,1);
+  assert.match(text(f),/QUESTION 1 OF 5/);assert.equal(f.w.document.querySelectorAll('.flow-progress li').length,5);assert.equal(f.w.document.querySelectorAll('.flow-progress li.done').length,1);
+  assert.equal(f.$('bhNext').textContent,'Next question →');assert(f.$('bhAgain'));assert(f.w.document.querySelectorAll('[data-bh-heard]').length);
+  assert.equal(f.w.document.querySelectorAll('.flow-bar .primary').length,1,'one next step');
+  f.$('bhDetail').click();st=f.run('Behavioural.state()');assert.equal(st.screen,'feedback');assert(f.$('bhBackToSet'),'detailed feedback leads back into the interview');
   const t=text(f);assert(!GAP.test(t),t.match(/.{30}(undefined|\bnull\b|NaN|\[object).{20}/)?.[0]);assert(t.includes('Heuristics, not a score'));assert(t.includes(String(B.wordCount(STORY_ANSWER))));assert(t.includes('Tag at least one sentence'));
   // Tag sentences as S, T, A, A, A, R, R.
   const plan=['s','s','t','a','a','a','r','r'];assert.equal(f.w.document.querySelectorAll('.bh-segs li').length,plan.length);
@@ -103,19 +107,19 @@ test('a full attempt: pick a competency, hear the question, answer, tag STAR, se
   // History on the behavioural home, grouped by competency.
   f.$('bhBack').click();assert.equal(f.w.location.hash,'#behavioural');const row=[...f.w.document.querySelectorAll('.bh-table tbody tr')].find(r=>r.textContent.startsWith('Failure'));assert.equal(row.children[1].textContent,'1');assert.equal(row.children[4].textContent,'1/1','STAR complete');
   assert(q(f,'[data-bh-comp="failure"]'));q(f,'[data-bh-download="failure"]').click();assert.equal(file,'case-room-behavioural-failure.txt');f.$('bhDownloadAll').click();assert.equal(file,'case-room-behavioural-answers.txt');
-  q(f,`[data-bh-view="${exported.id}"]`).click();assert.equal(f.run('Behavioural.state().screen'),'feedback');f.$('bhNext').click();assert.equal(f.run('Behavioural.state().draft.competency'),'failure','next question keeps the competency');
+  q(f,`[data-bh-view="${exported.id}"]`).click();assert.equal(f.run('Behavioural.state().screen'),'feedback');f.$('bhBackToSet').click();assert.equal(f.run('Behavioural.state().screen'),'review');f.$('bhNext').click();assert.equal(f.run('Behavioural.state().draft.competency'),'failure','next question keeps the competency');assert.match(text(f),/QUESTION 2 OF 5/);
   f.$('bhExit').click();q(f,`[data-bh-delete="${exported.id}"]`).click();assert.equal(f.run('Behavioural.state().attempts.length'),0);assert.equal(JSON.parse(f.w.localStorage.getItem('cr-behavioural-attempts')).length,0);
   assert.deepEqual(f.errors,[]);
 }finally{f.dom.window.close()}});
 
 test('dictation fills the answer through the shared helper, and case dictation still works',()=>{const f=fixture();try{
-  const sr=fakeRecognition(f);f.run("Behavioural.ask('teamwork')");f.$('bhLanguage').value='en-GB';f.$('bhMic').click();
+  const sr=fakeRecognition(f);f.run("Behavioural.ask('teamwork')");f.$('voiceSettings').click();f.$('dictLang').value='en-GB';f.$('dictLang').dispatchEvent(new f.w.Event('change'));f.$('closeModal').click();f.$('bhMic').click();
   assert.equal(sr.made[0].lang,'en-GB');assert.equal(f.$('bhMic').textContent,'■ Stop dictation');assert(f.$('bhAnswer').readOnly);assert(f.run('Behavioural.state().draft.runningSince'),'dictating starts the timer');
   sr.say('I organised the team');assert.equal(f.$('bhAnswer').value,'I organised the team');const d=f.run('Behavioural.state().draft');assert.equal(d.text,'I organised the team');assert.equal(d.voice,true);
-  f.$('bhMic').click();assert(sr.made[0].aborted);assert.equal(f.$('bhMic').textContent,'◉ Dictate answer');assert.equal(f.$('bhAnswer').readOnly,false);assert.match(f.$('bhVoiceStatus').textContent,/Stopped/);
+  f.$('bhMic').click();assert(sr.made[0].aborted);assert.equal(f.$('bhMic').textContent,'🎙 Speak your answer');assert.equal(f.$('bhAnswer').readOnly,false);assert.match(f.$('bhVoiceStatus').textContent,/Stopped/);
   f.$('bhFinish').click();assert.equal(f.run('Behavioural.state().attempts[0].voice'),true);
   // The case session uses the same helper.
-  f.run("start('cement')");f.$('mic').click();sr.say('Profit fell');assert.equal(f.run('session.answers.structure'),'Profit fell');f.$('speak').click();assert.equal(f.$('mic').textContent,'◉ Dictate answer','reading aloud stops dictation');
+  f.run("start('cement')");f.$('mic').click();sr.say('Profit fell');assert.equal(f.run('session.answers.structure'),'Profit fell');f.$('speak').click();assert.equal(f.$('mic').textContent,'🎙 Speak your answer','reading aloud stops dictation');
   assert.deepEqual(f.errors,[]);
 }finally{f.dom.window.close()}});
 
@@ -133,7 +137,7 @@ test('story bank: write stories, coverage gaps, link practice answers, export an
   // Practise with the story: the answer is linked to it.
   q(f,'[data-story-practise]').click();const d={...f.run('Behavioural.state().draft')};assert(['leadership','pressure'].includes(d.competency));assert.equal(f.$('bhStory').value,d.storyId);assert(q(f,'.bh-linked'));
   f.$('bhStory').value='';f.$('bhStory').dispatchEvent(new f.w.Event('change'));assert.equal(q(f,'.bh-linked'),null);f.$('bhStory').value=d.storyId;f.$('bhStory').dispatchEvent(new f.w.Event('change'));
-  input(f,f.$('bhAnswer'),'I listed forty businesses and we raised the money.');f.$('bhFinish').click();assert(text(f).includes('Compare with your story notes'));
+  input(f,f.$('bhAnswer'),'I listed forty businesses and we raised the money.');f.$('bhFinish').click();f.$('bhDetail').click();assert(text(f).includes('Compare with your story notes'));
   f.run('Behavioural.stories()');assert(text(f).includes('Practised 1×'));
   // Export, then import into a fresh browser.
   let out;f.w.HTMLAnchorElement.prototype.click=function(){out=this.download};f.$('bhExport').click();assert.equal(out,'case-room-story-bank.json');
@@ -180,7 +184,7 @@ test('does not interfere with case sessions, the maths drill or peer interviews'
   f.run('Behavioural.stories()');f.$('bhNewStory').click();input(f,f.$('bhTitle'),'Story');f.run("Behavioural.sheet('all')");
   assert.equal(f.run('JSON.stringify(session)'),before.session);assert.equal(f.run('JSON.stringify(CaseDrill.state().run)'),before.drill);assert.equal(f.run('JSON.stringify(PeerMock.state().run)'),before.peer);
   assert.equal(f.run('history.length'),0,'behavioural answers are not case sessions');assert.equal(f.run('CaseDrill.state().runs.length'),0);assert.equal(f.run('PeerMock.state().past.length'),0);
-  const mine=Object.keys(f.w.localStorage).filter(k=>k.startsWith('cr-behavioural-')).sort();assert.deepEqual(mine,['cr-behavioural-attempts','cr-behavioural-draft','cr-behavioural-prefs','cr-behavioural-stories']);
+  const mine=Object.keys(f.w.localStorage).filter(k=>k.startsWith('cr-behavioural-')).sort();assert.deepEqual(mine,['cr-behavioural-attempts','cr-behavioural-draft','cr-behavioural-prefs','cr-behavioural-set','cr-behavioural-stories']);
   // Home shows every tool, and leaving the behavioural route clears its hash.
   f.$('homeNav').click();assert.equal(f.w.location.hash,'');assert.equal(f.w.document.querySelectorAll('.round-tile').length,5);
   f.$('round-hr').click();assert.equal(f.run('view'),'behavioural');f.$('casesNav').click();f.$('caseTool-drill').click();assert.equal(f.w.location.hash,'#drill');f.$('casesNav').click();f.$('caseTool-peer').click();assert.equal(f.w.location.hash,'#peer');
