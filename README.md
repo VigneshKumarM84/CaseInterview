@@ -126,10 +126,12 @@ Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel
 - `src/aptitude-questions.js` and `src/aptitude.js`: aptitude question generators, scoring and progress statistics (no DOM, unit-tested in Node), and the practice, timed test and results UI.
 - `src/resume-check.js`, `src/resume-files.js` and `src/resume.js`: résumé analysis (structure, bullet checks, keyword matching, PDF line rebuilding, .docx XML conversion; no DOM, unit-tested in Node), reading files on the device (zip, inflate, pdf.js loading), and the checker UI.
 - `vendor/pdfjs/`: Mozilla's pdf.js 6.5.438 (Apache-2.0), stored in the repository and loaded only when a PDF is chosen. See `vendor/pdfjs/README.md`.
+- `content/warmup.js` and `src/warmup.js`: the 10-minute guided warm-up case. `content/next-round.js` and `src/next-round.js`: “Prepare for my next round”, which builds a short plan from the other tools.
+- `src/home.js`: the short home page (plan, continue, the five rounds in order) and the Case interview page that holds the case library.
 - `src/ai-client.js`: optional BYOK AI. `src/boot.js` starts the app.
 - `lib/`, `api/`: the AI proxy used by Vercel and `npm start`.
 
-To add another tool, give it its own `src/<tool>.js` (and stylesheet if needed), load it before `src/ai-client.js` in `index.html`, and register a nav button and view as `src/drill.js` does.
+To add another tool, give it its own `src/<tool>.js` (and stylesheet if needed) and load it before `src/home.js` in `index.html`. Wrap `home()` only to tidy up when the student leaves the tool, as `src/drill.js` does. Link to it from the round it belongs to in `src/home.js` (a home-page tile or a Case interview page tool), not from the top navigation, which follows the rounds.
 
 ```bash
 npm test

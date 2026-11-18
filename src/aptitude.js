@@ -347,11 +347,8 @@
   const priorHome = home;
   home = function () {
     pause(); priorHome(); if (location.hash === '#aptitude') setHash(false);
-    const tools = $('#app .tool-callouts'); if (!tools) return;
-    const tile = document.createElement('div'); tile.className = 'drill-callout tool-callout';
-    tile.innerHTML = `<div><div class="eyebrow">NEW · PLACEMENT APTITUDE</div><h3>Practise the online aptitude test</h3><p class="note">Quantitative, logical and verbal questions with worked solutions, plus timed mocks with a question palette and negative marking. Free and offline.</p></div><button class="primary" id="aptitudeCallout">Start aptitude practice →</button>`;
-    tools.append(tile); $('#aptitudeCallout').onclick = open;
   };
+
 
   window.Aptitude = { open, tick, quickPractice, quickTest, state: () => ({ run, history, prefs, screen, lastResult }) };
 })();

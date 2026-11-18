@@ -243,7 +243,7 @@ const storage = f => { const out = {}; for (const k of Object.keys(f.w.localStor
 
 test('a full timed test: palette, mark for review, negative marking and auto-submit when time runs out', () => {
   const f = fixture(); try {
-    assert(f.$('aptitudeCallout'), 'the library promotes aptitude practice');
+    assert(f.$('round-aptitude'), 'the home page leads to aptitude practice');
     setupTest(f); assert.equal(f.w.location.hash, '#aptitude');
     const run = state(f).run; assert.equal(run.mode, 'test'); assert.equal(run.questions.length, 5); assert.equal(run.negative, 0.25);
     assert(run.questions.every(q => q.section === 'quant')); assert.equal(f.$('aptClock').textContent, '3:00 left');
@@ -345,9 +345,9 @@ test('aptitude practice does not interfere with case sessions, the drill, peer i
     assert.deepEqual(snap(), before);
     assert.equal(f.run('history.length'), 0, 'aptitude attempts are not case sessions'); assert.equal(f.run('CaseDrill.state().runs.length'), 0); assert.equal(f.run('PeerMock.state().past.length'), 0); assert.equal(f.run('Behavioural.state().attempts.length'), 0);
     assert.deepEqual(Object.keys(f.w.localStorage).filter(k => k.startsWith('cr-aptitude-')).sort(), ['cr-aptitude-history', 'cr-aptitude-prefs', 'cr-aptitude-run']);
-    f.$('homeNav').click(); assert.equal(f.w.location.hash, ''); assert.equal(doc(f).querySelectorAll('.tool-callouts .tool-callout').length, 5);
-    f.$('aptitudeCallout').click(); assert.equal(f.run('view'), 'aptitude'); assert(f.$('aptResume'), 'the replaced practice set can be resumed');
-    f.$('drillNav').click(); assert.equal(f.w.location.hash, '#drill'); assert(f.$('drillResume'), 'the drill round is still there');
+    f.$('homeNav').click(); assert.equal(f.w.location.hash, ''); assert.equal(doc(f).querySelectorAll('.round-tile').length, 5);
+    f.$('round-aptitude').click(); assert.equal(f.run('view'), 'aptitude'); assert(f.$('aptResume'), 'the replaced practice set can be resumed');
+    f.$('casesNav').click(); f.$('caseTool-drill').click(); assert.equal(f.w.location.hash, '#drill'); assert(f.$('drillResume'), 'the drill round is still there');
     f.$('aptitudeNav').click(); assert.equal(f.w.location.hash, '#aptitude');
     f.$('privacy').click(); assert(f.$('modalContent').textContent.includes('Placement aptitude practice'));
     assert.deepEqual(f.errors, []);

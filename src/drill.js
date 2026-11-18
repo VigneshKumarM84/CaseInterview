@@ -183,17 +183,11 @@
   }, 500);
 
   /* ---------- Integration with the rest of Case Room ---------- */
-  $('#drillNav').onclick = open;
   const priorHome = home;
   home = function () {
     priorHome(); if (location.hash === '#drill') setHash(false);
-    const hero = $('#app .hero'); if (!hero) return;
-    let tools = $('#app .tool-callouts');
-    if (!tools) { tools = document.createElement('section'); tools.className = 'tool-callouts'; tools.setAttribute('aria-label', 'More ways to practise'); hero.after(tools); }
-    const callout = document.createElement('div'); callout.className = 'drill-callout tool-callout';
-    callout.innerHTML = `<div><div class="eyebrow">NEW · CASE MATHS DRILL</div><h3>Five-minute rounds of case maths</h3><p class="note">Percentages, break-evens, CAGR, NPV, lakh-and-crore conversions and chart reading, with instant working and a shortcut for every answer.</p></div><button class="primary" id="drillCallout">Start a maths drill →</button>`;
-    tools.append(callout); $('#drillCallout').onclick = open;
   };
+
 
   window.CaseDrill = { open, quick, state: () => ({ run, runs, prefs, screen, lastResult }) };
 })();

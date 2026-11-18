@@ -59,7 +59,7 @@ test('every plan item points at something that exists in the app', () => {
 
 test('acceptance: 20 minutes and an aptitude test tomorrow reaches a relevant timed test in two choices', () => {
   const f = fixture(); try {
-    f.$('nextRoundHero').click(); assert.equal(f.run('view'), 'next-round'); assert.equal(f.w.location.hash, '#next-round');
+    f.$('homePlan').click(); assert.equal(f.run('view'), 'next-round'); assert.equal(f.w.location.hash, '#next-round');
     assert.match(f.$('nrEmpty').textContent, /Choose your next round/);
     assert(f.w.document.querySelector('[name=nrTime][value="20"]').checked, '20 minutes is the default');
     pick(f, 'nrRound', 'aptitude');                                   // choice 1
@@ -72,19 +72,19 @@ test('acceptance: 20 minutes and an aptitude test tomorrow reaches a relevant ti
 
 test('acceptance: a consulting candidate can still go straight to a full case', () => {
   const f = fixture(); try {
-    assert.equal(f.$('nextRoundHero').previousElementSibling, f.$('begin'), 'the picker sits beside "Explore the cases"');
-    assert.match(f.$('begin').textContent, /Explore the cases/); assert(f.w.document.querySelector('[data-start="cement"]'), 'the library is still on the home page');
-    f.$('nextRoundHero').click(); pick(f, 'nrRound', 'case'); pick(f, 'nrTime', '45'); pick(f, 'nrRole', 'consulting');
+    // Two clicks from home without the picker: the case round, then a case.
+    f.$('round-case').click(); f.w.document.querySelector('[data-start="cement"]').click(); assert.equal(f.run('session.id'), 'cement');
+    f.run('session = null; home()'); f.$('homePlan').click(); pick(f, 'nrRound', 'case'); pick(f, 'nrTime', '45'); pick(f, 'nrRole', 'consulting');
     assert.equal(items(f)[0], 'case-consulting'); assert(f.$('nrAddWarmup'), 'first-timers are offered the warm-up');
     f.w.document.querySelector('[data-go="case-consulting"]').click(); assert.equal(f.run('view'), 'session'); assert.equal(f.run('session.id'), 'cement');
-    f.run('session = null'); f.run('NextRoundTool.open()'); f.$('nrCases').click(); assert.equal(f.run('view'), 'home');
+    f.run('session = null'); f.run('NextRoundTool.open()'); f.$('nrCases').click(); assert.equal(f.run('view'), 'cases'); assert(f.w.document.querySelector('[data-start="cement"]'));
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
 
 test('rounds Case Room does not cover say so, and GD tips open in place', () => {
   const f = fixture(); try {
-    f.$('nextRoundHero').click(); pick(f, 'nrRound', 'technical');
+    f.$('homePlan').click(); pick(f, 'nrRound', 'technical');
     assert(f.$('nrNote').classList.contains('outside')); assert.match(f.$('nrNote').textContent, /does not cover coding/); assert.equal(items(f)[0], 'apt-mixed');
     pick(f, 'nrRound', 'gd'); assert.match(f.$('nrNote').textContent, /no group-discussion practice yet/);
     const gd = f.w.document.querySelector('[data-item="gd-moves"]'); assert.equal(gd.querySelector('[data-go]'), null);
@@ -96,7 +96,7 @@ test('rounds Case Room does not cover say so, and GD tips open in place', () => 
 
 test('the plan can be edited, ticked off and reset, and it survives reload', () => {
   const f = fixture(); let g, h; try {
-    f.$('nextRoundHero').click(); pick(f, 'nrRound', 'hr'); pick(f, 'nrTime', '20');
+    f.$('homePlan').click(); pick(f, 'nrRound', 'hr'); pick(f, 'nrTime', '20');
     assert.deepEqual(items(f), ['bh-intro', 'bh-motivation', 'bh-mixed']); assert.equal(f.$('nrReset'), null);
     f.w.document.querySelector('[data-remove="bh-mixed"]').click(); assert.deepEqual(items(f), ['bh-intro', 'bh-motivation']); assert(f.$('nrReset'));
     f.$('nrAdd').value = 'resume'; f.$('nrAddBtn').click(); assert.deepEqual(items(f), ['bh-intro', 'bh-motivation', 'resume']);
@@ -104,8 +104,8 @@ test('the plan can be edited, ticked off and reset, and it survives reload', () 
     const done = f.w.document.querySelector('[data-done="bh-intro"]'); done.checked = true; done.dispatchEvent(new f.w.Event('change'));
     assert(f.w.document.querySelector('[data-item="bh-intro"]').classList.contains('done')); assert.match(f.$('nrTotal').textContent, /1 of 4 done/);
     const storage = {}; for (const k of Object.keys(f.w.localStorage)) storage[k] = f.w.localStorage.getItem(k);
-    g = fixture({ storage }); assert.equal(g.$('nextRoundHero').textContent, 'My next-round plan');
-    g.$('nextRoundHero').click(); assert.deepEqual(items(g), ['bh-intro', 'bh-motivation', 'resume', 'case-consulting']);
+    g = fixture({ storage }); const cont = g.w.document.querySelector('[data-continue="plan"]');
+    assert.match(cont.textContent, /HR or behavioural interview.*1 of 4 done/s, 'home lists the plan under Continue'); cont.click(); assert.deepEqual(items(g), ['bh-intro', 'bh-motivation', 'resume', 'case-consulting']);
     assert(g.w.document.querySelector('[data-done="bh-intro"]').checked); assert(g.w.document.querySelector('[name=nrRound][value="hr"]').checked);
     g.$('nrReset').click(); assert.deepEqual(items(g), ['bh-intro', 'bh-motivation', 'bh-mixed']); assert.equal(g.$('nrReset'), null);
     h = fixture({ url: 'https://case.example/#next-round', storage: { 'cr-next-round': '{"round":"bogus","items":[{"id":"nope"}],"minutes":7,"role":3}' } });

@@ -11,8 +11,8 @@ test('changing a branch discards path-specific AI discussion and later answers',
 test('saved sessions survive reload but a connected key does not',()=>{const f=fixture();let g;try{configure(f);f.run("start('cement')");type(f,'answer','Retain this answer');const saved={};for(const k of Object.keys(f.w.localStorage))saved[k]=f.w.localStorage.getItem(k);g=fixture();for(const [k,v] of Object.entries(saved))g.w.localStorage.setItem(k,v);g.run("session=read('cr-session',null);renderSession()");assert.equal(g.$('answer').value,'Retain this answer');assert.equal(g.$('aiSettings').textContent,'Settings');assert(!JSON.stringify(saved).includes('test-key-not-a-real-key'))}finally{f.dom.window.close();g?.dom.window.close()}});
 test('provider errors leave answers intact and allow a retry',async()=>{const f=fixture();try{configure(f);f.run("start('cement')");type(f,'answer','Retain after quota error');f.w.fetch=async()=>({ok:false,headers:{get:()=> 'application/json'},json:async()=>({error:'Provider usage or rate limit reached.'})});f.$('askFollowup').click();await settle();assert(f.$('coachStatus').textContent.includes('rate limit'));assert.equal(f.run('session.answers.structure'),'Retain after quota error');assert.equal(f.$('askFollowup').disabled,false);assert.equal(f.run('(session.aiTurns||[]).length'),0)}finally{f.dom.window.close()}});
 test('the four-stage notice appears only when a legacy session is opened, not in the library',()=>{const f=fixture();try{
- f.run('home()');assert.doesNotMatch(f.$('app').textContent,/four-stage/);
- f.run("session={id:'cement',version:2,step:0,started:Date.now(),opened:[],answers:{},probes:[]};home()");assert.doesNotMatch(f.$('app').textContent,/four-stage/,'not even with a legacy session waiting to resume');
+ f.run('casesPage()');assert.doesNotMatch(f.$('app').textContent,/four-stage/);
+ f.run("session={id:'cement',version:2,step:0,started:Date.now(),opened:[],answers:{},probes:[]};casesPage()");assert.doesNotMatch(f.$('app').textContent,/four-stage/,'not even with a legacy session waiting to resume');
  f.$('resume').click();assert.equal(f.run('view'),'session');assert.match(f.$('legacyNote').textContent,/earlier four-stage format/);assert.equal(f.w.document.querySelectorAll('#legacyNote').length,1);
  f.run("session=null");f.run("start('cement')");assert.equal(f.$('legacyNote'),null);assert.deepEqual(f.errors,[]);
  }finally{f.dom.window.close()}});
@@ -30,12 +30,12 @@ test('diagnosis ending and review stay focused on defining and verifying the pro
  }finally{f.dom.window.close()}});
 
 test('the library filters consulting and product cases; product cases use their own stages and closing notes',()=>{const f=fixture();try{
- const visible=()=>[...f.w.document.querySelectorAll('#library .card')].filter(c=>!c.hidden).length;
+ f.$('casesNav').click();const visible=()=>[...f.w.document.querySelectorAll('#library .card')].filter(c=>!c.hidden).length;
  assert.equal(visible(),12);f.w.document.querySelector('[data-track-filter="product"]').click();assert.equal(visible(),3);
  assert([...f.w.document.querySelectorAll('#library .card')].filter(c=>!c.hidden).every(c=>c.textContent.includes('PRODUCT')));
  f.w.document.querySelector('[data-track-filter="consulting"]').click();assert.equal(visible(),9);
  assert(f.$('app').textContent.includes('CASE 12 ·'),'two-digit case numbers');assert(!f.$('app').textContent.includes('CASE 010'));
- f.$('drillNav').click();f.$('homeNav').click();assert.equal(visible(),9,'the filter is kept when returning home');
+ f.$('caseTool-drill').click();f.$('casesNav').click();assert.equal(visible(),9,'the filter is kept when returning to the case page');
  f.run("start('experiment');session.branch='validity';session.step=6;renderSession()");
  assert(f.w.document.querySelector('.sidebar').textContent.includes('Plan the launch'));assert(f.$('app').textContent.includes(f.run('RICH.experiment.closingNote')));
  assert(!f.$('app').textContent.includes('hypothetical cross-check'),'no guesstimate note on product cases');

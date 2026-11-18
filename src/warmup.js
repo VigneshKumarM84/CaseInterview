@@ -31,6 +31,7 @@
   function markSeen(v) { if (seen === 'done' && v === 'skipped') return; seen = v; save(SEEN_KEY, v); }
   function setHash(on) { try { window.history.replaceState(null, '', location.pathname + location.search + (on ? '#warmup' : '')); } catch { /* file:// or sandboxed frames */ } }
   function stopTimer() { clearInterval(timer); timer = null; }
+  function scrollToLibrary() { const lib = $('#library'); if (lib && lib.scrollIntoView) lib.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   function enter() { stopMedia(); stopTimer(); view = 'warmup'; setHash(true); window.scrollTo(0, 0); }
 
   function open() { enter(); renderIntro(); }
@@ -46,16 +47,15 @@
       <ol class="wu-plan">${STEPS.map(s => `<li><b>${esc(s.label)}</b></li>`).join('')}</ol>
       <div class="actions">${midway ? `<button class="primary" id="wuContinue">Continue from step ${run.step + 1} →</button><button id="wuStart">Start again</button>` : `<button class="primary" id="wuStart">Start the warm-up →</button>`}
       <button class="wu-link" id="wuSkip">Skip the walkthrough</button></div>
-      <p class="note">Already done a case interview? Skip straight to the full cases. You can come back to this from the home page.</p></section>`;
+      <p class="note">Already done a case interview? Skip straight to the full cases. You can come back to it from the Case interview page.</p></section>`;
     $('#wuStart').onclick = () => { run = blank(); persist(); renderStep(); };
     if ($('#wuContinue')) $('#wuContinue').onclick = renderStep;
     $('#wuSkip').onclick = skip;
   }
 
-  /** Leaves for the case library and stops offering the warm-up banner there. */
+  /** Leaves for the case library and stops putting the warm-up first there. */
   function skip() {
-    stopTimer(); markSeen('skipped'); home();
-    const lib = $('#library'); if (lib && lib.scrollIntoView) lib.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    stopTimer(); markSeen('skipped'); casesPage(); scrollToLibrary();
   }
 
   /* ---------- A step ---------- */
@@ -150,26 +150,16 @@
       <p class="note">${esc(W.fullCase.adds)}</p>
       <div class="actions">${full ? `<button class="primary" id="wuFull">Try a full case: ${esc(full.title)} · ${full.minutes} min →</button>` : ''}<button id="wuLibrary">Browse all cases</button><button class="wu-link" id="wuAgain">Do the warm-up again</button></div></section>`;
     if ($('#wuFull')) $('#wuFull').onclick = () => { setHash(false); start(W.fullCase.id); };
-    $('#wuLibrary').onclick = () => { home(); const lib = $('#library'); if (lib && lib.scrollIntoView) lib.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    $('#wuLibrary').onclick = () => { casesPage(); scrollToLibrary(); };
     $('#wuAgain').onclick = () => { run = blank(); persist(); renderStep(); };
   }
 
   /* ---------- Integration with the rest of Case Room ---------- */
   const priorHome = home;
-  home = function () {
-    stopTimer(); priorHome(); if (location.hash === '#warmup') setHash(false);
-    const actions = $('#app .hero .actions'), begin = $('#begin');
-    if (actions && begin) {
-      const b = document.createElement('button'); b.id = 'warmupHero'; b.textContent = seen === 'done' ? 'Redo the 10-minute warm-up' : 'New to cases? 10-minute warm-up';
-      begin.after(b); b.onclick = open;
-    }
-    const cards = $('#library .cards');
-    if (cards && !seen) {
-      const banner = document.createElement('div'); banner.className = 'drill-callout wu-banner'; banner.id = 'warmupBanner';
-      banner.innerHTML = `<div><div class="eyebrow">FIRST CASE? START HERE · ${W.minutes} MIN</div><h3>${esc(W.title)}: a guided campus warm-up</h3><p class="note">The full cases take about 40 minutes. This one takes ten: one question, one number, one calculation and a 30-second recommendation, with an example after each.</p></div><button class="primary" id="warmupBannerStart">Start the warm-up →</button>`;
-      cards.before(banner); $('#warmupBannerStart').onclick = open;
-    }
-  };
+  home = function () { stopTimer(); priorHome(); if (location.hash === '#warmup') setHash(false); };
 
-  window.WarmupTool = { open, skip, state: () => ({ run, seen, screen }) };
+  /** Continues a warm-up in progress (from the home page's "Continue" list). */
+  function resume() { if (!run) return open(); renderStep(); }
+
+  window.WarmupTool = { open, resume, skip, state: () => ({ run, seen, screen }) };
 })();

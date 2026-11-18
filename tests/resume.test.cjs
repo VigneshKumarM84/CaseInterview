@@ -521,10 +521,10 @@ test('the résumé checker does not interfere with case sessions or the other to
     f.$('resumeNav').click(); assert.equal(f.run('view'), 'resume'); f.$('rcSample').click(); f.$('rcCheck').click(); type(f, 'rcEdit0', 'Prepared 12 weekly sales reports for the category team');
     assert.deepEqual(snap(), before); assert.deepEqual(Object.keys(f.w.localStorage).sort(), storageBefore);
     assert.equal(f.run('history.length'), 0, 'résumé checks are not case sessions');
-    f.$('homeNav').click(); assert.equal(f.w.location.hash, ''); assert.equal(doc(f).querySelectorAll('.tool-callouts .tool-callout').length, 5);
-    f.$('resumeCallout').click(); assert.equal(f.run('view'), 'resume'); assert.equal(f.w.location.hash, '#resume');
+    f.$('homeNav').click(); assert.equal(f.w.location.hash, ''); assert.equal(doc(f).querySelectorAll('.round-tile').length, 5);
+    f.$('round-resume').click(); assert.equal(f.run('view'), 'resume'); assert.equal(f.w.location.hash, '#resume');
     assert(f.$('rcResults').textContent.includes('Prepared 12 weekly sales reports'), 'the last check is still shown when you come back');
-    f.$('drillNav').click(); assert.equal(f.w.location.hash, '#drill'); assert(f.$('drillResume'));
+    f.$('casesNav').click(); f.$('caseTool-drill').click(); assert.equal(f.w.location.hash, '#drill'); assert(f.$('drillResume'));
     f.$('resumeNav').click(); assert.equal(f.$('rcResume').value.includes('Prepared 12 weekly'), true);
     f.$('privacy').click(); assert(f.$('modalContent').textContent.includes('The résumé checker reads your PDF, Word or text file in your browser: nothing is uploaded'));
     assert.deepEqual(f.errors, []);

@@ -1,0 +1,68 @@
+const test = require('node:test'), assert = require('node:assert/strict');
+const { fixture } = require('./dom.cjs');
+const doc = f => f.w.document;
+const current = f => [...doc(f).querySelectorAll('nav [aria-current=page]')].map(b => b.id);
+
+test('the home page is short: a plan button and five rounds in order, with no case list', () => {
+  const f = fixture(); try {
+    assert.equal(f.run('view'), 'home');
+    assert.equal(doc(f).querySelectorAll('#app [data-start]').length, 0, 'cases are not listed on the home page');
+    assert.equal(f.$('library'), null);
+    assert.equal(doc(f).querySelectorAll('#app button').length, 7, 'plan, five rounds and the technical-round link');
+    assert.equal(f.$('homePlan').textContent, 'Plan my prep →'); assert(f.$('homePlan').classList.contains('primary'));
+    assert.deepEqual([...doc(f).querySelectorAll('.round-tile b')].map(b => b.textContent),
+      ['Résumé shortlisting', 'Online aptitude test', 'Group discussion', 'Case or guesstimate interview', 'HR interview']);
+    assert(doc(f).querySelector('.home-how'), 'a new visitor sees how it works instead of an empty Continue list');
+    assert.equal(doc(f).querySelector('.home-continue'), null);
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('each round tile opens that round in one click', () => {
+  const f = fixture(); try {
+    const expect = { resume: ['resume', '#resume'], aptitude: ['aptitude', '#aptitude'], gd: ['next-round', '#next-round'], case: ['cases', '#cases'], hr: ['behavioural', '#behavioural'] };
+    for (const [id, [view, hash]] of Object.entries(expect)) {
+      f.$('homeNav').click(); f.$('round-' + id).click();
+      assert.equal(f.run('view'), view, id); assert.equal(f.w.location.hash, hash, id);
+    }
+    f.$('homeNav').click(); f.$('round-gd').click(); assert(doc(f).querySelector('[name=nrRound][value=gd]').checked, 'the GD tile chooses the GD round');
+    f.$('homeNav').click(); f.$('homeTechnical').click(); assert(doc(f).querySelector('[name=nrRound][value=technical]').checked); assert.match(f.$('nrNote').textContent, /does not cover coding/);
+    f.$('homeNav').click(); f.$('round-case').click();
+    assert.equal(doc(f).querySelectorAll('#library .card').length, 12, 'the case page holds the library'); assert(f.$('caseTool-warmup') && f.$('caseTool-drill') && f.$('caseTool-peer'));
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('"Continue where you left off" lists unfinished work and goes straight back to it', () => {
+  const f = fixture(); try {
+    f.run("start('cement')"); f.$('answer').value = 'Half-written answer'; f.$('answer').dispatchEvent(new f.w.Event('input'));
+    f.run("NextRoundTool.go('apt-mock-short')");
+    f.run('NextRoundTool.open()'); const r = doc(f).querySelector('[name=nrRound][value=hr]'); r.checked = true; r.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+    f.$('homeNav').click();
+    const items = [...doc(f).querySelectorAll('[data-continue]')].map(b => b.dataset.continue);
+    assert.deepEqual(items, ['case', 'aptitude', 'plan']); assert.equal(doc(f).querySelector('.home-how'), null);
+    assert.match(doc(f).querySelector('[data-continue=case]').textContent, /The disappearing margin.*Stage 1 of 8/s);
+    assert.match(doc(f).querySelector('[data-continue=aptitude]').textContent, /Timed mock test.*Question 1 of 15/s);
+    doc(f).querySelector('[data-continue=case]').click(); assert.equal(f.run('view'), 'session'); assert.equal(f.$('answer').value, 'Half-written answer');
+    f.$('homeNav').click(); doc(f).querySelector('[data-continue=plan]').click(); assert.equal(f.run('view'), 'next-round');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('the navigation follows the rounds and marks where you are', () => {
+  const f = fixture(); let g; try {
+    assert.deepEqual([...doc(f).querySelectorAll('nav button')].map(b => b.id).slice(0, 7), ['homeNav', 'planNav', 'resumeNav', 'aptitudeNav', 'casesNav', 'behaviouralNav', 'historyNav']);
+    const settle = () => new Promise(r => setTimeout(r, 0));
+    return (async () => {
+      await settle(); assert.deepEqual(current(f), ['homeNav']);
+      f.$('planNav').click(); await settle(); assert.deepEqual(current(f), ['planNav']);
+      f.$('casesNav').click(); await settle(); assert.deepEqual(current(f), ['casesNav']);
+      f.$('caseTool-drill').click(); await settle(); assert.deepEqual(current(f), ['casesNav'], 'the drill belongs to the case round');
+      f.$('behaviouralNav').click(); await settle(); assert.deepEqual(current(f), ['behaviouralNav']);
+      f.$('historyNav').click(); await settle(); assert.deepEqual(current(f), ['historyNav']);
+      doc(f).querySelector('.brand').click(); await settle(); assert.deepEqual(current(f), ['homeNav']); assert.equal(f.run('view'), 'home');
+      g = fixture({ url: 'https://case.example/#cases' }); assert.equal(g.run('view'), 'cases'); assert(g.$('library'));
+      assert.deepEqual(f.errors, []); assert.deepEqual(g.errors, []);
+    })().finally(() => { f.dom.window.close(); g?.dom.window.close(); });
+  } catch (e) { f.dom.window.close(); throw e; }
+});

@@ -345,11 +345,8 @@
   const priorHome = home;
   home = function () {
     pauseTimer(); priorHome(); if (location.hash.startsWith('#behavioural')) setHash('');
-    const tools = $('#app .tool-callouts'); if (!tools) return;
-    const tile = document.createElement('div'); tile.className = 'drill-callout tool-callout';
-    tile.innerHTML = `<div><div class="eyebrow">NEW · BEHAVIOURAL ROUND</div><h3>Practise the HR questions</h3><p class="note">Timed answers to “tell me about yourself”, leadership, conflict, failure and more, with STAR tagging and a story bank. No AI needed.</p></div><button class="primary" id="behaviouralCallout">Practise HR questions →</button>`;
-    tools.append(tile); $('#behaviouralCallout').onclick = open;
   };
+
 
   window.Behavioural = { open, stories: openStories, sheet, ask, feedback, importStories, state: () => ({ attempts, stories, draft, prefs, screen, current, editing }) };
 })();
