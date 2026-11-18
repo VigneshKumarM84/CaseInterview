@@ -184,6 +184,119 @@
     return pool.filter(v => v !== verb && !used.has(v) && !v.includes(' ') && !(/iz/.test(v) && pool.includes(v.replace(/iz/, 'is')))).slice(0, 3);
   }
 
+  /* ---------- Whole-résumé checks: these need no job description ---------- */
+  const GENERAL_LABELS = { contact: 'Contact details', sections: 'Core sections', length: 'Overall length', personal: 'No unneeded personal details', summary: 'Summary or objective',
+    roles: 'Bullets under every role', dates: 'Dates', formatting: 'Consistent formatting', spelling: 'Consistent spelling', skills: 'Skills shown in bullets' };
+  const GENERAL_IDS = Object.keys(GENERAL_LABELS);
+  const gres = (id, status, reason, fix = '', items = []) => ({ id, label: GENERAL_LABELS[id], status, reason, fix, items });
+  const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i, PHONE_RE = /(?:\+\d{1,3}[\s-]?)?(?:\(?\d{2,5}\)?[\s-]?)?\d{3,5}[\s-]?\d{4,5}\b/;
+  const LINK_RE = /\b(linkedin\.com\/in\/|github\.com\/|behance\.net\/|kaggle\.com\/|portfolio|https?:\/\/)/i;
+  const MONTH_DATE = /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*'?\d{2,4}\b/i, NUMERIC_DATE = /\b(?:0?[1-9]|1[0-2])[\/-](?:19|20)\d{2}\b/; // "05/2025", not "8.4/10"
+  const WORDS_PER_PAGE = 500; // a dense one-column A4 page holds roughly 450–550 words
+
+  /** Searchable token strings for each zone of the résumé: bullet text, Skills, and everything else. */
+  function zonesOf(parsed) {
+    const zones = { bullet: [], skills: [], other: [] };
+    let type = parsed.headingsFound ? 'top' : 'experience';
+    for (const l of parsed.lines) {
+      if (l.kind === 'heading') { type = l.type || 'other'; continue; }
+      if (l.kind === 'blank' || l.continuation) continue;
+      const text = l.kind === 'bullet' ? parsed.bullets[l.bullet].text : l.text;
+      const zone = l.kind === 'bullet' && type !== 'skills' ? 'bullet' : type === 'skills' ? 'skills' : 'other';
+      for (const seg of text.split(SEGMENT_RE)) if (seg && seg.trim()) zones[zone].push(' ' + tokenize(seg).map(t => t.key).join(' ') + ' ');
+    }
+    zones.has = (zone, key) => zones[zone].some(s => s.includes(' ' + key + ' '));
+    return zones;
+  }
+  /** Items listed under Skills: split on commas, pipes, slashes, brackets, "and"; labels before a colon and levels such as "basic" dropped. */
+  function skillItems(parsed) {
+    const out = []; let type = parsed.headingsFound ? 'top' : 'experience';
+    for (const l of parsed.lines) {
+      if (l.kind === 'heading') { type = l.type || 'other'; continue; }
+      if (type !== 'skills' || l.kind === 'blank') continue;
+      const text = (l.kind === 'bullet' ? parsed.bullets[l.bullet].text : l.text).replace(/^[^:]{1,30}:\s*/, '');
+      for (let item of text.split(/[,;|•·/()[\]]|\s[-–—]\s|\band\b|&/i)) {
+        item = item.trim().replace(new RegExp(`\\b(${W.SKILL_QUALIFIERS.join('|')})\\b`, 'gi'), '').replace(/\s+/g, ' ').replace(/^[\s.:-]+|[\s.:-]+$/g, '');
+        if (!item || words(item).length > 4 || !/[a-z]/i.test(item) || W.SPOKEN_LANGUAGES.includes(lower(item))) continue;
+        const key = tokenize(item).map(t => t.key).join(' ');
+        if (key && !out.some(o => o.key === key)) out.push({ display: item, key });
+      }
+    }
+    return out;
+  }
+
+  /** Checks that look at the résumé as a whole. Each is { id, label, status: 'pass'|'warn'|'info', reason, fix, items }. */
+  function generalChecks(parsed, list = parsed.bullets.filter(b => b.lint)) {
+    const text = parsed.lines.map(l => l.raw).join('\n'), checks = [];
+    const types = new Set(parsed.sections.map(s => s.type));
+    // Contact details, usually in the first few lines.
+    const email = text.match(EMAIL_RE), phone = text.replace(EMAIL_RE, ' ').replace(/\b(?:19|20)\d{2}\s*[–—-]\s*(?:(?:19|20)\d{2}|\d{2})\b/g, ' ').match(PHONE_RE), link = LINK_RE.test(text);
+    const missing = [!email && 'email address', !phone && 'phone number'].filter(Boolean);
+    if (missing.length) checks.push(gres('contact', 'warn', `No ${missing.join(' or ')} found.`, 'Put your email and phone number at the top, under your name.'));
+    else checks.push(gres('contact', link ? 'pass' : 'info', link ? 'Email, phone number and a profile link found.' : 'Email and phone number found. No LinkedIn, GitHub or portfolio link.', link ? '' : 'Add a LinkedIn profile, or a GitHub or portfolio link if it shows relevant work.'));
+    // Sections a campus résumé is expected to have.
+    const need = [['education', 'Education'], [types.has('experience') || types.has('projects') ? 'experience' : null, 'Experience or Projects'], ['skills', 'Skills']]
+      .filter(([t]) => !t || !types.has(t)).map(([, name]) => name);
+    if (!parsed.headingsFound) checks.push(gres('sections', 'warn', 'No section headings found.', 'Add headings on their own lines, such as EDUCATION, EXPERIENCE, PROJECTS and SKILLS, so readers (and this checker) can find each part.'));
+    else if (need.length) checks.push(gres('sections', 'warn', `Missing: ${need.join(', ')}.`, need.includes('Experience or Projects') ? 'With no internship yet, a Projects section (course, personal or competition work) shows what you can do.' : 'Add the missing section, even if it is short.', need));
+    else checks.push(gres('sections', 'pass', `Found ${parsed.sections.filter(s => s.type !== 'other').map(s => s.title.replace(/:$/, '')).join(', ')}.`));
+    // Length, estimated from words (the checker cannot see the page layout).
+    const n = words(text).length, pages = n / WORDS_PER_PAGE, fresher = !types.has('experience');
+    if (n < 150) checks.push(gres('length', 'warn', `About ${n} words: very short.`, 'Add projects, coursework, positions of responsibility or achievements, each with what you did and what came of it.'));
+    else if (pages > 2) checks.push(gres('length', 'warn', `About ${n} words, likely more than two pages.`, 'Cut to one page for campus roles, two at most: keep the 3–5 strongest bullets per role.'));
+    else if (fresher && pages > 1.2) checks.push(gres('length', 'warn', `About ${n} words, likely more than one page.`, 'For a fresher, one page is the norm. Drop school-level details and the weakest bullets.'));
+    else checks.push(gres('length', 'pass', `About ${n} words (an estimate; roughly ${pages <= 1.1 ? 'one page' : 'one to two pages'}).`));
+    // Personal details.
+    const personal = W.PERSONAL.filter(([, re]) => re.test(text)).map(([label]) => label);
+    checks.push(personal.length ? gres('personal', 'warn', `Found: ${personal.join(', ')}.`, 'Recruiters do not need these and they take space that your work could use. Remove them unless an employer specifically asks.', personal)
+      : gres('personal', 'pass', 'No date of birth, marital status, declaration or similar.'));
+    // Summary or objective.
+    const summaryLines = []; let st = null;
+    for (const l of parsed.lines) { if (l.kind === 'heading') { st = l.type; continue; } if (st === 'summary' && l.kind !== 'blank') summaryLines.push(l.text); }
+    const summaryText = lower(summaryLines.join(' ')), cliches = W.OBJECTIVE_CLICHES.filter(c => summaryText.includes(c));
+    if (!types.has('summary')) checks.push(gres('summary', 'info', 'No summary or objective. That is fine on a one-page campus résumé.', 'One or two lines on who you are and your strongest evidence, aimed at the role.'));
+    else if (cliches.length) checks.push(gres('summary', 'warn', `Stock phrases: ${cliches.map(c => `"${c}"`).join(', ')}.`, 'Say who you are, your strongest proof and the role you want, e.g. "Final-year BBA student who built a demand model that cut stock-outs by 18%; looking for business analyst roles."', cliches));
+    else if (words(summaryText).length > 60) checks.push(gres('summary', 'warn', `The summary is ${words(summaryText).length} words.`, 'Keep it to two or three lines; the bullets carry the detail.'));
+    else checks.push(gres('summary', 'pass', 'Summary present, with no stock phrases from the list.'));
+    // Roles with no bullets, or with too many.
+    const roleIssues = [];
+    for (const r of parsed.roles) {
+      if (!r.title || !['experience', 'responsibility', 'projects'].includes(r.sectionType)) continue;
+      const count = r.bullets.filter(id => parsed.bullets[id].lint).length;
+      if (!count) roleIssues.push(`"${r.title}" has no bullets`); else if (count > 6) roleIssues.push(`"${r.title}" has ${count} bullets`);
+    }
+    checks.push(roleIssues.length ? gres('roles', 'warn', roleIssues.join('; ') + '.', 'Give each role 2–5 bullets on what you did and what came of it; cut the weakest beyond five or six.', roleIssues)
+      : gres('roles', 'pass', 'Every role has between one and six bullets.'));
+    // Dates on experience entries, written one way.
+    const undated = parsed.roles.filter(r => r.title && r.sectionType === 'experience' && !r.dated).map(r => r.title);
+    const dateLines = parsed.lines.filter(l => l.kind === 'role' || (l.kind === 'text' && DATE_RE.test(l.text))).map(l => l.text);
+    const styles = [dateLines.some(t => MONTH_DATE.test(t)) && 'month names (May 2025)', dateLines.some(t => NUMERIC_DATE.test(t)) && 'numbers (05/2025)'].filter(Boolean);
+    if (undated.length) checks.push(gres('dates', 'warn', `No dates on: ${undated.map(t => `"${t}"`).join(', ')}.`, 'Add month and year for the start and end, e.g. "May 2025 – Jul 2025".', undated));
+    else if (styles.length > 1) checks.push(gres('dates', 'warn', `Dates are written two ways: ${styles.join(' and ')}.`, 'Pick one format, e.g. "May 2025 – Jul 2025", and use it everywhere.'));
+    else checks.push(gres('dates', 'pass', types.has('experience') ? 'Experience entries are dated, in one format.' : 'No mixed date formats found.'));
+    // Bullet markers and full stops.
+    const marked = list.filter(b => b.prefix), kinds = uniq(marked.map(b => /^\(?\d/.test(b.prefix) ? '1.' : b.prefix));
+    const stops = list.filter(b => /[.]$/.test(b.text)).length, noStops = list.length - stops, fmt = [];
+    if (kinds.length > 1) fmt.push(`bullets start with different markers (${kinds.join(' ')})`);
+    if (stops >= 2 && noStops >= 2) fmt.push(`${stops} bullets end with a full stop and ${noStops} do not`);
+    checks.push(fmt.length ? gres('formatting', 'warn', cap(fmt.join('; ')) + '.', 'Use one bullet marker, and either end every bullet with a full stop or none.', fmt)
+      : gres('formatting', 'pass', 'Bullet markers and full stops are consistent.'));
+    // British and American spellings mixed.
+    const brit = new Set(), amer = new Set();
+    for (const stem of W.SPELLING_STEMS) for (const m of text.matchAll(new RegExp(`\\b${stem}([sz])(e|ed|es|er|ers|ing|ation|ations)\\b`, 'gi'))) (m[1].toLowerCase() === 's' ? brit : amer).add(lower(m[0]));
+    checks.push(brit.size && amer.size ? gres('spelling', 'warn', `Both spellings: ${[...brit].slice(0, 3).join(', ')} and ${[...amer].slice(0, 3).join(', ')}.`, 'Pick British (-ise, as most Indian employers use) or American (-ize) spelling and use it throughout.', [...brit, ...amer])
+      : gres('spelling', 'pass', 'No mix of -ise and -ize spellings found.'));
+    // Skills listed but never shown in use.
+    const items = skillItems(parsed), zones = zonesOf(parsed);
+    if (!types.has('skills') || !items.length) checks.push(gres('skills', 'info', 'No Skills section to compare with your bullets.', 'List the tools and skills you have used, then make sure a bullet shows each one in use.'));
+    else {
+      const unshown = items.filter(i => !zones.has('bullet', i.key) && !zones.has('other', i.key)).map(i => i.display);
+      checks.push(unshown.length ? gres('skills', 'warn', `${unshown.length} of ${items.length} listed skills appear in no bullet: ${unshown.join(', ')}.`, 'A skill is more believable when a bullet shows it in use: "Built a demand model in Excel…". Add one where it is true; otherwise consider dropping the skill.', unshown)
+        : gres('skills', 'pass', `All ${items.length} listed skills appear in your bullets or other sections.`));
+    }
+    return checks;
+  }
+
   function analyse(resumeText, jdText = '', opts = {}) {
     const parsed = parse(resumeText);
     const list = parsed.bullets.filter(b => b.lint);
@@ -219,9 +332,9 @@
       }
     }
     for (const b of list) { b.checks.sort((x, y) => CHECK_IDS.indexOf(x.id) - CHECK_IDS.indexOf(y.id)); b.issues = b.checks.filter(c => c.status === 'warn').length; }
-    const summary = summarise(list);
+    const summary = summarise(list), general = generalChecks(parsed, list);
     const match = String(jdText || '').trim() ? matchKeywords(extractKeywords(jdText, opts), parsed) : null;
-    return { parsed, bullets: list, roles: parsed.roles, summary, match };
+    return { parsed, bullets: list, roles: parsed.roles, summary, general, match };
   }
 
   function summarise(list) {
@@ -324,16 +437,7 @@
   /** Where each keyword appears in the résumé: in a bullet or other text (matched), only under Skills, or nowhere. */
   function matchKeywords(keywords, parsedOrText, { top = 20 } = {}) {
     const parsed = typeof parsedOrText === 'string' ? parse(parsedOrText) : parsedOrText;
-    const zones = { bullet: [], skills: [], other: [] };
-    let type = parsed.headingsFound ? 'top' : 'experience';
-    for (const l of parsed.lines) {
-      if (l.kind === 'heading') { type = l.type || 'other'; continue; }
-      if (l.kind === 'blank' || l.continuation) continue;
-      const text = l.kind === 'bullet' ? parsed.bullets[l.bullet].text : l.text;
-      const zone = l.kind === 'bullet' && type !== 'skills' ? 'bullet' : type === 'skills' ? 'skills' : 'other';
-      for (const seg of text.split(SEGMENT_RE)) if (seg && seg.trim()) zones[zone].push(' ' + tokenize(seg).map(t => t.key).join(' ') + ' ');
-    }
-    const has = (zone, key) => zones[zone].some(s => s.includes(' ' + key + ' '));
+    const has = zonesOf(parsed).has;
     const rows = keywords.map(k => {
       const where = has('bullet', k.key) ? 'bullet' : has('other', k.key) ? 'other' : has('skills', k.key) ? 'skills' : null;
       return { ...k, where, group: where === 'skills' ? 'skillsOnly' : where ? 'matched' : 'missing' };
@@ -492,6 +596,9 @@
   function reportText(analysis, { date = new Date() } = {}) {
     const s = analysis.summary, L = [];
     L.push('CASE ROOM — RÉSUMÉ CHECK', date.toLocaleString(), 'Heuristic checks, computed in your browser. Not a score, and not how a recruiter or an applicant tracking system will judge your résumé.', '');
+    L.push('WHOLE RÉSUMÉ');
+    for (const g of analysis.general || []) L.push(`${g.status === 'pass' ? '✓' : g.status === 'info' ? 'i' : '!'} ${g.label}: ${g.reason}${g.status !== 'pass' && g.fix ? ' Fix: ' + g.fix : ''}`);
+    L.push('', 'BULLET CHECKS');
     L.push(`Bullets checked: ${s.total}`, `Bullets with a number: ${s.withNumber} of ${s.total} (${Math.round(s.numberShare * 100)}%)`, `Bullets with no warnings: ${s.clean}`);
     for (const id of CHECK_IDS) L.push(`- ${LABELS[id]}: ${s.counts[id]} to look at`);
     L.push('', 'BULLETS');
@@ -510,6 +617,6 @@
     return L.join('\n') + '\n';
   }
 
-  const api = { LABELS, CHECK_IDS, LIMITS, cleanText, opener, lintBullet, parse, stats, analyse, summarise, stem, tokenize, extractKeywords, matchKeywords, pdfItemsToLines, docxXmlToLines, improvedBullets, reportText, isCapsHeading, headingType, PRESENT, PAST };
+  const api = { GENERAL_LABELS, GENERAL_IDS, generalChecks, skillItems, LABELS, CHECK_IDS, LIMITS, cleanText, opener, lintBullet, parse, stats, analyse, summarise, stem, tokenize, extractKeywords, matchKeywords, pdfItemsToLines, docxXmlToLines, improvedBullets, reportText, isCapsHeading, headingType, PRESENT, PAST };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ResumeCheck = api;
 })(this);

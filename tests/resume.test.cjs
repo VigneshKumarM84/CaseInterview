@@ -137,6 +137,44 @@ test('length, filler, repeated opening verbs and tense', () => {
   assert.equal(s.withNumber, 7); assert.equal(s.total, 13);
 });
 
+/* ---------- Whole-résumé checks (no job description needed) ---------- */
+const WEAK_RESUME = ['Rahul K', 'rahul@example.com | 98765 43210', 'CAREER OBJECTIVE', 'To secure a challenging position in a reputed organisation and utilise my skills for the growth of the organisation.',
+  'EDUCATION', 'B.E. Mechanical, 2026 · CGPA 8.4/10', 'EXPERIENCE', 'Intern, Tata Motors', '• Organised a kaizen drive that cut changeover time by 12%.', '• Analyzed 3 months of downtime data',
+  '- Prepared shift reports for the plant head', 'Project Trainee, Bosch (06/2024 – 07/2024)', 'SKILLS', 'AutoCAD, SolidWorks, MS Excel (advanced), English, Hindi',
+  'PERSONAL DETAILS', 'Date of Birth: 12/03/2004', 'Marital Status: Unmarried', 'DECLARATION', 'I hereby declare that the above information is true.'].join('\n');
+const general = text => Object.fromEntries(RC.analyse(text).general.map(g => [g.id, g]));
+test('whole-résumé checks run without a job description and flag common problems', () => {
+  const s = general(W.SAMPLE_RESUME);
+  assert.deepEqual(Object.keys(s), RC.GENERAL_IDS);
+  assert.deepEqual(Object.fromEntries(Object.entries(s).map(([k, g]) => [k, g.status])),
+    { contact: 'info', sections: 'pass', length: 'pass', personal: 'pass', summary: 'pass', roles: 'pass', dates: 'pass', formatting: 'pass', spelling: 'pass', skills: 'warn' });
+  assert.deepEqual(s.skills.items, ['pivot tables', 'VLOOKUP', 'SQL', 'PowerPoint', 'Python', 'Google Sheets'], 'Excel and Tableau are shown in bullets; "(basic)" is dropped');
+
+  const w = general(WEAK_RESUME);
+  for (const id of ['length', 'personal', 'summary', 'roles', 'dates', 'formatting', 'spelling', 'skills']) assert.equal(w[id].status, 'warn', id);
+  assert.deepEqual(w.personal.items, ['date of birth', 'marital status', 'declaration']);
+  assert.deepEqual(w.summary.items, ['challenging position', 'reputed organisation', 'utilise my skills', 'growth of the organisation']);
+  assert.match(w.roles.reason, /"Project Trainee, Bosch \(06\/2024 – 07\/2024\)" has no bullets/);
+  assert.match(w.dates.reason, /No dates on: "Intern, Tata Motors"/);
+  assert.match(w.formatting.reason, /different markers \(• -\)/);
+  assert.match(w.spelling.reason, /organis.*analyzed/);
+  assert.deepEqual(w.skills.items, ['AutoCAD', 'SolidWorks', 'MS Excel'], 'spoken languages and "(advanced)" are not counted');
+  assert(w.personal.fix && w.summary.fix && w.skills.fix);
+
+  // Guards against false positives.
+  const clean = general(['Asha Verma', 'asha@example.com · +91 98765 43210 · linkedin.com/in/asha', 'EDUCATION', 'B.Com, 2026 · CGPA 8.4/10', 'EXPERIENCE', 'Analyst Intern, Northwind · May 2025 – Jul 2025',
+    '• Analysed 2,400 reviews in Excel and presented 5 fixes', '• Built a SQL query library used by 6 analysts', 'Volunteer, Food Bank · Jun 2024 – Present', '• Organised 12 drives',
+    'SKILLS', 'Tools: Excel, SQL', 'Languages: English, Hindi, Tamil'].join('\n'));
+  for (const id of ['contact', 'sections', 'personal', 'roles', 'dates', 'formatting', 'spelling', 'skills']) assert.equal(clean[id].status, 'pass', id + ': ' + clean[id].reason);
+  assert.equal(clean.summary.status, 'info'); assert.equal(clean.length.status, 'warn', 'under 150 words is very short');
+  const bare = general('Just some text\n• Built a thing');
+  assert.equal(bare.sections.status, 'warn'); assert.match(bare.sections.reason, /No section headings/); assert.equal(bare.contact.status, 'warn'); assert.equal(bare.contact.reason, 'No email address or phone number found.');
+  assert.equal(general(['EDUCATION', 'X', 'SKILLS', 'Excel'].join('\n')).sections.items[0], 'Experience or Projects');
+  const long = general('a@b.co 98765 43210\nEDUCATION\nX\nEXPERIENCE\nIntern, A (2024)\n' + Array(100).fill('• Built a dashboard used by twelve store managers to track sales daily').join('\n') + '\nSKILLS\nExcel');
+  assert.match(long.length.reason, /more than two pages/); assert.match(long.roles.reason, /has 100 bullets/);
+  assert(RC.reportText(RC.analyse(WEAK_RESUME)).includes('WHOLE RÉSUMÉ\n'));
+});
+
 /* ---------- Keywords ---------- */
 test('keyword extraction drops generic words, keeps skills and phrases, and ranks requirements higher', () => {
   const k = RC.extractKeywords(W.SAMPLE_JD), keys = k.map(x => x.display);
@@ -350,6 +388,28 @@ test('PDF and rejected uploads in the page: messages for scanned, unloadable, ov
     const drop = new f.w.Event('drop', { bubbles: true, cancelable: true }); drop.dataTransfer = { files: [fileOf(f, Buffer.from('• Led a team of 3'), 'notes.txt')] };
     f.$('rcDrop').dispatchEvent(drop); await settle(); assert.equal(f.$('rcResume').value, '• Led a team of 3');
     assert.deepEqual(calls, []); assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('without a job description the page still checks the whole résumé, and edits update it live', () => {
+  const f = fixture({ url: 'https://case.example/#resume' }); try {
+    type(f, 'rcResume', WEAK_RESUME); f.$('rcCheck').click();
+    const items = [...doc(f).querySelectorAll('#rcGeneral li')];
+    assert.equal(items.length, RC.GENERAL_IDS.length);
+    const status = id => doc(f).querySelector(`#rcGeneral li[data-check="${id}"]`).className;
+    assert.equal(status('personal'), 'warn'); assert.equal(status('contact'), 'info');
+    assert.match(f.$('rcGeneral').textContent, /with or without a job description/); assert.match(f.$('rcGeneral').textContent, /Date of Birth|date of birth/);
+    assert.match(f.$('rcMatch').textContent, /work without a job description/); assert.equal(f.$('rcPercent'), null);
+    // Showing a listed skill in a bullet updates the skills check as you type.
+    assert.match(doc(f).querySelector('#rcGeneral li[data-check="skills"]').textContent, /3 of 3 listed skills/);
+    const i = f.run('ResumeTool.state().analysis.bullets.findIndex(b => b.text.startsWith("Analyzed"))');
+    type(f, 'rcEdit' + i, 'Analysed 3 months of downtime data in MS Excel and AutoCAD logs');
+    assert.match(doc(f).querySelector('#rcGeneral li[data-check="skills"]').textContent, /1 of 3 listed skills appear in no bullet: SolidWorks/);
+    assert.equal(status('spelling'), 'pass', 'the -ize spelling is gone');
+    // Hostile text in the résumé is escaped in the whole-résumé panel too.
+    type(f, 'rcResume', `EXPERIENCE\nIntern, <img src=x onerror="window.__x=9">\nSKILLS\n<script>window.__x=8</script>`); f.$('rcCheck').click();
+    assert.equal(doc(f).querySelectorAll('#rcGeneral img, #rcGeneral script').length, 0); assert.equal(f.w.__x, undefined);
+    assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
 
