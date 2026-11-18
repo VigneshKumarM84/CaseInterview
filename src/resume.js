@@ -14,7 +14,7 @@
   function persist() { if (!saving) return; save(SAVE_KEY, true); save(TEXT_KEY, draft.resume.slice(0, MAX_TEXT)); save(JD_KEY, draft.jd.slice(0, MAX_TEXT)); }
   function forget() { for (const k of [SAVE_KEY, TEXT_KEY, JD_KEY]) try { localStorage.removeItem(k); } catch { /* storage blocked */ } }
 
-  let analysis = null, fileInfo = null, readToken = 0;
+  let analysis = null, fileInfo = null, readToken = 0, showAllKeywords = false;
   function setHash(on) { try { window.history.replaceState(null, '', location.pathname + location.search + (on ? '#resume' : '')); } catch { /* file:// or sandboxed frames */ } }
   function open() { stopMedia(); view = 'resume'; setHash(true); render(); }
   const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -108,7 +108,7 @@
   function check() {
     draft.resume = $('#rcResume').value; draft.jd = $('#rcJd').value; persist();
     if (!draft.resume.trim()) { analysis = null; $('#rcResults').innerHTML = `<p class="rc-msg error" role="alert">Paste your résumé text or choose a file first.</p>`; return; }
-    clearTimeout(refreshTimer); analysis = RC.analyse(draft.resume, draft.jd); analysis.source = draft.resume;
+    clearTimeout(refreshTimer); showAllKeywords = false; analysis = RC.analyse(draft.resume, draft.jd); analysis.source = draft.resume;
     renderResults();
     const r = $('#rcResults'); if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -144,18 +144,34 @@
     });
     return out.join('');
   }
-  function chips(list, cls) { return list.length ? `<ul class="rc-chips ${cls}">${list.map(k => `<li${k.skill ? ' class="skill"' : ''}>${esc(k.display)}</li>`).join('')}</ul>` : '<p class="note">None.</p>'; }
+  function chips(list, cls) {
+    const attrs = k => { const c = [k.skill && 'skill', !k.inTop && 'extra'].filter(Boolean); return (c.length ? ` class="${c.join(' ')}"` : '') + (k.inTop ? '' : ' title="Lower-ranked keyword: not in the headline count"'); };
+    return list.length ? `<ul class="rc-chips ${cls}">${list.map(k => `<li${attrs(k)}>${esc(k.display)}</li>`).join('')}</ul>` : '<p class="note">None.</p>';
+  }
+  /** Replaces the match section in place, keeping focus on the toggle when it was used. */
+  function renderMatch(focusToggle) {
+    const m = $('#rcMatch'); if (!m) return;
+    const wrap = document.createElement('div'); wrap.innerHTML = matchHtml(); m.replaceWith(wrap.firstElementChild); bindMatch();
+    if (focusToggle && $('#rcMoreKeywords')) $('#rcMoreKeywords').focus();
+  }
+  function bindMatch() { const b = $('#rcMoreKeywords'); if (b) b.onclick = () => { showAllKeywords = !showAllKeywords; renderMatch(true); }; }
   function matchHtml() {
     const m = analysis.match;
     if (!m) return `<section class="panel rc-match" id="rcMatch"><h2>Job description match <span class="note">(optional)</span></h2><p class="note">The checks above work without a job description. To also see which of an advert's keywords your résumé shows, paste it in box 2.</p></section>`;
     if (!m.keywords.length) return `<section class="panel rc-match" id="rcMatch"><h2>Job description match</h2><p class="note">No keywords found in that job description. Paste the full advert, including the requirements.</p></section>`;
+    // By default the lists show only the keywords the headline counts, so the numbers add up on screen.
+    const more = m.keywords.length > m.top, all = more && showAllKeywords;
+    const shown = list => all ? list : list.filter(k => k.inTop);
+    const matched = shown(m.matched), skillsOnly = shown(m.skillsOnly), missing = shown(m.missing);
+    const toggle = more ? `<button type="button" class="rc-more" id="rcMoreKeywords" aria-expanded="${all}">${all ? `Show only the top ${m.top}` : `See all ${m.keywords.length} keywords`}</button>` : '';
     return `<section class="panel rc-match" id="rcMatch"><h2>Job description match</h2>
       <p class="rc-headline" id="rcPercent"><b>${m.found} of the top ${m.top}</b> job-description keywords appear in your résumé (${m.percent}%)${m.foundInSkillsOnly ? `, ${m.foundInSkillsOnly} of them only in your Skills section` : ''}.</p>
       <p class="note">This is word overlap, nothing more. It is not how a recruiter reads a résumé, and real applicant tracking systems work differently from each other and from this. Keywords are ranked by how often they appear, whether they sit under the requirements, and a list of common skills and tools.</p>
+      <p class="note rc-scope" id="rcScope">${all ? `Showing all ${m.keywords.length} keywords. The headline counts only the top ${m.top}; the ${m.keywords.length - m.top} lower-ranked ones have a dashed outline.` : `Showing the top ${m.top} keywords, the ones the headline counts${more ? ` (${m.keywords.length - m.top} lower-ranked keywords hidden)` : ''}.`} ${toggle}</p>
       <div class="rc-groups">
-        <div><h3>Matched <span class="note">(${m.matched.length})</span></h3><p class="note">In a bullet or other text.</p>${chips(m.matched, 'matched')}</div>
-        <div><h3>Only in Skills <span class="note">(${m.skillsOnly.length})</span></h3><p class="note">Listed, but no bullet shows you using it. Weaker evidence: if you have used it, say where in a bullet.</p>${chips(m.skillsOnly, 'skills')}</div>
-        <div><h3>Missing <span class="note">(${m.missing.length})</span></h3><p class="note">Not found anywhere in your résumé.</p>${chips(m.missing, 'missing')}</div>
+        <div><h3>Matched <span class="note">(${matched.length})</span></h3><p class="note">In a bullet or other text.</p>${chips(matched, 'matched')}</div>
+        <div><h3>Only in Skills <span class="note">(${skillsOnly.length})</span></h3><p class="note">Listed, but no bullet shows you using it. Weaker evidence: if you have used it, say where in a bullet.</p>${chips(skillsOnly, 'skills')}</div>
+        <div><h3>Missing <span class="note">(${missing.length})</span></h3><p class="note">Not found anywhere in your résumé.</p>${chips(missing, 'missing')}</div>
       </div>
       <p class="rc-warning"><b>Do not stuff keywords.</b> Add a missing keyword only where you genuinely have that experience, and show it in a bullet you can talk about in an interview. A list of words you cannot back up hurts you with any human reader.</p></section>`;
   }
@@ -170,6 +186,7 @@
       <div class="actions">${none ? '' : '<button class="primary" id="rcCopy">Copy improved bullets</button>'}<button id="rcDownload">Download report (.txt)</button></div></section>${matchHtml()}`;
     el.querySelectorAll('.rc-edit').forEach(t => { t.oninput = () => edit(Number(t.dataset.i), t.value); });
     if ($('#rcCopy')) $('#rcCopy').onclick = copyBullets;
+    bindMatch();
     $('#rcDownload').onclick = () => download(RC.reportText(analysis), `case-room-resume-check-${new Date().toISOString().slice(0, 10)}.txt`);
   }
 
@@ -195,7 +212,7 @@
     });
     const sum = $('#rcResults .rc-summary'); if (sum) { const wrap = document.createElement('div'); wrap.innerHTML = summaryHtml(); sum.nextElementSibling.remove(); sum.replaceWith(...wrap.children); }
     const gen = $('#rcGeneral'); if (gen) { const wrap = document.createElement('div'); wrap.innerHTML = generalHtml(); gen.replaceWith(wrap.firstElementChild); }
-    const m = $('#rcMatch'); if (m) { const wrap = document.createElement('div'); wrap.innerHTML = matchHtml(); m.replaceWith(wrap.firstElementChild); }
+    renderMatch(false);
   }
 
   function copyBullets() {

@@ -434,13 +434,15 @@
     return out.slice(0, limit).map(({ key, display, score, count, skill, n }) => ({ key, display: lower(display), score: Math.round(score * 100) / 100, count, skill, n }));
   }
 
-  /** Where each keyword appears in the résumé: in a bullet or other text (matched), only under Skills, or nowhere. */
+  /** Where each keyword appears in the résumé: in a bullet or other text (matched), only under Skills, or nowhere.
+      The headline counts only the `top` highest-ranked keywords; each row says whether it is one of them (inTop),
+      so a view of the top rows alone adds up to the headline. */
   function matchKeywords(keywords, parsedOrText, { top = 20 } = {}) {
     const parsed = typeof parsedOrText === 'string' ? parse(parsedOrText) : parsedOrText;
     const has = zonesOf(parsed).has;
-    const rows = keywords.map(k => {
+    const rows = keywords.map((k, i) => {
       const where = has('bullet', k.key) ? 'bullet' : has('other', k.key) ? 'other' : has('skills', k.key) ? 'skills' : null;
-      return { ...k, where, group: where === 'skills' ? 'skillsOnly' : where ? 'matched' : 'missing' };
+      return { ...k, rank: i + 1, inTop: i < top, where, group: where === 'skills' ? 'skillsOnly' : where ? 'matched' : 'missing' };
     });
     const topRows = rows.slice(0, top), found = topRows.filter(r => r.group !== 'missing').length;
     return {
@@ -610,7 +612,10 @@
     const m = analysis.match;
     if (m) {
       L.push('', 'JOB DESCRIPTION MATCH', `${m.found} of the top ${m.top} keywords appear in your résumé (${m.percent}%), ${m.foundInSkillsOnly} of them only in Skills. This is word overlap only.`);
-      L.push(`Matched: ${m.matched.map(k => k.display).join(', ') || '—'}`, `Only in Skills, not in any bullet: ${m.skillsOnly.map(k => k.display).join(', ') || '—'}`, `Missing: ${m.missing.map(k => k.display).join(', ') || '—'}`);
+      const names = (list, inTop) => list.filter(k => k.inTop === inTop).map(k => k.display).join(', ') || '—';
+      const groups = inTop => [`Matched: ${names(m.matched, inTop)}`, `Only in Skills, not in any bullet: ${names(m.skillsOnly, inTop)}`, `Missing: ${names(m.missing, inTop)}`];
+      L.push(`Top ${m.top} keywords (the ones counted above):`, ...groups(true).map(s => '  ' + s));
+      if (m.keywords.length > m.top) L.push(`Lower-ranked keywords ${m.top + 1}–${m.keywords.length} (not counted above):`, ...groups(false).map(s => '  ' + s));
       L.push('Add a missing keyword only where you genuinely have that experience, and show it in a bullet.');
     }
     L.push('', 'IMPROVED BULLETS', improvedBullets(analysis));
