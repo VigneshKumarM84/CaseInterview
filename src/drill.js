@@ -99,8 +99,7 @@
     const slow = run.target && !r.skipped && r.seconds > run.target;
     return `<div class="drill-feedback ${r.ok ? 'ok' : 'miss'}" id="drillFeedback" role="status"><h3>${r.ok ? '✓ Correct' : r.skipped ? 'Worked answer' : '✗ Not quite'}</h3>
       <p>${given}The answer is <b>${esc(q.display)}</b>.${r.skipped ? '' : ` Time: ${seconds(r.seconds)}${slow ? ` · over your ${run.target}s target` : ''}.`}</p>
-      <ol class="drill-steps">${q.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol><p class="note"><b>Shortcut:</b> ${esc(q.tip)}</p>
-      <button class="primary" id="drillNext">${last ? 'See results →' : 'Next question →'}</button></div>`;
+      <ol class="drill-steps">${q.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol><p class="note"><b>Shortcut:</b> ${esc(q.tip)}</p></div>`;
   }
 
   function renderQuestion() {
@@ -109,16 +108,19 @@
     const q = run.questions[run.index], r = run.results[run.index], last = run.index === run.questions.length - 1, skill = skillOf(q.skill);
     const hidePrompt = run.listen && !r && !run.showPrompt;
     const answerArea = r ? feedbackMarkup(q, r, last) : q.type === 'choice'
-      ? `<div class="drill-choices" role="group" aria-label="Choose one">${q.choices.map((c, i) => `<button type="button" data-choice="${i}">${esc(c)}</button>`).join('')}</div><div class="drill-inline"><button type="button" id="drillReveal">Show working</button></div>`
-      : `<form id="drillForm" class="drill-answer" autocomplete="off" novalidate><label for="drillInput">Your answer${q.unit ? ` (${esc(q.unit)})` : ''}</label><div class="drill-input-row"><input id="drillInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Type a number"><button class="primary" type="submit" id="drillCheck">Check</button><button type="button" id="drillReveal">Show working</button></div><p class="note" id="drillHint" role="status">${esc(q.toleranceLabel)}. Commas, ₹ and % are fine.</p></form>`;
-    $('#app').innerHTML = `<div class="row"><div><div class="eyebrow">CASE MATHS DRILL · ${esc(levelOf(run.level).title.toUpperCase())}</div><h2 class="section-title">Question ${run.index + 1} of ${run.questions.length}</h2></div><span class="badge" id="drillTimer" aria-live="off">${r ? seconds(r.seconds) : '0s'}</span></div>
+      ? `<div class="drill-choices" role="group" aria-label="Choose one">${q.choices.map((c, i) => `<button type="button" data-choice="${i}">${esc(c)}</button>`).join('')}</div>`
+      : `<form id="drillForm" class="drill-answer" autocomplete="off" novalidate><label for="drillInput">Your answer${q.unit ? ` (${esc(q.unit)})` : ''}</label><div class="drill-input-row"><input id="drillInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="Type a number, then press Enter"></div><p class="note" id="drillHint" role="status">${esc(q.toleranceLabel)}. Commas, ₹ and % are fine.</p></form>`;
+    $('#app').innerHTML = `<div class="row"><div><div class="eyebrow">CASE MATHS DRILL · ${esc(levelOf(run.level).title.toUpperCase())}</div><h2 class="section-title">Question ${run.index + 1} of ${run.questions.length}</h2></div><div class="flow-head-side"><span class="badge" id="drillTimer" aria-live="off">${r ? seconds(r.seconds) : '0s'}</span><button class="wu-link" id="drillExit">Exit · progress is saved</button></div></div>
       <div class="drill-bar" aria-hidden="true"><span style="width:${Math.round(run.results.length / run.questions.length * 100)}%"></span></div>
       <section class="panel drill-card"><div class="eyebrow">${esc(skill.title)}</div>
       ${hidePrompt ? `<p class="drill-prompt drill-hidden" id="drillPrompt">Listen to the question.</p><div class="drill-inline"><button id="drillShowPrompt">Show written question</button></div>` : `<p class="drill-prompt" id="drillPrompt">${esc(q.prompt)}</p>`}
       ${q.chart ? chartMarkup(q.chart) : ''}
-      <div class="speech-controls"><button id="drillSpeak">▷ Read aloud</button><span id="speechStatus" class="note" role="status"></span></div>
-      ${answerArea}</section>
-      <div class="actions"><button id="drillExit">Save & exit</button><button id="drillEnd">End round now</button></div>`;
+      <div class="speech-controls"><button id="drillSpeak" class="listen">🔊 Listen</button><span id="speechStatus" class="sr-only" role="status"></span></div>
+      ${answerArea}
+      ${flowBar({ back: `${r ? '' : '<button class="wu-link" id="drillReveal">Show the working</button>'}<button class="wu-link" id="drillEnd">End round now</button>`,
+        primary: r ? `<button class="primary next" id="drillNext">${last ? 'See results →' : 'Next question →'}</button>`
+          : q.type === 'choice' ? '' : '<button class="primary next" type="submit" form="drillForm" id="drillCheck">Check →</button>',
+        hint: r ? '' : q.type === 'choice' ? 'Choose an answer to check it.' : '' })}</section>`;
     $('#drillSpeak').onclick = () => speak(q.spoken || q.prompt);
     if ($('#drillShowPrompt')) $('#drillShowPrompt').onclick = () => { run.showPrompt = true; persistRun(); renderQuestion(); };
     $('#drillExit').onclick = renderHome;
@@ -127,7 +129,7 @@
     if ($('#drillForm')) {
       $('#drillForm').onsubmit = e => {
         e.preventDefault(); const raw = $('#drillInput').value, c = D.check(q, raw);
-        if (!c.valid) { $('#drillHint').textContent = 'Enter a number, for example 12.5, 1,200 or -4.'; $('#drillInput').focus(); return; }
+        if (!c.valid) { const m = 'Enter a number, for example 12.5, 1,200 or -4.'; $('#drillHint').textContent = m; nudge(m, '#drillInput'); return; }
         record({ answer: raw.trim(), value: c.value, ok: c.ok, skipped: false });
       };
       $('#drillInput').focus({ preventScroll: true });

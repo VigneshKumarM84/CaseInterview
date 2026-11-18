@@ -72,7 +72,7 @@ test('the full walkthrough: an answer, then an example and why it helps, at ever
     // 3. Calculation: a known mistake gets its own explanation and the student can try again.
     assert.match(text(), /STEP 3 OF 4/);
     type(f, 'wuAnswer', '400'); f.$('wuCheck').click();
-    assert.match(f.$('wuResult').textContent, /simple average/); assert.equal(f.$('wuFeedback'), null); assert.equal(f.$('wuCheck').textContent, 'Check again');
+    assert.match(f.$('wuResult').textContent, /simple average/); assert.equal(f.$('wuFeedback'), null); assert.equal(f.$('wuCheck').textContent, 'Check again →');
     type(f, 'wuAnswer', '₹350'); f.$('wuCheck').click();
     assert.match(f.$('wuResult').textContent, /Correct: ₹350 per ticket/); assert.match(f.$('wuFeedback').textContent, /₹8,40,000 ÷ 2,400 tickets = ₹350/);
     assert.equal(f.run('WarmupTool.state().run.attempts'), 2);

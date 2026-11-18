@@ -202,14 +202,15 @@
     const cal = calcAt(run, step), probe = probeAt(run, step), cues = cuesFor(c.id)[step];
     const body = stageContent(step, c, r);
     pushScreen();
-    $('#app').innerHTML = `<div class="row peer-bar"><div><div class="eyebrow">PEER INTERVIEW · INTERVIEWER GUIDE</div><h2 class="section-title">${esc(c.title)}</h2><span class="subtle">${esc(c.company)}${b ? ' · Path: ' + esc(b.title) : ''}</span></div><div class="peer-tools"><span class="badge" id="peerTimer">${clock(durationOf(run))} · aim for ${esc(c.minutes)} min</span><button id="peerScreen">Open candidate screen ↗</button><button id="peerExit">Save & exit</button></div></div>
+    $('#app').innerHTML = `<div class="row peer-bar"><div><div class="eyebrow">PEER INTERVIEW · INTERVIEWER GUIDE</div><h2 class="section-title">${esc(c.title)}</h2><span class="subtle">${esc(c.company)}${b ? ' · Path: ' + esc(b.title) : ''}</span></div><div class="peer-tools"><span class="badge" id="peerTimer">${clock(durationOf(run))} · aim for ${esc(c.minutes)} min</span><button id="peerScreen">Open candidate screen ↗</button><button class="wu-link" id="peerExit">Exit · progress is saved</button></div></div>
     <p class="peer-warning">Keep this screen away from the candidate: it contains the answers.</p>${r.assessmentInstruction && step === 0 ? `<p class="peer-type"><b>${esc(TYPE_LABELS[r.archetype] || 'Case type note.')}</b> ${esc(r.assessmentInstruction)}</p>` : ''}
     <div class="peer-stages" role="group" aria-label="Interview stages">${STAGES.map(i => `<button data-peer-stage="${i}" class="${i === step ? 'active' : ''}" ${i === step ? 'aria-current="step"' : ''}><span class="dot ${esc(run.ratings[i] || '')}"></span>${i + 1}. ${esc(labels[i])}</button>`).join('')}</div>
     <div class="peer-grid"><section class="panel"><div class="eyebrow">STAGE ${step + 1} OF 8 · ${esc(labels[step])}</div><h3>Ask</h3><div class="interviewer"><p>${esc(q)}</p>${cal && step !== 2 ? `<p class="peer-then">Then: ${esc(cal.question)}</p>` : ''}</div>${body}</section>
     <aside class="panel peer-score"><h3>Listen for</h3><ul class="peer-cues">${cues.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${probe ? `<h3>Follow-up to ask</h3><p class="peer-probe">“${esc(probe)}”</p><label class="selfcheck"><input type="checkbox" id="peerAsked" ${run.asked.includes(step) ? 'checked' : ''}> I asked the follow-up</label>` : ''}
     <fieldset class="peer-rating"><legend>How did this stage go?</legend>${RATINGS.map(([v, l]) => `<label class="drill-level"><input type="radio" name="peerRating" value="${v}" ${run.ratings[step] === v ? 'checked' : ''}><span><b>${l}</b></span></label>`).join('')}</fieldset>
-    <label for="peerNote">Notes for the feedback</label><textarea id="peerNote" placeholder="What did they say or do? Quote them where you can.">${esc(run.notes[step] || '')}</textarea>
-    <div class="actions"><button id="peerPrev" ${step ? '' : 'disabled'}>← Previous</button><button id="peerNext" class="primary next">${step === 7 ? 'Wrap up →' : 'Next stage →'}</button></div></aside></div>`;
+    <label for="peerNote">Notes for the feedback</label><textarea id="peerNote" placeholder="What did they say or do? Quote them where you can.">${esc(run.notes[step] || '')}</textarea></aside></div>
+    ${flowBar({ back: step ? '<button class="wu-link" id="peerPrev">← Previous stage</button>' : '', primary: `<button id="peerNext" class="primary next">${step === 7 ? 'Wrap up and give feedback →' : `Next: ${esc(labels[step + 1])} →`}</button>`,
+      hint: run.ratings[step] ? '' : 'Rate this stage before you move on.' })}`;
     bindGuide();
   }
   function bindGuide() {
@@ -217,11 +218,11 @@
     document.querySelectorAll('[data-peer-stage]').forEach(b => b.onclick = () => go(+b.dataset.peerStage));
     document.querySelectorAll('[data-share]').forEach(b => b.onclick = () => share(b.dataset.share));
     document.querySelectorAll('[data-peer-path]').forEach(b => b.onclick = () => choosePath(b.dataset.peerPath));
-    document.querySelectorAll('input[name=peerRating]').forEach(el => el.onchange = () => { run.ratings[step] = el.value; persist(); const dot = document.querySelector(`[data-peer-stage="${step}"] .dot`); if (dot) dot.className = 'dot ' + el.value; });
+    document.querySelectorAll('input[name=peerRating]').forEach(el => el.onchange = () => { run.ratings[step] = el.value; persist(); if ($('#flowHint')) $('#flowHint').textContent = ''; const dot = document.querySelector(`[data-peer-stage="${step}"] .dot`); if (dot) dot.className = 'dot ' + el.value; });
     $('#peerNote').oninput = e => { run.notes[step] = e.target.value; persist(); };
     if ($('#peerAsked')) $('#peerAsked').onchange = e => { run.asked = run.asked.filter(x => x !== step); if (e.target.checked) run.asked.push(step); persist(); };
     if ($('#peerNumber')) $('#peerNumber').oninput = e => { run.numbers[step] = e.target.value; persist(); const cal = calcAt(run, step), v = e.target.value; if (cal.openEstimate) return; const ok = String(v).trim() === '' ? null : matches(v, cal); $('#peerVerdict').innerHTML = ok === null ? '' : ok ? '<p class="peer-check good">✓ Within the accepted range</p>' : '<p class="peer-check improve">✗ Outside the accepted range. Compare their working with the answer key.</p>'; };
-    $('#peerPrev').onclick = () => go(step - 1);
+    if ($('#peerPrev')) $('#peerPrev').onclick = () => go(step - 1);
     $('#peerNext').onclick = () => step === 7 ? wrap() : go(step + 1);
     $('#peerExit').onclick = home;
     $('#peerScreen').onclick = openScreen;

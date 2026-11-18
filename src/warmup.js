@@ -73,7 +73,7 @@
       ${s.alsoGood ? `<details class="wu-also"><summary>Other answers that also work</summary><ul>${s.alsoGood.map(t => `<li>${esc(t)}</li>`).join('')}</ul></details>` : ''}
       ${s.selfCheck ? `<fieldset class="wu-selfcheck"><legend>Check your own recommendation</legend>${s.selfCheck.map((t, i) => `<label class="selfcheck"><input type="checkbox" data-check="${i}" ${run.checks[i] ? 'checked' : ''}> ${esc(t)}</label>`).join('')}<p class="note">This is your own judgement, not a score. Anything unticked is the thing to practise in your first full case.</p></fieldset>` : ''}
       ${s.reply ? `<div class="interviewer wu-reply"><div class="eyebrow">THE COMMITTEE HEAD REPLIES</div><p>${esc(s.reply)}</p></div>` : ''}
-      <div class="actions"><button class="primary" id="wuNext">${run.step === STEPS.length - 1 ? 'Finish the warm-up →' : 'Next step →'}</button></div></section>`;
+</section>`;
   }
   function renderStep() {
     if (!run) run = blank();
@@ -93,10 +93,11 @@
       ${s.seconds && !done ? `<div class="wu-timer"><button id="wuTimer">Start ${s.seconds}-second timer</button><span id="wuClock" class="wu-clock" role="timer" aria-live="off">0:${String(s.seconds).padStart(2, '0')}</span></div>` : ''}
       ${done ? '' : input}
       ${wrong ? `<p class="wu-result miss" id="wuResult" role="alert">${esc(run.calc.message)}</p>` : ''}
-      ${done ? '' : `<div class="actions">${s.kind === 'number'
-        ? `<button class="primary" id="wuCheck">${wrong ? 'Check again' : 'Check my answer'}</button><button id="wuStuck">${wrong ? 'Show the working' : 'I’m stuck: show the working'}</button>`
-        : `<button class="primary" id="wuCheck">Compare with an example</button><button id="wuStuck">I’m stuck: show me an example</button>`}<span class="note" id="wuStatus" role="status"></span></div>`}
-      ${done ? feedbackHtml(s) : ''}</section>`;
+      ${done ? '' : `<span class="sr-only" id="wuStatus" role="status"></span>`}
+      ${done ? feedbackHtml(s) : ''}
+      ${done ? flowBar({ primary: `<button class="primary next" id="wuNext">${run.step === STEPS.length - 1 ? 'Finish the warm-up →' : 'Next step →'}</button>` })
+        : flowBar({ back: `<button class="wu-link" id="wuStuck">${s.kind === 'number' ? (wrong ? 'Show the working' : 'I’m stuck: show the working') : 'I’m stuck: show me an example'}</button>`,
+          primary: `<button class="primary next" id="wuCheck">${s.kind === 'number' ? (wrong ? 'Check again →' : 'Check my answer →') : 'Compare with an example →'}</button>` })}</section>`;
     bindStep(s, done);
   }
   function bindStep(s, done) {
@@ -115,10 +116,10 @@
   }
   function submit(s) {
     const a = ($('#wuAnswer').value || '').trim(); run.answers[s.id] = a.slice(0, MAX_TEXT);
-    if (!a) { $('#wuStatus').textContent = s.kind === 'number' ? 'Type a number first, or ask to see the working.' : 'Write your answer first, or ask to see an example.'; $('#wuAnswer').focus(); return; }
+    if (!a) { const m = s.kind === 'number' ? 'Type a number first, or ask to see the working.' : 'Write your answer first, or ask to see an example.'; $('#wuStatus').textContent = m; nudge(m, '#wuAnswer'); return; }
     if (s.kind === 'number') {
       run.calc = judge(s, a); run.attempts++;
-      if (run.calc.status === 'empty') { run.calc = null; persist(); $('#wuStatus').textContent = 'Type the amount as a number, for example 275.'; return; }
+      if (run.calc.status === 'empty') { run.calc = null; persist(); $('#wuStatus').textContent = 'Type the amount as a number, for example 275.'; nudge('Type the amount as a number, for example 275.', '#wuAnswer'); return; }
       if (run.calc.status !== 'correct') { persist(); renderStep(); $('#wuAnswer').focus(); return; }
     }
     reveal(s);
@@ -134,7 +135,7 @@
       const el = $('#wuClock'); if (!el || view !== 'warmup') return stopTimer();
       const left = Math.max(0, Math.ceil((timerEnds - Date.now()) / 1000));
       el.textContent = clock(left); el.classList.toggle('over', left === 0);
-      if (!left) { stopTimer(); el.textContent = 'Time'; $('#wuStatus').textContent = 'Thirty seconds is up. Finish your sentence, then compare.'; }
+      if (!left) { stopTimer(); el.textContent = 'Time'; $('#wuStatus').textContent = 'Thirty seconds is up. Finish your sentence, then compare.'; nudge('Thirty seconds is up. Finish your sentence, then compare.'); }
     };
     tick(); timer = setInterval(tick, 250);
   }
