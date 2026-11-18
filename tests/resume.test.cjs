@@ -210,6 +210,23 @@ test('match groups: matched, only in Skills, missing, and the top-N percentage',
   assert.equal(RC.analyse(W.SAMPLE_RESUME, '').match, null);
 });
 
+test('the top-N rows alone reproduce the headline count, in the analysis and the report', () => {
+  const a = RC.analyse(W.SAMPLE_RESUME, W.SAMPLE_JD), m = a.match, top = list => list.filter(k => k.inTop);
+  assert.equal(m.keywords.length, 30); assert.deepEqual(m.keywords.map(k => k.rank), m.keywords.map((_, i) => i + 1));
+  assert.equal(top(m.keywords).length, m.top);
+  // The sample the review used: 10 of the top 20, 3 of them only in Skills.
+  assert.equal(m.found, 10); assert.equal(m.foundInSkillsOnly, 3);
+  assert.equal(top(m.matched).length + top(m.skillsOnly).length, m.found);
+  assert.equal(top(m.skillsOnly).length, m.foundInSkillsOnly);
+  assert.equal(top(m.missing).length, m.top - m.found);
+  const r = RC.reportText(a);
+  assert.match(r, /10 of the top 20 keywords appear/); assert.match(r, /Top 20 keywords \(the ones counted above\):/); assert.match(r, /Lower-ranked keywords 21–30 \(not counted above\):/);
+  const topBlock = r.slice(r.indexOf('Top 20 keywords'), r.indexOf('Lower-ranked'));
+  assert(topBlock.includes('power bi') && !topBlock.includes('merchandising'), 'rank 30 is listed only under lower-ranked keywords');
+  // With 20 or fewer keywords there is no lower-ranked block.
+  assert(!RC.reportText(RC.analyse(W.SAMPLE_RESUME, 'Requirements: SQL, Excel, Tableau')).includes('Lower-ranked'));
+});
+
 /* ---------- .docx ---------- */
 test('a .docx is unzipped, inflated and converted: headings, numbered bullets, tabs and breaks; text boxes and headers ignored', async () => {
   for (const method of [8, 0]) {
@@ -444,6 +461,32 @@ test('job-description match view, HTML escaping of pasted text, and no network c
   assert.deepEqual(hits, []);
   for (const file of ['src/resume-check.js', 'src/resume-files.js', 'src/resume.js', 'content/resume-words.js'])
     assert(!/\bfetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource/.test(fs.readFileSync(path.join(root, file), 'utf8')), file + ' has no network calls');
+});
+
+test('the keyword lists show the top 20 by default, so the headline can be counted from the chips; "See all" reveals the rest', () => {
+  const f = fixture(); try {
+    f.$('resumeNav').click(); f.$('rcSample').click(); f.$('rcSampleJd').click(); f.$('rcCheck').click();
+    const chips = cls => [...doc(f).querySelectorAll(`#rcMatch .rc-chips${cls ? '.' + cls : ''} li`)];
+    const headline = f.$('rcPercent').textContent, [, found, top] = headline.match(/^(\d+) of the top (\d+)/).map(Number);
+    assert.equal(chips().length, top); assert.equal(chips('matched').length + chips('skills').length, found);
+    assert.equal(chips('skills').length, 3); assert.equal(chips('missing').length, top - found);
+    assert.match(f.$('rcScope').textContent, /Showing the top 20 keywords, the ones the headline counts \(10 lower-ranked keywords hidden\)/);
+    const more = f.$('rcMoreKeywords'); assert.equal(more.textContent, 'See all 30 keywords'); assert.equal(more.getAttribute('aria-expanded'), 'false');
+    more.click();
+    assert.equal(chips().length, 30); assert.equal(doc(f).querySelectorAll('#rcMatch .rc-chips li.extra').length, 10);
+    assert.equal(f.$('rcMoreKeywords').getAttribute('aria-expanded'), 'true'); assert.equal(doc(f).activeElement, f.$('rcMoreKeywords'));
+    assert.match(f.$('rcScope').textContent, /Showing all 30 keywords\. The headline counts only the top 20/);
+    assert.equal(f.$('rcPercent').textContent, headline, 'expanding the lists never changes the headline');
+    // Editing a bullet keeps the expanded view; a fresh check goes back to the top 20.
+    const i = f.run('ResumeTool.state().analysis.bullets.findIndex(b => b.text.startsWith("Worked on"))');
+    type(f, 'rcEdit' + i, 'Built a Tableau and Power BI dashboard the café owner uses to track daily sales');
+    assert.equal(chips().length, 30); f.$('rcMoreKeywords').click(); assert.equal(chips().length, 20);
+    f.$('rcMoreKeywords').click(); f.$('rcCheck').click(); assert.equal(chips().length, 20);
+    // A short advert has no hidden keywords and no toggle.
+    type(f, 'rcJd', 'Requirements: SQL, Excel, Tableau'); f.$('rcCheck').click();
+    assert.equal(f.$('rcMoreKeywords'), null); assert.doesNotMatch(f.$('rcScope').textContent, /hidden/);
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
 });
 
 test('saving is off by default, works when switched on, and the delete button clears it; corrupt storage is ignored', () => {

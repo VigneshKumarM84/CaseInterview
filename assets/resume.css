@@ -68,6 +68,9 @@
 .rc-chips.skills li{background:#f8f4e3;border-color:#e2d49c}
 .rc-chips.missing li{background:#fbf0e5;border-color:#e3c19f}
 .rc-chips li.skill{font-weight:600}
+.rc-chips li.extra{border-style:dashed;background:transparent}
+.rc-scope{margin-top:12px}
+.rc-more{margin-left:4px;padding:4px 10px;font-size:13px}
 .rc-warning{margin:18px 0 0;padding:12px 14px;border-radius:8px;background:#f7f8f3;border:1px solid var(--line);font-size:13px;line-height:1.6}
 #rcCopyText{font-size:13px}
 @media(max-width:800px){.rc-groups{grid-template-columns:1fr}}
