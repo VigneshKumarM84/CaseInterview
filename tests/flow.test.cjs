@@ -90,3 +90,47 @@ test('case stages: one next step, the reason shown next to it, and the previous 
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
+
+test('aptitude practice and the maths drill: the next step lives in the bar, with a reason when it cannot go on', () => {
+  const f = fixture(); try {
+    f.run('Aptitude.quickPractice({ count: 3 })');
+    assert.equal(primaries(f), 1); assert(f.$('aptExit') && f.$('aptReveal') && f.$('aptEnd'));
+    assert.equal(doc(f).querySelectorAll('.flow-bar .wu-link').length, 2, 'show solution and end are links');
+    f.$('aptNext').click(); assert.equal(f.run('Aptitude.state().run.index'), 0); assert.match(f.$('flowHint').textContent, /Choose an answer first/);
+    doc(f).querySelector('.apt-option').click(); assert.equal(f.$('aptReveal'), null); assert.equal(doc(f).activeElement, f.$('aptNext'));
+    f.$('aptNext').click(); assert.equal(f.run('Aptitude.state().run.index'), 1);
+    f.$('aptExit').click(); assert.equal(f.run('Aptitude.state().screen'), 'home');
+
+    f.run("CaseDrill.quick({ skills: ['percent'], count: 3 })");
+    const type = f.run('CaseDrill.state().run.questions[0].type');
+    if (type !== 'choice') {
+      assert.equal(f.$('drillCheck').getAttribute('form'), 'drillForm', 'Check in the bar submits the answer');
+      f.$('drillInput').value = 'abc'; f.$('drillCheck').click(); assert.match(f.$('flowHint').textContent, /Enter a number/); assert.equal(doc(f).activeElement, f.$('drillInput'));
+      f.$('drillInput').value = '1'; f.$('drillForm').dispatchEvent(new f.w.Event('submit', { cancelable: true }));
+    } else doc(f).querySelector('[data-choice]').click();
+    assert.equal(primaries(f), 1); assert.equal(f.$('drillReveal'), null); assert.match(f.$('drillNext').textContent, /Next question/);
+    f.$('drillNext').click(); assert.equal(f.run('CaseDrill.state().run.index'), 1);
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('peer interview: Previous and Next in the bar, the next stage named, and a reminder to rate', () => {
+  const f = fixture(); try {
+    f.run("PeerMock.start('market')");
+    assert.equal(f.$('peerPrev'), null); assert.equal(f.$('peerNext').textContent, 'Next: Investigate →'); assert.match(f.$('flowHint').textContent, /Rate this stage/);
+    const good = doc(f).querySelector('input[name=peerRating]'); good.checked = true; good.dispatchEvent(new f.w.Event('change')); assert.equal(f.$('flowHint').textContent, '');
+    f.$('peerNext').click(); assert.equal(f.run('PeerMock.state().run.step'), 1); assert.equal(f.$('peerPrev').textContent, '← Previous stage');
+    f.run('PeerMock.state().run.step = 7'); doc(f).querySelector('[data-peer-stage="7"]').click(); assert.equal(f.$('peerNext').textContent, 'Wrap up and give feedback →');
+    assert.equal(primaries(f), 1); assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('warm-up steps use the same bar: one next step, help as a link, the reason next to the button', () => {
+  const f = fixture(); try {
+    f.run('WarmupTool.open()'); f.$('wuStart').click();
+    assert.equal(primaries(f), 1); assert.equal(f.$('wuCheck').textContent, 'Compare with an example →'); assert(f.$('wuStuck').classList.contains('wu-link'));
+    f.$('wuCheck').click(); assert.match(f.$('flowHint').textContent, /Write your answer first/);
+    input(f, 'wuAnswer', 'Revenue or surplus?'); f.$('wuCheck').click(); assert.equal(primaries(f), 1); assert.equal(f.$('wuNext').textContent, 'Next step →');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});

@@ -195,17 +195,19 @@
     stopMedia(); view = 'aptitude'; screen = 'practice';
     const q = run.questions[run.index], r = run.results[run.index], last = run.index === run.questions.length - 1, done = run.results.filter(Boolean).length;
     if (!r) window.scrollTo(0, 0);
-    $('#app').innerHTML = `<div class="row"><div><div class="eyebrow">TOPIC PRACTICE · ${esc(levelTitle(run.level).toUpperCase())}</div><h2 class="section-title">Question ${run.index + 1} of ${run.questions.length}</h2></div><span class="badge" id="aptTimer" aria-live="off">${r ? seconds(r.seconds) : '0s'}</span></div>
+    $('#app').innerHTML = `<div class="row"><div><div class="eyebrow">TOPIC PRACTICE · ${esc(levelTitle(run.level).toUpperCase())}</div><h2 class="section-title">Question ${run.index + 1} of ${run.questions.length}</h2></div><div class="flow-head-side"><span class="badge" id="aptTimer" aria-live="off">${r ? seconds(r.seconds) : '0s'}</span><button class="wu-link" id="aptExit">Exit · progress is saved</button></div></div>
       <div class="drill-bar" aria-hidden="true"><span style="width:${Math.round(done / run.questions.length * 100)}%"></span></div>
       <section class="panel apt-card"><div class="eyebrow">${esc(sectionOf(q.section).title)} · ${esc(topicOf(q.topic).title)}</div>${stem(q)}
       ${optionsMarkup(q, r ? r.choice : null, !!r)}
       ${r ? `<div class="drill-feedback ${r.ok ? 'ok' : 'miss'}" id="aptFeedback" role="status"><h3>${r.ok ? '✓ Correct' : r.choice == null ? 'Worked solution' : '✗ Not quite'}</h3>
         <p>${r.choice == null ? '' : `You chose <b>${LETTERS[r.choice]}. ${esc(q.options[r.choice])}</b>. `}The answer is <b>${LETTERS[q.answer]}. ${esc(q.display)}</b>.${r.choice == null ? '' : ` Time: ${seconds(r.seconds)}${run.target && r.seconds > run.target ? ` · over your ${run.target}s target` : ''}.`}</p>
-        ${solutionMarkup(q)}<button class="primary" id="aptNext">${last ? 'See results →' : 'Next question →'}</button></div>` : '<div class="drill-inline"><button type="button" id="aptReveal">Show solution</button></div>'}</section>
-      <div class="actions"><button id="aptExit">Save & exit</button><button id="aptEnd">End practice now</button></div>`;
+        ${solutionMarkup(q)}</div>` : ''}
+      ${flowBar({ back: `${r ? '' : '<button class="wu-link" id="aptReveal">Show the solution</button>'}<button class="wu-link" id="aptEnd">End practice now</button>`,
+        primary: `<button class="primary next" id="aptNext">${last ? 'See results →' : 'Next question →'}</button>`, hint: r ? '' : 'Choose an answer to check it.' })}</section>`;
     document.querySelectorAll('.apt-option:not([disabled])').forEach(b => b.onclick = () => recordPractice(Number(b.dataset.opt)));
     if ($('#aptReveal')) $('#aptReveal').onclick = () => recordPractice(null);
-    if ($('#aptNext')) { $('#aptNext').onclick = nextPractice; $('#aptNext').focus({ preventScroll: true }); }
+    $('#aptNext').onclick = () => r ? nextPractice() : nudge('Choose an answer first, or show the solution.', '.apt-option');
+    if (r) $('#aptNext').focus({ preventScroll: true });
     $('#aptExit').onclick = renderHome;
     $('#aptEnd').onclick = () => {
       if (!run.results.some(Boolean)) { if (confirm('End this practice? Nothing has been answered, so nothing will be saved.')) { run = null; persist(); renderHome(); } return; }
