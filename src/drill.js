@@ -69,6 +69,11 @@
     if ($('#drillClear')) $('#drillClear').onclick = () => { if (!confirm('Delete all drill rounds and progress from this browser? This cannot be undone.')) return; runs = []; save(HISTORY_KEY, runs); renderHome(); };
   }
 
+  /** Entry point for the next-round planner: a round of the given skills, without changing saved preferences. */
+  function quick({ skills = prefs.skills, count = 10 } = {}) {
+    const chosen = skills.filter(s => D.SKILL_IDS.includes(s));
+    setHash(true); begin(D.buildRound({ skills: chosen.length ? chosen : prefs.skills, level: prefs.level, count, seed: Date.now() }), 'plan');
+  }
   function begin(questions, origin, level = prefs.level) {
     if (run && !confirm('Replace your unfinished round? Its answers will not count towards your progress.')) return;
     run = { id: 'd' + Date.now().toString(36), origin, level, target: prefs.target, aloud: prefs.aloud, listen: prefs.listen, questions, results: [], index: 0, started: Date.now(), qStarted: Date.now() };
@@ -190,5 +195,5 @@
     tools.append(callout); $('#drillCallout').onclick = open;
   };
 
-  window.CaseDrill = { open, state: () => ({ run, runs, prefs, screen, lastResult }) };
+  window.CaseDrill = { open, quick, state: () => ({ run, runs, prefs, screen, lastResult }) };
 })();
