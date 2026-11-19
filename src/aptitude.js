@@ -5,13 +5,14 @@
   const A = AptitudeQuestions;
   const RUN_KEY = 'cr-aptitude-run', HISTORY_KEY = 'cr-aptitude-history', PREFS_KEY = 'cr-aptitude-prefs', MAX_HISTORY = 100;
   const COUNTS = [5, 10, 20], PER_SECTION = [5, 10, 20, 30];
-  const TARGETS = [[0, 'No target'], [30, '30 seconds'], [45, '45 seconds'], [60, '1 minute'], [90, '90 seconds']];
-  const PACES = [[36, '36 seconds per question (fast)'], [60, '1 minute per question'], [90, '90 seconds per question']];
+  const TARGETS = [[0, 'No target'], [30, '30 seconds'], [45, '45 seconds'], [60, '1 minute'], [90, '90 seconds'], [120, '2 minutes']];
+  const PACES = [[36, '36 seconds per question (fast)'], [60, '1 minute per question'], [90, '90 seconds per question'], [120, '2 minutes per question (Advanced and Expert)']];
+  const MIX_TITLES = { mixed: 'Mixed difficulty', 'mixed-high': 'Mixed: Hard to Expert' };
   const NEGATIVES = [[0, 'No negative marking'], [0.25, '−0.25 per wrong answer'], [1 / 3, '−1/3 per wrong answer'], [0.5, '−0.5 per wrong answer']];
   const LETTERS = ['A', 'B', 'C', 'D'];
   const topicOf = A.topicOf, sectionOf = id => A.SECTIONS.find(s => s.id === id);
   const topicsIn = s => A.TOPICS.filter(t => t.section === s).map(t => t.id);
-  const levelTitle = id => id === 'mixed' ? 'Mixed difficulty' : (A.LEVELS.find(l => l.id === id) || A.LEVELS[1]).title;
+  const levelTitle = id => MIX_TITLES[id] || (A.LEVELS.find(l => l.id === id) || A.LEVELS[1]).title;
   const negLabel = n => n ? '−' + (Math.abs(n - 1 / 3) < 1e-9 ? '1/3' : String(n)) : 'none';
 
   /* ---------- Reading stored data defensively ---------- */
@@ -25,7 +26,7 @@
     return {
       section: sectionOf(p.section) ? p.section : 'quant', topics, level: A.LEVEL_IDS.includes(p.level) ? p.level : 'medium', count: COUNTS.includes(p.count) ? p.count : 10,
       target: TARGETS.some(t => t[0] === p.target) ? p.target : 0, sections: sections.length ? sections : A.SECTIONS.map(s => s.id), perSection: PER_SECTION.includes(p.perSection) ? p.perSection : 10,
-      testLevel: [...A.LEVEL_IDS, 'mixed'].includes(p.testLevel) ? p.testLevel : 'mixed', pace: PACES.some(x => x[0] === p.pace) ? p.pace : 60,
+      testLevel: A.LEVEL_IDS.includes(p.testLevel) || A.MIXES[p.testLevel] ? p.testLevel : 'mixed', pace: PACES.some(x => x[0] === p.pace) ? p.pace : 60,
       timing: p.timing === 'sectional' ? 'sectional' : 'total', negative: NEGATIVES.some(x => x[0] === p.negative) ? p.negative : 0
     };
   }
@@ -106,14 +107,14 @@
       <section class="panel drill-setup apt-setup"><h2>Topic practice</h2><p class="note">Instant feedback, a worked solution and a shortcut after every question.</p>
         <fieldset><legend>Section</legend><div class="apt-tabs" role="radiogroup">${A.SECTIONS.map(s => `<label class="drill-level"><input type="radio" name="aptSection" value="${s.id}" ${prefs.section === s.id ? 'checked' : ''}><span><b>${esc(s.title)}</b><small>${esc(s.short)}</small></span></label>`).join('')}</div></fieldset>
         <fieldset><legend>Topics</legend><div class="drill-chips apt-chips" id="aptTopics"></div><div class="drill-inline"><button type="button" id="aptAll">Select all</button><button type="button" id="aptNone">Clear</button></div></fieldset>
-        <fieldset><legend>Difficulty</legend><div class="drill-levels">${A.LEVELS.map(l => `<label class="drill-level"><input type="radio" name="aptLevel" value="${l.id}" ${prefs.level === l.id ? 'checked' : ''}><span><b>${l.title}</b><small>${l.note}</small></span></label>`).join('')}</div></fieldset>
+        <fieldset><legend>Difficulty</legend><div class="drill-levels apt-levels">${A.LEVELS.map(l => `<label class="drill-level"><input type="radio" name="aptLevel" value="${l.id}" ${prefs.level === l.id ? 'checked' : ''}><span><b>${l.title}</b><small>${l.note}</small></span></label>`).join('')}</div></fieldset>
         <div class="drill-options"><label for="aptCount">Questions<select id="aptCount">${COUNTS.map(n => `<option value="${n}" ${prefs.count === n ? 'selected' : ''}>${n} questions</option>`).join('')}</select></label>
         <label for="aptTarget">Target per question<select id="aptTarget">${TARGETS.map(([n, t]) => `<option value="${n}" ${prefs.target === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
         <div class="actions"><button class="primary" id="aptPractice">Start practice →</button><span id="aptPracticeStatus" class="note" role="status"></span></div></section>
       <section class="panel drill-setup apt-setup"><h2>Timed test</h2><p class="note">A placement-style mock: no feedback until you submit, and it submits itself when time runs out.</p>
         <fieldset><legend>Sections</legend><div class="apt-tabs">${A.SECTIONS.map(s => `<label class="drill-chip"><input type="checkbox" name="aptTestSection" value="${s.id}" ${prefs.sections.includes(s.id) ? 'checked' : ''}><span><b>${esc(s.title)}</b><small>${topicsIn(s.id).length} topics</small></span></label>`).join('')}</div></fieldset>
         <div class="drill-options apt-test-options"><label for="aptPer">Questions per section<select id="aptPer">${PER_SECTION.map(n => `<option value="${n}" ${prefs.perSection === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-        <label for="aptTestLevel">Difficulty<select id="aptTestLevel">${[...A.LEVELS.map(l => [l.id, l.title]), ['mixed', 'Mixed (like real tests)']].map(([id, t]) => `<option value="${id}" ${prefs.testLevel === id ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+        <label for="aptTestLevel">Difficulty<select id="aptTestLevel">${[...A.LEVELS.map(l => [l.id, l.title]), ['mixed', 'Mixed (like real tests)'], ['mixed-high', 'Mixed: Hard to Expert']].map(([id, t]) => `<option value="${id}" ${prefs.testLevel === id ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label for="aptPace">Time<select id="aptPace">${PACES.map(([n, t]) => `<option value="${n}" ${prefs.pace === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label for="aptNegative">Marking<select id="aptNegative">${NEGATIVES.map(([n, t], i) => `<option value="${i}" ${prefs.negative === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
         <fieldset><legend>Timer</legend><label class="selfcheck"><input type="radio" name="aptTiming" value="total" ${prefs.timing === 'total' ? 'checked' : ''}> One timer for the whole test; move freely between sections</label>
@@ -327,7 +328,7 @@
         ${q.passage ? passageMarkup(q.passage, false) : ''}${q.table ? tableMarkup(q.table) : ''}${q.chart ? chartMarkup(q.chart) : ''}<p class="apt-prompt">${esc(q.prompt)}</p>${optionsMarkup(q, choice, true)}
         <p>${choice == null ? 'Not answered.' : `You chose <b>${LETTERS[choice]}</b>.`} Answer: <b>${LETTERS[q.answer]}. ${esc(q.display)}</b></p>${solutionMarkup(q)}</details>`; }).join('')}
       <div class="actions">${missed.length ? `<button class="primary" id="aptRetry">Retry the ${missed.length} I missed</button>` : ''}<button ${missed.length ? '' : 'class="primary"'} id="aptAgain">${res.mode === 'test' ? 'New test, same settings' : 'New practice, same settings'}</button><button id="aptBack">Aptitude home</button><button id="aptDownload">Download summary</button></div></section>`;
-    if ($('#aptRetry')) $('#aptRetry').onclick = () => beginPractice(missed.map(x => JSON.parse(JSON.stringify(x.q))), 'retry', res.level === 'mixed' ? 'medium' : res.level);
+    if ($('#aptRetry')) $('#aptRetry').onclick = () => beginPractice(missed.map(x => JSON.parse(JSON.stringify(x.q))), 'retry', A.MIXES[res.level] ? A.MIXES[res.level][1] : res.level);
     $('#aptAgain').onclick = () => res.mode === 'test' ? beginTest(res.sections ? { sections: res.sections, perSection: res.perSection } : {}) : beginPractice(A.buildSet({ topics: prefs.topics[prefs.section], level: prefs.level, count: prefs.count, seed: Date.now() }), 'new', prefs.level);
     $('#aptBack').onclick = renderHome;
     $('#aptDownload').onclick = () => download(summaryText(res), `case-room-aptitude-${new Date(e.at).toISOString().slice(0, 10)}.txt`);

@@ -41,6 +41,33 @@ function seatOK(c, at) { // at[i] = person at position i; independent clue check
     gap: () => Math.abs(p(c.a) - p(c.b)) - 1 === c.k, between: () => Math.abs(p(c.b) - p(c.a)) === 1 && Math.abs(p(c.c) - p(c.a)) === 1, position: () => p(c.a) + 1 === c.p, 'not-next': () => Math.abs(p(c.a) - p(c.b)) > 1 }[c.t]();
 }
 const sum = (xs) => xs.reduce((s, x) => s + x, 0);
+const factorial = n => n <= 1 ? 1 : n * factorial(n - 1);
+const PRIMES = [...Array(60).keys()].filter(n => n > 1 && [...Array(n).keys()].slice(2).every(d => n % d));
+function seriesTerm(rule, p) {
+  return { arith: n => p.a + n * p.d, geom: n => p.a * p.r ** n, square: n => (p.k + n) ** 2 + p.e, cube: n => (p.k + n) ** 3 + p.e,
+    diff: n => { let t = p.a; for (let j = 0; j < n; j++) t += p.d + j * p.c; return t; }, muladd: n => { let t = p.a; for (let j = 0; j < n; j++) t = p.m * t + p.c; return t; },
+    alt: n => n % 2 === 0 ? p.a + p.d1 * n / 2 : p.b + p.d2 * (n - 1) / 2,
+    muladd2: n => { let t = p.a; for (let j = 0; j < n; j++) t = j % 2 === 0 ? t * p.m : t + p.c; return t; },
+    primediff: n => p.a + sum(PRIMES.slice(p.s, p.s + n)),
+    fib: n => { const f = [p.a, p.b]; while (f.length <= n) f.push(f[f.length - 1] + f[f.length - 2]); return f[n]; },
+    geomdiff: n => { let t = p.a, d = p.d; for (let j = 0; j < n; j++) { t += d; d *= p.r; } return t; },
+    ncube: n => (p.k + n) ** 3 + p.s * (p.k + n), mulinc: n => { let t = p.a; for (let j = 0; j < n; j++) t *= p.k + j; return t; } }[rule];
+}
+const Q = { add: ([a, b], [c, d]) => [a * d + c * b, b * d], mul: ([a, b], [c, d]) => [a * c, b * d] };
+const isRed = c => 'HD'.includes(c.s);
+function circleOK(c, at) { // at[seat] = person, seats clockwise from above; facing the centre, your left neighbour is the next seat clockwise
+  const n = at.length, seat = x => at.indexOf(x), leftOf = x => at[(seat(x) + 1) % n], rightOf = x => at[(seat(x) + n - 1) % n];
+  return { left: () => c.a === leftOf(c.b), right: () => c.a === rightOf(c.b), 'second-left': () => c.a === leftOf(leftOf(c.b)), 'second-right': () => c.a === rightOf(rightOf(c.b)),
+    opposite: () => c.a === at[(seat(c.b) + n / 2) % n], 'not-next': () => c.a !== leftOf(c.b) && c.a !== rightOf(c.b), between: () => [leftOf(c.a), rightOf(c.a)].sort().join() === [c.b, c.c].sort().join() }[c.t]();
+}
+function floorOK(c, at, subj) { // at[floor − 1] = person; subj[person] = subject
+  const fl = e => (e.k === 'p' ? at.indexOf(e.i) : at.indexOf(subj.indexOf(e.i))) + 1;
+  return { floor: () => fl(c.a) === c.f, above: () => fl(c.a) - fl(c.b) === c.k, gap: () => Math.abs(fl(c.a) - fl(c.b)) === 2, even: () => fl(c.a) % 2 === 0, odd: () => fl(c.a) % 2 === 1,
+    likes: () => subj[c.p] === c.s, 'not-likes': () => subj[c.p] !== c.s }[c.t]();
+}
+const P5 = permutations([0, 1, 2, 3, 4]);
+const PAIRS = { square: n => n ** 2, cube: n => n ** 3, sqplus: n => n ** 2 + 1, twice1: n => 2 * n + 1, nnp1: n => n ** 2 + n, cubeminus: n => n ** 3 - n, sqminus: n => n ** 2 - 1, cubeplus: n => n ** 3 + 1, tri: n => sum([...Array(n + 1).keys()]) };
+const SYL = ['Only conclusion I follows', 'Only conclusion II follows', 'Both I and II follow', 'Neither I nor II follows'];
 
 // Each solver returns the expected numeric value, or the exact text of the correct option.
 const SOLVE = {
@@ -87,11 +114,13 @@ const SOLVE = {
   'di-share': i => i.chart.series.find(s => s.label === i.label).values[1] * 100 / sum(i.chart.series.map(s => s.values[1])),
   'di-change': i => sum(i.chart.series.map(s => s.values[1] - s.values[0])),
   'series-number': i => {
-    const p = i.p, term = { arith: n => p.a + n * p.d, geom: n => p.a * p.r ** n, square: n => (p.k + n) ** 2 + p.e, cube: n => (p.k + n) ** 3 + p.e,
-      diff: n => { let t = p.a; for (let j = 0; j < n; j++) t += p.d + j * p.c; return t; }, muladd: n => { let t = p.a; for (let j = 0; j < n; j++) t = p.m * t + p.c; return t; },
-      alt: n => n % 2 === 0 ? p.a + p.d1 * n / 2 : p.b + p.d2 * (n - 1) / 2 }[i.rule];
+    const term = seriesTerm(i.rule, i.p);
     i.shown.forEach((x, n) => assert.equal(x, term(n), 'shown term follows the rule'));
     return String(term(i.shown.length));
+  },
+  'series-wrong': i => {
+    const term = seriesTerm(i.rule, i.p), off = i.shown.map((x, n) => x !== term(n) ? n : -1).filter(n => n >= 0);
+    assert.equal(off.length, 1, 'exactly one term breaks the rule'); return String(i.shown[off[0]]);
   },
   'series-letter': i => i.rule === 'skip' ? letter(i.start + sum(i.steps)) : letter(i.s1 + i.n * i.k1) + letter(i.s2 - i.n * i.k2),
   'code-shift': i => {
@@ -131,7 +160,104 @@ const SOLVE = {
     assert.equal(out.length, 1, 'exactly one number lacks the property'); return String(out[0]);
   },
   'odd-letters': i => { const out = i.groups.filter(w => pos(w[1]) - pos(w[0]) !== i.s1 || pos(w[2]) - pos(w[1]) !== i.s2); assert.equal(out.length, 1, 'exactly one group breaks the pattern'); return out[0]; },
-  divisible: i => null
+  divisible: i => null,
+
+  // Advanced and Expert
+  'pct-expense': i => i.up ? (1 - 100 / (100 + i.p)) * 100 : (100 / (100 - i.p) - 1) * 100,
+  'pct-exam': i => (i.x + i.y) * 100 / (i.b - i.a),
+  'pct-voters': i => i.M / ((100 - i.a) / 100 * (100 - i.b) / 100 * (2 * i.w - 100) / 100),
+  'pl-free': i => (i.x + i.y) * 100 * (1 + i.p / 100) / i.x - 100,
+  'pl-two-items': i => 2 * i.S - i.S * 100 / (100 + i.a) - i.S * 100 / (100 - i.b),
+  'pl-dishonest': i => (100 + i.a) / (100 - i.b) * 100 - 100,
+  'ci-two-amounts': i => { const f = i.A3 / i.A2; return i.ask === 'P' ? i.A2 / f / f : (f - 1) * 100; },
+  'ci-instalment': i => { const f = 1 + i.R / 100; return i.P / (1 / f + 1 / (f * f)); },
+  'ci-si-diff3': i => { let x = i.P; for (let t = 0; t < 3; t++) x += x * i.R / 100; return x - i.P - 3 * i.P * i.R / 100; },
+  'ratio-coins': i => { for (let k = 1; k < 10000; k++) if (k * (i.parts[0] * 100 + i.parts[1] * 50 + i.parts[2] * 25) === i.T * 100) return i.parts[i.ask] * k; },
+  'ratio-partnership': i => { let a = 0, b = 0; for (let mo = 0; mo < 12; mo++) { a += i.wd != null && mo >= i.wd ? i.X / 2 : i.X; b += mo >= i.join ? i.Y : 0; } return i.P * b / (a + b); },
+  'avg-wrong': i => (i.A * i.n + sum(i.pairs.map(([x, y]) => x - y))) / i.n,
+  'mix-replace': i => { let milk = i.V; for (let t = 0; t < i.k; t++) milk -= milk * i.x / i.V; return milk; },
+  'mix-vessels': i => { const V = (i.a + i.b) * (i.c + i.d), milk = i.p * V * i.a / (i.a + i.b) + i.q * V * i.c / (i.c + i.d), water = (i.p + i.q) * V - milk; return red(milk, water); },
+  'work-mdh': i => i.W2 / (i.W1 / (i.m1 * i.h1 * i.d1) * i.m2 * i.h2),
+  'work-alternate': i => { let done = 0; for (let t = 0; ; t++) { const rate = 1 / i.days[t % i.days.length]; if (done + rate >= 1 - 1e-12) return t + (1 - done) / rate; done += rate; } },
+  'work-men-women': i => { const det = i.m1 * i.w2 - i.m2 * i.w1, x = (i.w2 / i.d1 - i.w1 / i.d2) / det, y = (i.m1 / i.d2 - i.m2 / i.d1) / det; return 1 / (i.k * (i.who === 'men' ? x : y)); },
+  'pipes-close': i => (1 - i.T / i.a) * i.b,
+  'pipes-capacity': i => 60 * i.F / (1 / i.l - 1 / i.e),
+  'speed-late': i => (i.t1 + i.t2) / 60 / (1 / i.v1 - 1 / i.v2),
+  'boat-find': i => { const dn = i.d1 / i.t1, up = i.d2 / i.t2; return i.ask === 'stream' ? (dn - up) / 2 : (dn + up) / 2; },
+  'speed-circle': i => { for (let t = 1; t < 100000; t++) { const a = i.u * t, b = (i.same ? 1 : -1) * i.v * t; if (i.ask === 'start' ? a % i.L === 0 && b % i.L === 0 : (a - b) % i.L === 0) return t; } },
+  'number-zeros': i => { let f = 1n; for (let k = 2n; k <= BigInt(i.n); k++) f *= k; let c = 0; while (f % BigInt(i.p) === 0n) { f /= BigInt(i.p); c++; } return c; },
+  'number-factors': i => { let c = 0; for (let d = 1; d <= i.N; d++) if (i.N % d === 0 && (i.ask === 'all' || (i.ask === 'even') === (d % 2 === 0))) c++; return c; },
+  'number-crt': i => {
+    if (i.ask === 'diff') { for (let n = 1; ; n++) if (i.divs.every((d, j) => n % d === i.rems[j])) return n; }
+    const ok = n => i.divs.every(d => n % d === i.rem), four = [...Array(9000).keys()].map(k => k + 1000).filter(ok);
+    return i.ask === 'small4' ? four[0] : four[four.length - 1];
+  },
+  'pnc-not-together': i => {
+    if (i.mode === 'pair') { let c = 0; for (let a = 0; a < i.n; a++) for (let b = 0; b < i.n; b++) if (Math.abs(a - b) > 1) c++; return c * factorial(i.n - 2); }
+    const L = i.b + i.g; let c = 0; for (let m = 0; m < 1 << L; m++) { const seats = [...Array(L).keys()].filter(j => m >> j & 1); if (seats.length === i.g && seats.every((x, j) => !j || x - seats[j - 1] > 1)) c++; }
+    return c * factorial(i.b) * factorial(i.g);
+  },
+  'pnc-digits': i => {
+    let c = 0; const go = (used, num) => { if (num.length === i.k) { const l = num[i.k - 1]; if (num[0] !== 0 && { any: true, even: l % 2 === 0, odd: l % 2 === 1, div5: l % 5 === 0 }[i.ask]) c++; return; } i.digits.forEach((d, j) => { if (!used.includes(j)) go([...used, j], [...num, d]); }); };
+    go([], []); return c;
+  },
+  'pnc-distribute': i => { const lo = i.atLeast ? 1 : 0, ways = (n, k) => k === 1 ? (n >= lo ? 1 : 0) : sum([...Array(n + 1).keys()].filter(x => x >= lo).map(x => ways(n - x, k - 1))); return ways(i.n, i.k); },
+  'prob-two-bags': i => { let p = [0, 1]; for (const [r, n] of [[i.r1, i.r1 + i.b1], [i.r2, i.r2 + i.b2]]) for (let k = 0; k < r; k++) p = Q.add(p, [1, 2 * n]); return fr(...p); },
+  'prob-bayes': i => { let one = [0, 1], all = [0, 1]; for (const [r, n, first] of [[i.r1, i.r1 + i.b1, true], [i.r2, i.r2 + i.b2, false]]) for (let k = 0; k < r; k++) { all = Q.add(all, [1, 2 * n]); if (first) one = Q.add(one, [1, 2 * n]); } return fr(one[0] * all[1], one[1] * all[0]); },
+  'prob-solve': i => {
+    let tot = [0, 1]; for (let m = 0; m < 1 << i.ps.length; m++) { let pr = [1, 1], solved = 0; i.ps.forEach(([a, d], j) => { if (m >> j & 1) { pr = Q.mul(pr, [a, d]); solved++; } else pr = Q.mul(pr, [d - a, d]); }); if (i.ask === 'solved' ? solved > 0 : solved === 1) tot = Q.add(tot, pr); }
+    return fr(...tot);
+  },
+  'prob-two-cards': i => {
+    const test = { kings: (x, y) => x.r === 13 && y.r === 13, 'king-queen': (x, y) => x.r + y.r === 25 && x.r !== y.r && Math.min(x.r, y.r) === 12, 'same-suit': (x, y) => x.s === y.s, red: (x, y) => isRed(x) && isRed(y), face: (x, y) => x.r > 10 && y.r > 10, colours: (x, y) => isRed(x) !== isRed(y) }[i.ask];
+    let f = 0, all = 0; for (let a = 0; a < 52; a++) for (let b = a + 1; b < 52; b++) { all++; if (test(deck[a], deck[b])) f++; } return fr(f, all);
+  },
+  'di-max-growth': i => { const regions = i.table.columns.slice(1), g = regions.map((_, j) => i.table.rows[i.y2][j + 1] / i.table.rows[i.y1][j + 1]); return regions[g.indexOf(Math.max(...g))]; },
+  'di-share-change': i => { const tot = y => sum(i.chart.series.map(s => s.values[y])), s = i.chart.series.find(x => x.label === i.label); return (s.values[1] / tot(1) - s.values[0] / tot(0)) * 100; },
+  'di-required': i => { const v = i.table.rows.map(r => r[i.col]); return ((5 * i.Y - sum(v)) / v[3] - 1) * 100; },
+  'code-ops': i => {
+    assert(Object.keys(i.map).every(o => i.map[o] !== o), 'every symbol stands for a different operation');
+    const js = { '+': '+', '−': '-', '×': '*', '÷': '/' }, v = Function(`return ${i.nums.map((x, j) => j ? `${js[i.map[i.shownOps[j - 1]]]} ${x}` : String(x)).join(' ')}`)();
+    assert(Number.isInteger(v), 'the decoded expression is a whole number'); return v;
+  },
+  'code-words': i => {
+    const words = [...new Set(i.sentences.flatMap(s => s.words))], codes = [...new Set(i.sentences.flatMap(s => s.codes))], found = new Set();
+    assert.equal(words.length, codes.length);
+    for (const p of permutations(codes)) { const map = Object.fromEntries(words.map((w, j) => [w, p[j]])); if (i.sentences.every(s => s.words.map(w => map[w]).sort().join() === s.codes.slice().sort().join())) found.add(map[i.target]); }
+    assert.equal(found.size, 1, 'the sentences fix the target’s code'); return [...found][0];
+  },
+  'blood-coded': i => SOLVE.blood(i),
+  'dir-shadow': i => {
+    const shadow = i.morning ? [-1, 0] : [1, 0], rotR = ([x, y]) => [y, -x], rotL = ([x, y]) => [-y, x], back = ([x, y]) => [-x, -y];
+    let f = [[0, 1], [1, 0], [0, -1], [-1, 0]].find(v => String({ left: rotL(v), right: rotR(v), front: v, behind: back(v) }[i.side]) === String(shadow));
+    f = { 0: f, 2: rotR(f), [-2]: rotL(f), 4: back(f) }[i.turn]; return { '0,1': 'North', '1,0': 'East', '0,-1': 'South', '-1,0': 'West' }[String(f)];
+  },
+  'dir-points': i => {
+    const pos = { P: [0, 0] }; for (const f of i.facts) pos[f.p] = [pos[f.q][0] + [0, 1, 0, -1][f.d] * f.km, pos[f.q][1] + [1, 0, -1, 0][f.d] * f.km];
+    const dx = pos[i.a][0] - pos[i.b][0], dy = pos[i.a][1] - pos[i.b][1]; return [dy > 0 ? 'North' : dy < 0 ? 'South' : '', dx > 0 ? 'East' : dx < 0 ? 'West' : ''].filter(Boolean).join('-');
+  },
+  'seating-circle': i => {
+    const sols = permutations([...Array(i.n - 1).keys()].map(x => x + 1)).map(p => [0, ...p]).filter(at => i.clues.every(c => circleOK(c, at)));
+    assert.equal(sols.length, 1, 'the clues allow exactly one arrangement');
+    const at = sols[0], n = i.n, step = (x, k) => at[((at.indexOf(x) + k) % n + n) % n], q = i.ask;
+    return i.names[{ 'left-of': () => step(q.x, 1), 'right-of': () => step(q.x, -1), 'second-right-of': () => step(q.x, -2), 'opposite-of': () => step(q.x, n / 2) }[q.t]()];
+  },
+  floors: i => {
+    const sols = []; for (const at of P5) for (const subj of P5) if (i.clues.every(c => floorOK(c, at, subj))) sols.push([at, subj]);
+    assert.equal(sols.length, 1, 'the clues allow exactly one arrangement');
+    const [at, subj] = sols[0], q = i.ask;
+    return { top: () => i.names[at[4]], bottom: () => i.names[at[0]], subject: () => i.subs[subj[q.p]], who: () => i.names[subj.indexOf(q.s)] }[q.t]();
+  },
+  'syllogism-possible': i => {
+    const live = VENN[i.k].filter(x => i.premises.every(s => STMT[s.t](x, s.a, s.b))); assert(live.length, 'statements are consistent');
+    const follows = c => { if (c.t[0] !== 'p') return live.every(x => STMT[c.t](x, c.a, c.b)); const t = c.t[1]; assert(!live.every(x => STMT[t](x, c.a, c.b)), 'a possibility conclusion is never already certain'); return live.some(x => STMT[t](x, c.a, c.b)); };
+    const [f1, f2] = i.conclusions.map(follows); return SYL[f1 && f2 ? 2 : f1 ? 0 : f2 ? 1 : 3];
+  },
+  'odd-pairs': i => {
+    const out = i.pairs.filter(([a, b]) => PAIRS[i.rule](a) !== b); assert.equal(out.length, 1, 'exactly one pair breaks the rule');
+    for (const k of Object.keys(PAIRS)) if (k !== i.rule) assert(i.pairs.filter(([a, b]) => PAIRS[k](a) === b).length < 3, 'no other rule explains three pairs');
+    return `${out[0][0]} : ${out[0][1]}`;
+  }
 };
 
 const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
@@ -190,6 +316,23 @@ test('sets and tests are balanced, reproducible, keep passages together and use 
   assert(new Set(t.slice(0, 10).map(q => q.level)).size > 1, 'mixed difficulty mixes levels');
   assert.equal(new Set(A.buildTest({ perSection: 30, seed: 1 }).filter(q => q.section === 'quant').map(q => q.topic)).size, 12, 'a 30-question quant section covers every topic');
   assert.throws(() => A.buildSet({ topics: [] }), /at least one/); assert.throws(() => A.buildTest({ sections: [] }), /at least one/);
+});
+
+test('Advanced and Expert bring their own question kinds, and the two mixed bands keep to their levels', () => {
+  assert.deepEqual(A.LEVEL_IDS, ['easy', 'medium', 'hard', 'advanced', 'expert']);
+  for (const topic of A.TOPIC_IDS.filter(t => A.topicOf(t).section !== 'verbal')) {
+    const core = new Set(['easy', 'medium', 'hard'].flatMap(l => A.KINDS[topic][l]));
+    for (const l of ['advanced', 'expert']) assert(A.KINDS[topic][l].some(k => !core.has(k) || k === 'series-number'), `${topic}/${l} has a kind of its own`);
+  }
+  // An older kind reused at a higher level runs with its Hard settings but keeps the level it was asked for.
+  const seat = A.generate('seating', 'advanced', A.rng(4), 'seating'); assert.equal(seat.level, 'advanced'); assert.equal(seat.inputs.names.length, 7);
+  assert.equal(A.generate('seating', 'expert', A.rng(4), 'seating-circle').inputs.names.length, 8);
+  // Reading passages are excluded: with only three passages at Hard or above, a long verbal section falls back to easier ones by design.
+  const levels = band => new Set(A.buildTest({ perSection: 30, level: band, seed: 3 }).filter(q => q.topic !== 'reading').map(q => q.level));
+  assert.deepEqual([...levels('mixed')].sort(), ['easy', 'hard', 'medium'], 'Mixed stays at the usual test levels');
+  assert.deepEqual([...levels('mixed-high')].sort(), ['advanced', 'expert', 'hard'], 'Mixed: Hard to Expert draws from the top three levels');
+  for (const t of ['vocab', 'fill-blank', 'error', 'para-jumble']) for (const l of ['advanced', 'expert']) assert(V.ITEMS.filter(i => i.topic === t && i.level === l).length >= 3, `${t} has ${l} items`);
+  for (const l of ['advanced', 'expert']) { assert(V.PASSAGES.some(p => p.level === l), l + ' passage'); assert.equal(A.buildSet({ topics: ['reading'], level: l, count: 4, seed: 1 })[0].passage.id, V.PASSAGES.find(p => p.level === l).id); }
 });
 
 test('scoring applies negative marking and ignores unanswered questions', () => {
@@ -330,6 +473,24 @@ test('topic practice gives instant feedback, solutions and shortcuts, then feeds
     run = state(f).run; assert(run.questions.every(q => q.topic === 'pipes')); assert.equal(run.origin, 'weakest');
     f.$('aptExit').click(); f.$('aptDiscard').click(); assert.equal(state(f).run, null);
     f.$('aptClear').click(); assert.equal(f.w.localStorage.getItem('cr-aptitude-history'), '[]'); assert(!f.$('aptClear'), 'history deleted');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('the setup offers all five levels, a two-minute pace and the Hard-to-Expert test band', () => {
+  const f = fixture(); try {
+    f.$('aptitudeNav').click();
+    const radios = [...doc(f).querySelectorAll('[name=aptLevel]')].map(x => x.value); assert.deepEqual(radios, ['easy', 'medium', 'hard', 'advanced', 'expert']);
+    const expert = doc(f).querySelector('[name=aptLevel][value=expert]'); expert.checked = true; expert.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+    pick(f, ['aptCount', '5']); f.$('aptPractice').click();
+    let run = state(f).run; assert.equal(run.level, 'expert'); assert(run.questions.every(q => q.level === 'expert'));
+    assert(f.$('app').textContent.includes('EXPERT'), 'the level is shown during practice');
+    f.$('aptExit').click(); f.$('aptDiscard').click();
+    assert([...f.$('aptTestLevel').options].some(o => o.value === 'mixed-high')); assert([...f.$('aptPace').options].some(o => o.value === '120'));
+    pick(f, ['aptTestLevel', 'mixed-high']); setupTest(f, { sections: ['logical', 'verbal'], per: '10', pace: '120' });
+    run = state(f).run; assert.equal(run.level, 'mixed-high'); assert.equal(run.pace, 120); assert(run.questions.every(q => ['hard', 'advanced', 'expert'].includes(q.level)));
+    assert.equal(JSON.parse(f.w.localStorage.getItem('cr-aptitude-prefs')).testLevel, 'mixed-high');
+    f.$('aptSubmit').click(); assert(f.$('app').textContent.includes('MIXED: HARD TO EXPERT'));
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });

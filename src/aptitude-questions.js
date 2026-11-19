@@ -8,9 +8,13 @@
   const LEVELS = [
     { id: 'easy', title: 'Easy', note: 'One step, friendly numbers' },
     { id: 'medium', title: 'Medium', note: 'Typical placement test' },
-    { id: 'hard', title: 'Hard', note: 'More steps, more traps' }
+    { id: 'hard', title: 'Hard', note: 'More steps, more traps' },
+    { id: 'advanced', title: 'Advanced', note: 'Two concepts in one question' },
+    { id: 'expert', title: 'Expert', note: 'Multi-step, few shortcuts' }
   ];
   const LEVEL_IDS = LEVELS.map(l => l.id);
+  /* "Mixed" draws each question's level from a band: the usual test spread, or the top of the range. */
+  const MIXES = { mixed: ['easy', 'medium', 'hard'], 'mixed-high': ['hard', 'advanced', 'expert'] };
   const SECTIONS = [
     { id: 'quant', title: 'Quantitative', short: 'Arithmetic, number system, data' },
     { id: 'logical', title: 'Logical', short: 'Series, puzzles, deductions' },
@@ -573,21 +577,51 @@
       case 'cube': return (p.k + i) ** 3 + p.e;
       case 'muladd': { let t = p.a; for (let j = 0; j < i; j++) t = t * p.m + p.c; return t; }
       case 'alt': return i % 2 ? p.b + (i - 1) / 2 * p.d2 : p.a + i / 2 * p.d1;
+      case 'muladd2': { let t = p.a; for (let j = 0; j < i; j++) t = j % 2 ? t + p.c : t * p.m; return t; }
+      case 'primediff': { let t = p.a; for (let j = 0; j < i; j++) t += SERIES_PRIMES[p.s + j]; return t; }
+      case 'fib': { let x = p.a, y = p.b; for (let j = 0; j < i; j++) [x, y] = [y, x + y]; return x; }
+      case 'geomdiff': return p.a + p.d * (p.r ** i - 1) / (p.r - 1);
+      case 'ncube': return (p.k + i) ** 3 + p.s * (p.k + i);
+      case 'mulinc': { let t = p.a; for (let j = 0; j < i; j++) t *= p.k + j; return t; }
     }
   }
+  const SERIES_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41];
+  const seriesParams = (r, rule) => ({ arith: () => ({ a: int(r, 2, 40), d: pick(r, [3, 4, 6, 7, 9, 11, -3, -4]) }), geom: () => ({ a: int(r, 1, 5), r: pick(r, [2, 3]) }), diff: () => ({ a: int(r, 2, 20), d: int(r, 1, 5), c: int(r, 1, 3) }),
+    square: () => ({ k: int(r, 2, 9), e: pick(r, [-1, 1, 2, 3]) }), cube: () => ({ k: int(r, 1, 5), e: pick(r, [-1, 1, 2]) }), muladd: () => ({ a: int(r, 1, 6), m: pick(r, [2, 3]), c: pick(r, [-1, 1, 2, 3]) }),
+    alt: () => ({ a: int(r, 1, 20), d1: pick(r, [2, 3, 5]), b: int(r, 30, 60), d2: pick(r, [-2, -3, -4, 4]) }), muladd2: () => ({ a: int(r, 2, 9), m: pick(r, [2, 3]), c: pick(r, [1, 2, 3, 4, -1, -2]) }),
+    primediff: () => ({ a: int(r, 2, 30), s: int(r, 0, 4) }), fib: () => ({ a: int(r, 1, 6), b: int(r, 2, 9) }), geomdiff: () => ({ a: int(r, 1, 20), d: int(r, 1, 4), r: pick(r, [2, 3]) }),
+    ncube: () => ({ k: int(r, 1, 5), s: pick(r, [1, -1]) }), mulinc: () => ({ a: int(r, 1, 5), k: pick(r, [1, 2]) }) }[rule]());
+  /* One line that states the rule; `terms` are the true terms (at least five). */
+  function seriesRule(rule, p, terms) {
+    const diffs = terms.slice(1).map((x, i) => x - terms[i]).join(', ');
+    return { arith: `Add ${p.d} each time`, geom: `Multiply by ${p.r} each time`, diff: `The differences grow by ${p.c} each time: ${diffs}`,
+      square: `Terms are n² ${p.e < 0 ? '−' : '+'} ${Math.abs(p.e)} for n = ${p.k}, ${p.k + 1}, …`, cube: `Terms are n³ ${p.e < 0 ? '−' : '+'} ${Math.abs(p.e)} for n = ${p.k}, ${p.k + 1}, …`,
+      muladd: `Each term = previous × ${p.m} ${p.c < 0 ? '−' : '+'} ${Math.abs(p.c)}`, alt: `Two series alternate: ${p.a}, ${p.a + p.d1}, … (step ${p.d1}) and ${p.b}, ${p.b + p.d2}, … (step ${p.d2})`,
+      muladd2: `Alternately multiply by ${p.m} and ${p.c < 0 ? 'subtract' : 'add'} ${Math.abs(p.c)}`, primediff: `The differences are consecutive primes: ${diffs}`,
+      fib: 'Each term is the sum of the two before it', geomdiff: `The differences ${diffs} are multiplied by ${p.r} each time`,
+      ncube: `Terms are n³ ${p.s < 0 ? '−' : '+'} n for n = ${p.k}, ${p.k + 1}, …`, mulinc: `Multiply by ${p.k}, ${p.k + 1}, ${p.k + 2}, … in turn` }[rule];
+  }
   B['series-number'] = (r, m) => {
-    const rule = pick(r, { easy: ['arith', 'geom', 'diff'], medium: ['diff', 'square', 'geom', 'muladd'], hard: ['muladd', 'alt', 'cube', 'square'] }[m.level]);
-    const p = { arith: () => ({ a: int(r, 2, 40), d: pick(r, [3, 4, 6, 7, 9, 11, -3, -4]) * (r() < 0.3 ? 1 : 1) }), geom: () => ({ a: int(r, 1, 5), r: pick(r, [2, 3]) }), diff: () => ({ a: int(r, 2, 20), d: int(r, 1, 5), c: int(r, 1, 3) }),
-      square: () => ({ k: int(r, 2, 9), e: pick(r, [-1, 1, 2, 3]) }), cube: () => ({ k: int(r, 1, 5), e: pick(r, [-1, 1, 2]) }), muladd: () => ({ a: int(r, 1, 6), m: pick(r, [2, 3]), c: pick(r, [-1, 1, 2, 3]) }),
-      alt: () => ({ a: int(r, 1, 20), d1: pick(r, [2, 3, 5]), b: int(r, 30, 60), d2: pick(r, [-2, -3, -4, 4]) }) }[rule]();
-    const n = rule === 'alt' ? 6 : 5, shown = Array.from({ length: n }, (_, i) => seriesTerm(rule, p, i)), ans = seriesTerm(rule, p, n);
+    const rule = pick(r, { easy: ['arith', 'geom', 'diff'], medium: ['diff', 'square', 'geom', 'muladd'], hard: ['muladd', 'alt', 'cube', 'square'],
+      advanced: ['muladd2', 'primediff', 'fib', 'alt', 'geomdiff'], expert: ['geomdiff', 'ncube', 'mulinc', 'muladd2', 'primediff'] }[m.level]);
+    const p = seriesParams(r, rule);
+    const n = ['alt', 'muladd2', 'fib'].includes(rule) ? 6 : 5, shown = Array.from({ length: n }, (_, i) => seriesTerm(rule, p, i)), ans = seriesTerm(rule, p, n);
     const lastDiff = shown[n - 1] - shown[n - 2];
     const wrong = [seriesTerm(rule, p, n + 1), shown[n - 1] + lastDiff, ans + 1, ans - 1, rule === 'square' || rule === 'cube' ? ans - p.e : ans + (rule === 'alt' ? p.d1 : 2)];
-    const describe = { arith: `Add ${p.d} each time`, geom: `Multiply by ${p.r} each time`, diff: `The differences grow by ${p.c}: ${shown.slice(1).map((x, i) => x - shown[i]).join(', ')}, then ${ans - shown[n - 1]}`,
-      square: `Terms are n² ${p.e < 0 ? '−' : '+'} ${Math.abs(p.e)} for n = ${p.k}, ${p.k + 1}, …`, cube: `Terms are n³ ${p.e < 0 ? '−' : '+'} ${Math.abs(p.e)} for n = ${p.k}, ${p.k + 1}, …`,
-      muladd: `Each term = previous × ${p.m} ${p.c < 0 ? '−' : '+'} ${Math.abs(p.c)}`, alt: `Two series alternate: ${p.a}, ${p.a + p.d1}, … (step ${p.d1}) and ${p.b}, ${p.b + p.d2}, … (step ${p.d2})` }[rule];
     return textual(r, m, `What comes next in the series?  ${shown.join(', ')}, ?`, String(ans), wrong.map(String), k => String(ans + k * (k % 2 ? 1 : -1) * 2), {
-      inputs: { rule, p, shown }, value: ans, steps: [describe, `So the next term is ${ans}`], tip: 'Write the differences under the series; if they also change, look at their differences or try ratios.' });
+      inputs: { rule, p, shown }, value: ans, steps: [seriesRule(rule, p, [...shown, ans]), `So the next term is ${ans}`], tip: 'Write the differences under the series; if they also change, look at their differences or try ratios.' });
+  };
+  B['series-wrong'] = (r, m) => {
+    for (;;) {
+      const rule = pick(r, m.level === 'expert' ? ['geomdiff', 'muladd', 'primediff', 'square', 'diff'] : ['diff', 'geom', 'square', 'arith', 'muladd']), p = seriesParams(r, rule);
+      const terms = Array.from({ length: 7 }, (_, i) => seriesTerm(rule, p, i)), bad = int(r, 1, 5), shown = terms.slice();
+      shown[bad] += pick(r, [1, 2, 3, -1, -2, -3]) * (Math.abs(terms[bad]) >= 100 ? pick(r, [1, 10]) : 1);
+      if (new Set(shown).size < 7 || shown[bad] <= 0) continue;
+      const others = shuffle(r, shown.filter((_, i) => i !== bad)).map(String);
+      return textual(r, m, `Find the wrong number in the series:  ${shown.join(', ')}`, String(shown[bad]), others, k => String(shown[bad] + k * 2 + 1), {
+        inputs: { rule, p, shown }, value: shown[bad], steps: [seriesRule(rule, p, terms), `The ${ordinal(bad + 1)} term should be ${terms[bad]}, not ${shown[bad]}`],
+        tip: 'Find the rule from the first three or four terms, then test every term against it. The odd term is usually off by only a little.' });
+    }
   };
   B['series-letter'] = (r, m) => {
     if (m.level === 'easy' || (m.level === 'medium' && r() < 0.5)) {
@@ -860,6 +894,615 @@
       tip: 'Write the alphabet positions and compare the gaps, not the letters.' });
   };
 
+  /* ---------- Advanced and Expert: questions that combine two or more ideas ---------- */
+  const clean2 = x => Math.abs(x * 100 - Math.round(x * 100)) < 1e-9;
+  const andList = list => list.length < 2 ? String(list[0]) : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+  const signedPct = v => v > 0 ? `${fmt(v)}% increase` : v < 0 ? `${fmt(-v)}% decrease` : 'No change';
+
+  B['pct-expense'] = (r, m) => {
+    const up = r() < 0.6, p = pick(r, up ? [10, 20, 25, 30, 40, 50, 60] : [10, 20, 25, 30, 40, 50]), k = up ? 100 + p : 100 - p, ans = p / k * 100;
+    const item = pick(r, ['petrol', 'cooking gas', 'sugar', 'cooking oil']);
+    const prompt = up ? `The price of ${item} rises by ${p}%. By what percentage must a family cut its consumption so that its spending on ${item} stays the same?`
+      : `The price of ${item} falls by ${p}%. By what percentage can a family increase its consumption without spending any more on ${item}?`;
+    return numeric(r, m, prompt, ans, { inputs: { p, up }, show: v => fmt(v) + '%', step: 1, wrong: [p, p / (up ? 100 - p : 100 + p) * 100, p * k / 100],
+      steps: [`Spending = price × consumption, so consumption must be multiplied by 100 ÷ ${k}`, `Change = ${p} ÷ ${k} × 100 = ${fmt(ans)}%`],
+      tip: `A ${p}% ${up ? 'rise' : 'fall'} in price is offset by a change of ${p}/(100 ${up ? '+' : '−'} ${p}) in quantity, not by ${p}%.` });
+  };
+  B['pct-exam'] = (r, m) => {
+    const M = 100 * int(r, 2, 12), pass = 5 * int(r, 6, 10), a = pass - 5 * int(r, 1, 4), b = pass + 5 * int(r, 1, 4), x = M * (pass - a) / 100, y = M * (b - pass) / 100;
+    return numeric(r, m, `A student who scores ${a}% of the maximum marks fails by ${x} marks. Another student who scores ${b}% gets ${y} marks more than the pass mark. What are the maximum marks?`, M, {
+      inputs: { a, x, b, y }, step: 100, wrong: [(x + y) * 100 / (a + b), (x + y) * 100 / b, M * pass / 100],
+      steps: [`From ${a}% to ${b}% is ${b - a}% of the maximum, and that gap is ${x} + ${y} = ${x + y} marks`, `Maximum = ${x + y} ÷ ${b - a} × 100 = ${M}`, `Check: pass mark = ${a}% of ${M} + ${x} = ${M * pass / 100}`],
+      tip: 'Both students are measured against the same pass mark, so the difference in their percentages equals the marks between them.' });
+  };
+  B['pct-voters'] = (r, m) => {
+    for (;;) {
+      const a = pick(r, [10, 15, 20, 25, 30]), b = pick(r, [5, 10, 20, 25]), w = pick(r, [52, 55, 60, 65, 70]), N = 500 * int(r, 20, 400);
+      const cast = N * (100 - a) / 100, valid = cast * (100 - b) / 100, M = valid * (2 * w - 100) / 100;
+      if (![cast, valid, valid * w / 100, M].every(Number.isInteger)) continue;
+      return numeric(r, m, `In an election between two candidates, ${a}% of the voters on the list did not vote and ${b}% of the votes cast were invalid. The winner got ${w}% of the valid votes and won by ${fmt(M)} votes. How many voters were on the list?`, N, {
+        inputs: { a, b, w, M }, wrong: [valid, cast, M * 100 / w],
+        steps: [`The margin is ${w}% − ${100 - w}% = ${2 * w - 100}% of the valid votes, so valid votes = ${fmt(M)} ÷ ${fmt((2 * w - 100) / 100)} = ${fmt(valid)}`, `Votes cast = ${fmt(valid)} ÷ ${fmt((100 - b) / 100)} = ${fmt(cast)}`, `Voters on the list = ${fmt(cast)} ÷ ${fmt((100 - a) / 100)} = ${fmt(N)}`],
+        tip: 'Work backwards one base at a time: margin → valid votes → votes cast → voters on the list.' });
+    }
+  };
+
+  B['pl-free'] = (r, m) => {
+    const x = int(r, 2, 5), y = int(r, 1, Math.min(2, x - 1)), p = pick(r, [10, 20, 25, 50]), mp = (100 + p) * (x + y) / x, ans = mp - 100;
+    return numeric(r, m, `A shop runs a “buy ${x}, get ${y} free” offer on soap and still makes a profit of ${p}%. How far above the cost price has it marked the soap?`, ans, {
+      inputs: { x, y, p }, show: v => fmt(v) + '%', step: 2.5, wrong: [p + y / x * 100, p + y / (x + y) * 100, (100 + p) * x / (x + y) - 100],
+      steps: [`Take cost = ₹100 a bar. The customer takes ${x + y} bars (cost ₹${100 * (x + y)}) but pays for ${x}`, `For ${p}% profit: ${x} × marked price = ${100 * (x + y)} × ${fmt(1 + p / 100)} = ${fmt((100 + p) * (x + y))}`, `Marked price = ₹${fmt(mp)}, which is ${fmt(ans)}% above cost`],
+      tip: `“Buy ${x}, get ${y} free” is a discount of ${y}/${x + y} on the marked price. Mark up so that what is left still covers cost plus profit.` });
+  };
+  B['pl-two-items'] = (r, m) => {
+    const a = pick(r, [10, 20, 25, 50]), b = pick(r, [10, 20, 25]), Lq = lcm((100 + a) / gcd(100 + a, 100), (100 - b) / gcd(100 - b, 100));
+    const S = Lq * int(r, Math.ceil(2000 / Lq), Math.max(Math.ceil(2000 / Lq), Math.floor(60000 / Lq))), C1 = S * 100 / (100 + a), C2 = S * 100 / (100 - b), ans = 2 * S - C1 - C2;
+    const show = v => v > 0 ? `Profit of ₹${fmt(v)}` : v < 0 ? `Loss of ₹${fmt(-v)}` : 'No profit, no loss';
+    return numeric(r, m, `A dealer sells two phones for ₹${fmt(S)} each. He gains ${a}% on one and loses ${b}% on the other. What is his overall profit or loss?`, ans, {
+      inputs: { S, a, b }, show, ok: Number.isFinite, step: Math.max(10, Math.round(Math.abs(ans) / 40) * 10), wrong: [0, -ans, S * (a - b) / 100, S * (a - b) / 50],
+      steps: [`Cost of the first = ${fmt(S)} ÷ ${fmt(1 + a / 100)} = ₹${fmt(C1)}; cost of the second = ${fmt(S)} ÷ ${fmt(1 - b / 100)} = ₹${fmt(C2)}`, `Total cost ₹${fmt(C1 + C2)} against sales of ₹${fmt(2 * S)}: ${show(ans).toLowerCase()}`],
+      tip: 'The two percentages are on different cost prices, so they do not cancel. Equal gain and loss % on equal selling prices always leaves a loss.' });
+  };
+  B['pl-dishonest'] = (r, m) => {
+    const a = pick(r, [5, 10, 20, 25]), b = pick(r, [5, 10, 20]), ans = (100 + a) / (100 - b) * 100 - 100;
+    return numeric(r, m, `A trader says he buys and sells rice at cost price. But when buying he takes ${a}% more than the weight he pays for, and when selling he gives ${b}% less than the weight the customer pays for. What is his gain percentage?`, ans, {
+      inputs: { a, b }, show: v => fmt(v) + '%', step: 2, wrong: [a + b, a + b + a * b / 100, b / (100 - b) * 100],
+      steps: [`Paying for 100 g he gets ${100 + a} g. Each customer pays for 100 g but gets only ${100 - b} g`, `So ${100 + a} g brings in the price of ${fmt((100 + a) / (100 - b) * 100)} g: gain = ${fmt(ans)}%`],
+      tip: 'Compare what he receives with what he hands over: gain % = (100 + a) ÷ (100 − b) × 100 − 100. Adding the two cheats undercounts.' });
+  };
+
+  const CI_BASE = { 5: 8000, 10: 1000, 20: 1000, 25: 640 };
+  B['ci-two-amounts'] = (r, m) => {
+    const R = pick(r, [5, 10, 20, 25]), P = CI_BASE[R] * int(r, 1, R === 5 ? 6 : 40), A2 = P * (100 + R) ** 2 / 1e4, A3 = P * (100 + R) ** 3 / 1e6, ask = m.level === 'expert' ? pick(r, ['P', 'R']) : 'P';
+    return numeric(r, m, `A sum lent at compound interest (compounded annually) amounts to ₹${fmt(A2)} in 2 years and to ₹${fmt(A3)} in 3 years. What is the ${ask === 'P' ? 'sum' : 'rate of interest per annum'}?`, ask === 'P' ? P : R, {
+      inputs: { A2, A3, ask }, show: ask === 'P' ? rupees : v => fmt(v) + '%', step: ask === 'P' ? Math.max(100, P / 10) : 2.5,
+      wrong: ask === 'P' ? [A2 - 2 * (A3 - A2), A2 * 100 / (100 + R), A2 - (A3 - A2)] : [(A3 - A2) / A3 * 100, (A3 - A2) / P * 100, R / 2],
+      steps: [`The third year's interest, ₹${fmt(A3 - A2)}, is earned on ₹${fmt(A2)}, so R = ${fmt(A3 - A2)} ÷ ${fmt(A2)} × 100 = ${R}%`, ...(ask === 'P' ? [`Sum = ${fmt(A2)} ÷ ${fmt(1 + R / 100)}² = ₹${fmt(P)}`] : [])],
+      tip: 'Consecutive compound amounts grow by the same factor (1 + R/100); their difference is one year’s interest on the earlier amount.' });
+  };
+  const INSTALMENT = { 5: 4100, 10: 2100, 20: 1100 };
+  B['ci-instalment'] = (r, m) => {
+    const R = pick(r, [5, 10, 20]), base = INSTALMENT[R], P = base * int(r, Math.ceil(5000 / base), Math.floor(200000 / base)), f = 1 + R / 100, ans = P * (100 + R) ** 2 / (100 * (200 + R));
+    return numeric(r, m, `Kiran borrows ₹${fmt(P)} at ${R}% per annum compound interest and repays it in two equal annual instalments, the first at the end of the first year. How much is each instalment?`, ans, {
+      inputs: { P, R }, show: rupees, step: Math.max(100, Math.round(ans / 200) * 10), wrong: [P * (100 + R) ** 2 / 2e4, P * (100 + 2 * R) / 200, P * (100 + R) / 200],
+      steps: [`An instalment x paid after one year is worth x ÷ ${fmt(f)} today; after two years, x ÷ ${fmt(f)}²`, `x ÷ ${fmt(f)} + x ÷ ${fmt(f * f, 4)} = ${fmt(P)}, so x = ${fmt(P)} × ${fmt(f * f, 4)} ÷ ${fmt(1 + f)} = ₹${fmt(ans)}`],
+      tip: 'With equal instalments, the loan equals the sum of the instalments’ present values. Halving the final amount overcharges.' });
+  };
+  const DIFF3 = { 5: 8000, 10: 1000, 20: 1000 };
+  B['ci-si-diff3'] = (r, m) => {
+    const R = pick(r, [5, 10, 20]), P = DIFF3[R] * int(r, 1, R === 5 ? 10 : 40), ci = P * ((100 + R) ** 3 - 1e6) / 1e6, si = 3 * P * R / 100, ans = ci - si;
+    return numeric(r, m, `What is the difference between the compound interest and the simple interest on ₹${fmt(P)} at ${R}% per annum for 3 years?`, ans, {
+      inputs: { P, R }, show: rupees, step: Math.max(1, Math.round(ans / 10)), wrong: [P * R * R / 1e4, 3 * P * R * R / 1e4, ci],
+      steps: [`CI = ${fmt(P)} × (${fmt(1 + R / 100)}³ − 1) = ₹${fmt(ci)}; SI = ${fmt(P)} × ${R} × 3 ÷ 100 = ₹${fmt(si)}`, `Difference = ₹${fmt(ans)}`],
+      tip: 'For 3 years, CI − SI = P(R/100)²(3 + R/100). The two-year shortcut P(R/100)² is not enough.' });
+  };
+
+  const COINS = [['₹1', 100], ['50 paise', 50], ['25 paise', 25]];
+  B['ratio-coins'] = (r, m) => {
+    let parts; do parts = [int(r, 1, 6), int(r, 1, 6), int(r, 1, 8)]; while (parts[0] === parts[1] && parts[1] === parts[2]);
+    const k = 4 * int(r, 2, 15), per = parts[0] * 100 + parts[1] * 50 + parts[2] * 25, T = k * per / 100, ask = int(r, 0, 2), ans = parts[ask] * k, all = parts[0] + parts[1] + parts[2];
+    return numeric(r, m, `A bag contains ₹1, 50 paise and 25 paise coins in the ratio ${parts.join(' : ')}. Their total value is ₹${fmt(T)}. How many ${COINS[ask][0]} coins are there?`, ans, {
+      inputs: { parts, T, ask }, show: v => units(v, 'coin'), step: parts[ask] * 4, wrong: [Math.round(T * parts[ask] / all), k, Math.round(T * 100 / COINS[ask][1] * parts[ask] / all)],
+      steps: [`One set of ${parts.join(', ')} coins is worth ${parts[0]} × ₹1 + ${parts[1]} × ₹0.50 + ${parts[2]} × ₹0.25 = ₹${fmt(per / 100)}`, `Number of sets = ${fmt(T)} ÷ ${fmt(per / 100)} = ${k}`, `${COINS[ask][0]} coins = ${parts[ask]} × ${k} = ${ans}`],
+      tip: 'The ratio is of the number of coins, not their value. Work out what one set of the ratio is worth first.' });
+  };
+  B['ratio-partnership'] = (r, m) => {
+    for (;;) {
+      const X = 10000 * int(r, 2, 9), Y = 10000 * int(r, 2, 9), join = int(r, 2, 8), wd = r() < 0.5 ? int(r, 3, 9) : null;
+      const aCap = wd == null ? X * 12 : X * wd + X / 2 * (12 - wd), bCap = Y * (12 - join), g = gcd(aCap, bCap), ra = aCap / g, rb = bCap / g;
+      if (ra + rb > 60) continue;
+      const P = (ra + rb) * 1000 * int(r, 1, Math.max(1, Math.floor(600 / (ra + rb)))), ans = P * rb / (ra + rb);
+      return numeric(r, m, `Asha starts a business with ₹${fmt(X)}. ${cap(String(join))} months later, Bilal joins with ₹${fmt(Y)}.${wd == null ? '' : ` ${wd} months after the start, Asha withdraws half of her capital.`} At the end of the year the profit is ₹${fmt(P)}. What is Bilal’s share?`, ans, {
+        inputs: { X, Y, join, wd, P }, show: rupees, step: Math.max(1000, Math.round(P / 20000) * 1000), wrong: [P * Y / (X + Y), P * ra / (ra + rb), P * Y * (12 - join) / (X * 12 + Y * (12 - join)), P / 2],
+        steps: [`Asha: ${wd == null ? `${fmt(X)} × 12` : `${fmt(X)} × ${wd} + ${fmt(X / 2)} × ${12 - wd}`} = ${fmt(aCap)} rupee-months`, `Bilal: ${fmt(Y)} × ${12 - join} = ${fmt(bCap)} rupee-months`, `Ratio ${ra} : ${rb}, so Bilal gets ${fmt(P)} × ${rb}/${ra + rb} = ₹${fmt(ans)}`],
+        tip: 'Profit is shared in the ratio of capital × time. Track every change in capital month by month.' });
+    }
+  };
+
+  B['avg-wrong'] = (r, m) => {
+    for (;;) {
+      const n = pick(r, [10, 20, 25, 50]), A = int(r, 30, 80), count = m.level === 'expert' ? 2 : 1;
+      const pairs = Array.from({ length: count }, () => { const t = int(r, 1, 9), u = int(r, 1, 9); return r() < 0.6 ? [10 * t + u, 10 * u + t] : [int(r, 10, 99), int(r, 10, 99)]; });
+      const fix = pairs.reduce((s, [x, y]) => s + x - y, 0);
+      if (!fix || pairs.some(([x, y]) => x === y)) continue;
+      const ans = A + fix / n, said = pairs.map(([x, y]) => `${x} as ${y}`);
+      return numeric(r, m, `The average of ${n} numbers was worked out as ${A}. It was later found that ${count === 1 ? `one number, ${pairs[0][0]}, had been copied as ${pairs[0][1]}` : `two numbers had been copied wrongly: ${andList(said)}`}. What is the correct average?`, ans, {
+        inputs: { n, A, pairs }, step: 0.5, wrong: [A - fix / n, A + fix, A + fix / (n - 1)],
+        steps: [`Wrong total = ${n} × ${A} = ${n * A}`, `Correct total = ${n * A} ${fix > 0 ? '+' : '−'} ${Math.abs(fix)} = ${n * A + fix}`, `Correct average = ${n * A + fix} ÷ ${n} = ${fmt(ans)}`],
+        tip: 'Fix the total, not the average: the average moves by (true value − copied value) ÷ n.' });
+    }
+  };
+  B['mix-replace'] = (r, m) => {
+    const k = pick(r, [2, 3]), q = pick(r, k === 3 ? [10, 20] : [10, 20, 25]), V = 10 * int(r, 2, 10) * (q === 25 ? 2 : 1), x = V * q / 100, ans = V * ((V - x) / V) ** k;
+    return numeric(r, m, `A container holds ${V} litres of pure milk. ${cap(String(x))} litres are taken out and replaced with water. This is done ${k === 2 ? 'twice' : 'three times'} in all. How much milk is now in the container?`, ans, {
+      inputs: { V, x, k }, show: v => `${fmt(v)} litres`, step: 1, wrong: [V - k * x, V * ((V - x) / V) ** (k - 1), V - ans],
+      steps: [`Each round keeps ${V - x}/${V} of the milk that is there`, `Milk left = ${V} × (${V - x}/${V})^${k} = ${fmt(ans)} litres`],
+      tip: 'Repeated replacement: final = initial × (1 − x/V)ⁿ. Subtracting x each time ignores that later draws are partly water.' });
+  };
+  B['mix-vessels'] = (r, m) => {
+    for (;;) {
+      const [a, b, c, d] = [int(r, 1, 7), int(r, 1, 7), int(r, 1, 7), int(r, 1, 7)], p = int(r, 1, 5), q = int(r, 1, 5);
+      if (gcd(a, b) > 1 || gcd(c, d) > 1 || gcd(p, q) > 1 || a * d === b * c || a + b === c + d) continue;
+      const milk = p * a * (c + d) + q * c * (a + b), water = p * b * (c + d) + q * d * (a + b);
+      return textual(r, m, `Vessel A holds milk and water in the ratio ${a} : ${b}, and vessel B holds them in the ratio ${c} : ${d}. If the contents are mixed in the ratio ${p} : ${q} by volume, what is the ratio of milk to water in the mixture?`, ratio(milk, water),
+        [ratio(a + c, b + d), ratio(p * a + q * c, p * b + q * d), ratio(water, milk)], k => ratio(milk + k, water), { inputs: { a, b, c, d, p, q },
+          steps: [`Milk is ${a}/${a + b} of A and ${c}/${c + d} of B`, `Milk = ${p} × ${a}/${a + b} + ${q} × ${c}/${c + d}; water = ${p} × ${b}/${a + b} + ${q} × ${d}/${c + d}`, `Multiply through by ${(a + b) * (c + d)}: ${milk} : ${water} = ${ratio(milk, water)}`],
+          tip: 'Turn each vessel into fractions of milk before mixing. Ratios with different totals cannot simply be added.' });
+    }
+  };
+
+  B['work-mdh'] = (r, m) => {
+    for (;;) {
+      const u = pick(r, [1, 2, 3]), m1 = int(r, 6, 30), h1 = int(r, 5, 10), d1 = int(r, 6, 30), m2 = int(r, 6, 40), h2 = int(r, 5, 10), d2 = int(r, 4, 40);
+      if (m1 === m2 || (h1 === h2 && d1 === d2)) continue;
+      const W1 = m1 * h1 * d1 * u, W2 = m2 * h2 * d2 * u;
+      return numeric(r, m, `${m1} workers, working ${h1} hours a day, lay ${fmt(W1)} metres of pipeline in ${d1} days. How many days will ${m2} workers, working ${h2} hours a day, take to lay ${fmt(W2)} metres?`, d2, {
+        inputs: { m1, h1, d1, W1, m2, h2, W2 }, show: v => units(v, 'day'), step: 2, wrong: [d1 * m1 * W2 / (W1 * m2), d1 * m2 * h2 * W2 / (W1 * m1 * h1), d1 * W2 / W1],
+        steps: [`Work per worker-hour = ${fmt(W1)} ÷ (${m1} × ${h1} × ${d1}) = ${u} m`, `Days = ${fmt(W2)} ÷ (${m2} × ${h2} × ${u}) = ${d2}`],
+        tip: 'M₁H₁D₁ ÷ W₁ = M₂H₂D₂ ÷ W₂: everything that does the work on top, the work itself below.' });
+    }
+  };
+  B['work-alternate'] = (r, m) => {
+    for (;;) {
+      const n = m.level === 'expert' && r() < 0.6 ? 3 : 2, days = Array.from({ length: n }, () => int(r, 4, 24));
+      if (new Set(days).size < n) continue;
+      const Lw = days.reduce(lcm), rate = days.map(d => Lw / d);
+      if (Lw > 2000) continue;
+      let left = Lw, t = 0; while (left > rate[t % n]) { left -= rate[t % n]; t++; }
+      const ans = t + left / rate[t % n], who = ['Anil', 'Bala', 'Charu'].slice(0, n);
+      if (!clean2(ans) || ans > 60) continue;
+      return numeric(r, m, `Anil can finish a job in ${days[0]} days, Bala in ${days[1]} days${n === 3 ? ` and Charu in ${days[2]} days` : ''}. ${n === 3 ? 'They work one day each in turn: Anil, then Bala, then Charu, and so on.' : 'They work on alternate days, starting with Anil.'} In how many days is the job finished?`, ans, {
+        inputs: { days }, show: v => units(v, 'day'), step: 1, wrong: [together(...days), n * together(...days), days.reduce((s, x) => s + x, 0) / n],
+        steps: [`Take the job as ${Lw} units: ${who.map((w, j) => `${w} does ${rate[j]}`).join(', ')} units a day`, `After ${t} full days, ${Lw - left} units are done and ${left} remain`, `On day ${t + 1}, ${who[t % n]} needs ${left}/${rate[t % n]} of a day, so the total is ${fmt(ans)} days`],
+        tip: 'Use the LCM as the total work, add up whole cycles, then finish day by day. The last day is often a fraction, and who works it matters.' });
+    }
+  };
+  B['work-men-women'] = (r, m) => {
+    for (;;) {
+      const M = int(r, 1, 5), W = int(r, 1, 5), m1 = int(r, 1, 8), w1 = int(r, 1, 8), m2 = int(r, 1, 8), w2 = int(r, 1, 8);
+      if (M === W || m1 * w2 === m2 * w1) continue;
+      const r1 = m1 * M + w1 * W, r2 = m2 * M + w2 * W, who = pick(r, ['men', 'women']), k = int(r, 2, 10), rk = k * (who === 'men' ? M : W);
+      const J = [r1, r2, rk].reduce(lcm), d1 = J / r1, d2 = J / r2, ans = J / rk;
+      if (d1 > 40 || d2 > 40 || ans > 80 || d1 === d2) continue;
+      const crew = (a, b) => `${a} ${plural(a, 'man', 'men')} and ${b} ${plural(b, 'woman', 'women')}`;
+      return numeric(r, m, `${crew(m1, w1)} can finish a job in ${d1} days, while ${crew(m2, w2)} can finish it in ${d2} days. How many days will ${k} ${who} alone take?`, ans, {
+        inputs: { m1, w1, d1, m2, w2, d2, k, who }, show: v => units(v, 'day'), step: 2, wrong: [J / (k * (who === 'men' ? W : M)), d1 * (m1 + w1) / k, (d1 + d2) / 2],
+        steps: [`Let a man do x and a woman y of the job a day: ${m1}x + ${w1}y = 1/${d1} and ${m2}x + ${w2}y = 1/${d2}`, `Solving: x = 1/${J / M} and y = 1/${J / W} (in a ${J}-unit job, a man does ${M} units a day and a woman ${W})`, `${k} ${who} do ${rk} units a day, so they take ${J} ÷ ${rk} = ${fmt(ans)} days`],
+        tip: 'Two crews give two equations. Choose the LCM of the days as the job size so the rates come out as whole units.' });
+    }
+  };
+  B['pipes-close'] = (r, m) => {
+    for (;;) {
+      const a = int(r, 6, 30), b = int(r, 6, 30), T = int(r, 2, a - 1), x = b * (a - T) / a;
+      if (a === b || x <= 0 || x >= T || !clean2(x)) continue;
+      return numeric(r, m, `Pipes A and B can fill a tank in ${a} hours and ${b} hours respectively. Both are opened together. After how many hours should pipe B be closed so that the tank is full in exactly ${T} hours?`, x, {
+        inputs: { a, b, T }, show: v => units(v, 'hour'), step: 1, wrong: [T - x, a * b / (a + b), b * T / a],
+        steps: [`Pipe A runs all ${T} hours and fills ${T}/${a} of the tank`, `B must fill the other ${a - T}/${a}, which takes ${b} × ${a - T}/${a} = ${fmt(x)} hours`],
+        tip: 'Start with the pipe that runs throughout; the other pipe only has to cover what is left.' });
+    }
+  };
+  B['pipes-capacity'] = (r, m) => {
+    for (;;) {
+      const l = int(r, 4, 12), e = int(r, l + 1, 30), F = int(r, 2, 12), C = 60 * F * l * e / (e - l);
+      if (!Number.isInteger(C) || C > 20000) continue;
+      return numeric(r, m, `A leak at the bottom of a tank can empty it in ${l} hours. An inlet pipe that fills ${F} litres a minute is opened, and the full tank now empties in ${e} hours. What is the capacity of the tank?`, C, {
+        inputs: { F, l, e }, show: v => `${fmt(v)} litres`, wrong: [60 * F * l * e / (e + l), F * l * e / (e - l), 60 * F * l],
+        steps: [`The inlet adds ${F} × 60 = ${60 * F} litres an hour. Leak − inlet = net: C/${l} − ${60 * F} = C/${e}`, `C × (1/${l} − 1/${e}) = ${60 * F}, so C = ${60 * F} × ${l} × ${e} ÷ ${e - l} = ${fmt(C)} litres`],
+        tip: 'Put every rate in the same units (litres an hour) before writing leak − inlet = net.' });
+    }
+  };
+  B['speed-late'] = (r, m) => {
+    for (;;) {
+      const v1 = pick(r, [3, 4, 5, 6, 8, 10, 12]), v2 = pick(r, [4, 5, 6, 8, 10, 12, 15]), t1 = int(r, 3, 20), t2 = int(r, 3, 20);
+      if (v2 <= v1) continue;
+      const D = v1 * v2 * (t1 + t2) / (60 * (v2 - v1));
+      if (D > 30 || !clean2(D)) continue;
+      return numeric(r, m, `Walking at ${v1} km/h, ${pick(r, WOMEN)} reaches college ${t1} minutes late. Walking at ${v2} km/h, she reaches ${t2} minutes early. How far is the college from her home?`, D, {
+        inputs: { v1, v2, t1, t2 }, show: v => `${fmt(v)} km`, step: 0.5, wrong: [v1 * v2 * Math.abs(t1 - t2) / (60 * (v2 - v1)), (t1 + t2) * (v1 + v2) / 120, 2 * D],
+        steps: [`The two journey times differ by ${t1} + ${t2} = ${t1 + t2} minutes = ${t1 + t2}/60 h`, `D/${v1} − D/${v2} = ${t1 + t2}/60, so D = ${v1} × ${v2} × ${t1 + t2} ÷ (60 × ${v2 - v1}) = ${fmt(D)} km`],
+        tip: 'Late by t₁ and early by t₂ means the two times differ by t₁ + t₂. Distance = product of speeds × time difference ÷ difference of speeds.' });
+    }
+  };
+  B['boat-find'] = (r, m) => {
+    const b = int(r, 6, 20), s = int(r, 1, b - 3), t1 = int(r, 2, 6), t2 = int(r, 2, 6), d1 = (b + s) * t1, d2 = (b - s) * t2, ask = pick(r, ['stream', 'boat']);
+    return numeric(r, m, `A boat goes ${d1} km downstream in ${t1} hours and ${d2} km upstream in ${t2} hours. What is the speed of ${ask === 'stream' ? 'the stream' : 'the boat in still water'}?`, ask === 'stream' ? s : b, {
+      inputs: { d1, t1, d2, t2, ask }, show: v => `${fmt(v)} km/h`, step: 1, wrong: [ask === 'stream' ? b : s, ask === 'stream' ? 2 * s : b + s, (d1 + d2) / (t1 + t2)],
+      steps: [`Downstream speed = ${d1} ÷ ${t1} = ${b + s} km/h; upstream = ${d2} ÷ ${t2} = ${b - s} km/h`, ask === 'stream' ? `Stream = (${b + s} − ${b - s}) ÷ 2 = ${s} km/h` : `Boat = (${b + s} + ${b - s}) ÷ 2 = ${b} km/h`],
+      tip: 'Boat = (down + up) ÷ 2 and stream = (down − up) ÷ 2. Dividing total distance by total time gives neither.' });
+  };
+  B['speed-circle'] = (r, m) => {
+    for (;;) {
+      const L = pick(r, [200, 240, 300, 360, 400, 600]), u = int(r, 2, 10), v = int(r, 2, 10), same = r() < 0.5, ask = pick(r, ['start', 'any']);
+      if (u === v || L % u || L % v) continue;
+      const rel = same ? Math.abs(u - v) : u + v, lap = lcm(L / u, L / v), ans = ask === 'any' ? L / rel : lap;
+      if (!Number.isInteger(ans) || ans > 3600) continue;
+      return numeric(r, m, `Two runners start together from the same point on a circular track ${L} m long. They run at ${u} m/s and ${v} m/s in ${same ? 'the same direction' : 'opposite directions'}. After how many seconds will they first meet again ${ask === 'start' ? 'at the starting point' : 'anywhere on the track'}?`, ans, {
+        inputs: { L, u, v, same, ask }, show: v2 => units(v2, 'second'), wrong: [ask === 'any' ? lap : L / rel, L / (same ? u + v : Math.abs(u - v)), (L / u) * (L / v)],
+        steps: ask === 'any' ? [`Relative speed = ${u} ${same ? '−' : '+'} ${v} = ${rel} m/s`, `They meet when the gap between them is one full lap: ${L} ÷ ${rel} = ${ans} s`]
+          : [`Lap times: ${L} ÷ ${u} = ${L / u} s and ${L} ÷ ${v} = ${L / v} s`, `Both are back at the start together after LCM(${L / u}, ${L / v}) = ${ans} s`],
+        tip: 'Meeting anywhere uses relative speed; meeting at the start uses the LCM of the lap times, whatever the directions.' });
+    }
+  };
+
+  B['number-zeros'] = (r, m) => {
+    const exp = m.level === 'expert', p = exp ? pick(r, [2, 3, 7]) : 5, n = exp ? int(r, 30, 120) : int(r, 25, 150), terms = [];
+    for (let q = p; q <= n; q *= p) terms.push(Math.floor(n / q));
+    const ans = terms.reduce((s, x) => s + x, 0);
+    return numeric(r, m, exp ? `If ${p}^k divides ${n}! (= 1 × 2 × 3 × … × ${n}) exactly, what is the largest possible value of k?` : `How many zeros are there at the end of ${n}! (= 1 × 2 × 3 × … × ${n})?`, ans, {
+      inputs: { n, p }, step: 1, wrong: [terms[0], ans + 1, ans - 1, Math.floor(n / (2 * p))],
+      steps: [`Count the factors of ${p}: ${terms.map((t, i) => `⌊${n} ÷ ${p ** (i + 1)}⌋ = ${t}`).join(', ')}`, `Total = ${terms.join(' + ')} = ${ans}`],
+      tip: p === 5 ? 'Each trailing zero needs a 10 = 2 × 5, and 5s are scarcer than 2s. Multiples of 25 give two 5s, multiples of 125 three.' : `Legendre’s rule: add ⌊n/${p}⌋ + ⌊n/${p}²⌋ + … until the power of ${p} exceeds n.` });
+  };
+  B['number-factors'] = (r, m) => {
+    for (;;) {
+      const e = [int(r, 1, 5), int(r, 0, 3), int(r, 0, 2), m.level === 'expert' ? int(r, 0, 1) : 0], N = 2 ** e[0] * 3 ** e[1] * 5 ** e[2] * 7 ** e[3];
+      if (N > 50000 || N < 60) continue;
+      const ask = m.level === 'expert' ? pick(r, ['all', 'even', 'odd']) : 'all', odd = (e[1] + 1) * (e[2] + 1) * (e[3] + 1), all = (e[0] + 1) * odd, ans = ask === 'all' ? all : ask === 'odd' ? odd : all - odd;
+      const form = [2, 3, 5, 7].map((p, i) => e[i] ? (e[i] > 1 ? `${p}^${e[i]}` : String(p)) : null).filter(Boolean).join(' × ');
+      return numeric(r, m, `How many ${ask === 'all' ? '' : ask + ' '}factors does ${fmt(N)} have? (Count 1 and the number itself where they qualify.)`, ans, {
+        inputs: { N, ask }, step: 1, wrong: [ask === 'all' ? e.reduce((s, x) => s + x, 0) + 1 : all, ask === 'all' ? e.filter(x => x).reduce((s, x) => s * x, 1) : ask === 'odd' ? all - odd : odd, ans + 2],
+        steps: [`${fmt(N)} = ${form}`, ask === 'all' ? `Factors = ${e.filter(x => x).map(x => `(${x} + 1)`).join(' × ')} = ${all}` : ask === 'odd' ? `Odd factors use no 2: ${[e[1], e[2], e[3]].filter(x => x).map(x => `(${x} + 1)`).join(' × ') || '1'} = ${odd}` : `Even factors = all − odd = ${all} − ${odd} = ${ans}`],
+        tip: 'If N = pᵃ × qᵇ × …, it has (a + 1)(b + 1)… factors. Odd factors ignore the power of 2; even factors are the rest.' });
+    }
+  };
+  const CRT_DIVS = [4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24];
+  B['number-crt'] = (r, m) => {
+    for (;;) {
+      const divs = shuffle(r, CRT_DIVS).slice(0, 3).sort((a, b) => a - b), Lc = divs.reduce(lcm), ask = pick(r, ['diff', 'small4', 'large4']);
+      if (Lc > 720 || Lc === divs[2]) continue;
+      if (ask === 'diff') {
+        const k = int(r, 1, divs[0] - 1), rems = divs.map(d => d - k), ans = Lc - k;
+        return numeric(r, m, `What is the smallest positive number that leaves remainders ${andList(rems)} when divided by ${andList(divs)} respectively?`, ans, {
+          inputs: { divs, rems, ask }, step: Math.max(1, Math.round(Lc / 10)), wrong: [Lc + k, divs[0] * divs[1] * divs[2] - k, 2 * Lc - k],
+          steps: [`Each remainder is ${k} less than its divisor (${divs.map((d, i) => `${d} − ${rems[i]}`).join(', ')} all equal ${k})`, `So the number is a multiple of LCM(${divs.join(', ')}) = ${Lc}, minus ${k}: ${Lc} − ${k} = ${ans}`],
+          tip: 'When divisor − remainder is the same each time, the answer is LCM − that gap. When the remainder itself is the same, it is LCM × k + remainder.' });
+      }
+      const rem = int(r, 1, divs[0] - 1), large = ask === 'large4', ans = large ? Math.floor((9999 - rem) / Lc) * Lc + rem : Math.ceil((1000 - rem) / Lc) * Lc + rem;
+      return numeric(r, m, `What is the ${large ? 'largest' : 'smallest'} four-digit number that leaves a remainder of ${rem} when divided by each of ${andList(divs)}?`, ans, {
+        inputs: { divs, rem, ask }, step: Math.max(1, Math.round(Lc / 4)), wrong: [large ? ans - Lc : ans + Lc, ans - rem, large ? Math.floor(9999 / Lc) * Lc - rem : Math.ceil(1000 / Lc) * Lc - rem],
+        steps: [`LCM(${divs.join(', ')}) = ${Lc}`, large ? `The largest multiple of ${Lc} that stays four-digit after adding ${rem} is ${ans - rem}` : `The smallest multiple of ${Lc} that is four-digit after adding ${rem} is ${ans - rem}`, `Answer = ${ans - rem} + ${rem} = ${ans}`],
+        tip: 'Same remainder r for every divisor: the number is (a multiple of the LCM) + r. Check the answer still has four digits.' });
+    }
+  };
+
+  const nPr = (n, k) => fact(n) / fact(n - k);
+  B['pnc-not-together'] = (r, m) => {
+    if (m.level === 'expert') {
+      const b = int(r, 3, 5), g = int(r, 2, Math.min(4, 8 - b)), gaps = nPr(b + 1, g), ans = fact(b) * gaps;
+      return numeric(r, m, `In how many ways can ${b} boys and ${g} girls stand in a row so that no two girls stand next to each other?`, ans, {
+        inputs: { b, g, mode: 'girls' }, step: Math.max(1, Math.round(ans / 5)), wrong: [fact(b + g) - fact(b + 1) * fact(g), fact(b) * fact(g), fact(b) * nCr(b + 1, g)],
+        steps: [`Arrange the boys first: ${b}! = ${fact(b)}. That leaves ${b + 1} gaps, counting both ends`, `Put the ${g} girls in different gaps, in order: ${b + 1}P${g} = ${gaps}`, `Total = ${fact(b)} × ${gaps} = ${fmt(ans)}`],
+        tip: 'Gap method: arrange everyone else, then drop the people who must be separated into the gaps between them.' });
+    }
+    const n = int(r, 5, 8), ans = fact(n) - 2 * fact(n - 1);
+    return numeric(r, m, `In how many ways can ${n} people stand in a queue if two particular friends must never stand next to each other?`, ans, {
+      inputs: { n, mode: 'pair' }, step: Math.max(1, Math.round(ans / 5)), wrong: [2 * fact(n - 1), fact(n) - fact(n - 1), fact(n - 2) * (n - 1)],
+      steps: [`All arrangements: ${n}! = ${fmt(fact(n))}`, `With the two friends together: 2 × ${n - 1}! = ${fmt(2 * fact(n - 1))}`, `Never together = ${fmt(fact(n))} − ${fmt(2 * fact(n - 1))} = ${fmt(ans)}`],
+      tip: '“Never together” = total − together. Count “together” by tying the pair into one unit, and remember the × 2.' });
+  };
+  B['pnc-digits'] = (r, m) => {
+    for (;;) {
+      const zero = r() < 0.6, n = int(r, 5, 7), k = m.level === 'expert' ? 4 : int(r, 3, 4), digits = (zero ? [0] : []).concat(shuffle(r, [1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, zero ? n - 1 : n)).sort((a, b) => a - b);
+      const ask = pick(r, m.level === 'expert' ? ['even', 'div5', 'odd'] : ['any', 'even', 'div5']), fits = l => ({ any: true, even: l % 2 === 0, odd: l % 2 === 1, div5: l % 5 === 0 })[ask];
+      const ends = digits.filter(fits), cases = ask === 'any' ? [] : ends.map(l => { const first = n - 1 - (zero && l !== 0 ? 1 : 0); return { l, first, c: first * nPr(n - 2, k - 2) }; });
+      const ans = ask === 'any' ? (n - (zero ? 1 : 0)) * nPr(n - 1, k - 1) : cases.reduce((s, x) => s + x.c, 0);
+      if (!ans) continue;
+      const what = { any: 'numbers', even: 'even numbers', odd: 'odd numbers', div5: 'numbers divisible by 5' }[ask];
+      return numeric(r, m, `How many ${k}-digit ${what} can be formed from the digits ${digits.join(', ')} if no digit may be repeated?`, ans, {
+        inputs: { digits, k, ask }, step: Math.max(1, Math.round(ans / 6)), wrong: [nPr(n, k), ends.length * nPr(n - 1, k - 1), ask === 'any' ? (n - 1) * nPr(n - 1, k - 1) + 1 : ans + nPr(n - 2, k - 2)],
+        steps: ask === 'any' ? [`First digit: ${n - (zero ? 1 : 0)} choices${zero ? ' (anything but 0)' : ''}`, `The other ${k - 1} places from the remaining ${n - 1} digits: ${n - 1}P${k - 1} = ${nPr(n - 1, k - 1)}`, `Total = ${fmt(ans)}`]
+          : [`Fix the last digit first: it must be ${andList(ends).replace(/ and /, ' or ')}`, ...cases.map(x => `Last digit ${x.l}: first digit ${x.first} ways × middle ${n - 2}P${k - 2} = ${x.c}`), `Total = ${fmt(ans)}`],
+        tip: 'Fill the restricted places first: the last digit (even, odd, 5) and the first digit (no 0). Treat “last digit 0” as a separate case.' });
+    }
+  };
+  B['pnc-distribute'] = (r, m) => {
+    const k = int(r, 3, 5), n = int(r, k + 2, 14), atLeast = r() < 0.6, ans = atLeast ? nCr(n - 1, k - 1) : nCr(n + k - 1, k - 1);
+    return numeric(r, m, `In how many ways can ${n} identical chocolates be shared among ${k} children ${atLeast ? 'so that every child gets at least one' : 'if some children may get none'}?`, ans, {
+      inputs: { n, k, atLeast }, step: Math.max(1, Math.round(ans / 6)), wrong: [atLeast ? nCr(n + k - 1, k - 1) : nCr(n - 1, k - 1), nCr(n, k), nCr(n - 1, k)],
+      steps: atLeast ? [`Line up the ${n} chocolates: there are ${n - 1} gaps between them`, `Choose ${k - 1} gaps for dividers: ${n - 1}C${k - 1} = ${fmt(ans)}`] : [`Arrange ${n} chocolates and ${k - 1} dividers in a row: ${n + k - 1} objects`, `Choose where the dividers go: ${n + k - 1}C${k - 1} = ${fmt(ans)}`],
+      tip: 'Stars and bars: n identical items into k groups is (n − 1)C(k − 1) if no group is empty, and (n + k − 1)C(k − 1) if groups may be empty.' });
+  };
+
+  const bags = r => { const r1 = int(r, 1, 6), b1 = int(r, 1, 6), r2 = int(r, 1, 6), b2 = int(r, 1, 6); return { r1, b1, r2, b2, n1: r1 + b1, n2: r2 + b2, text: `Bag I has ${r1} red and ${b1} blue ${plural(b1, 'ball', 'balls')}; bag II has ${r2} red and ${b2} blue ${plural(b2, 'ball', 'balls')}. One bag is chosen at random and a ball is drawn from it.` }; };
+  B['prob-two-bags'] = (r, m) => {
+    const { r1, b1, r2, b2, n1, n2, text } = bags(r), num = r1 * n2 + r2 * n1, den = 2 * n1 * n2;
+    return textual(r, m, `${text} What is the probability that the ball is red?`, frac(num, den), [frac(r1 + r2, n1 + n2), frac(r1 * r2, n1 * n2), frac(r1 + r2, 2 * (n1 + n2))], k => prob(num + k, den + k), {
+      inputs: { r1, b1, r2, b2 }, steps: [`P(red) = ½ × ${r1}/${n1} + ½ × ${r2}/${n2}`, `= ${num}/${den} = ${frac(num, den)}`],
+      tip: 'Weight each bag’s chance of red by the chance of picking that bag. Pooling all the balls is right only when the bags are the same size.' });
+  };
+  B['prob-bayes'] = (r, m) => {
+    const { r1, b1, r2, b2, n1, n2, text } = bags(r), num = r1 * n2, den = r1 * n2 + r2 * n1;
+    return textual(r, m, `${text} The ball turns out to be red. What is the probability that it came from bag I?`, frac(num, den), [frac(r1, r1 + r2), frac(r1, n1), frac(den, 2 * n1 * n2)], k => prob(num + k, den + k), {
+      inputs: { r1, b1, r2, b2 }, steps: [`P(bag I and red) = ½ × ${r1}/${n1}; P(red) = ½ × ${r1}/${n1} + ½ × ${r2}/${n2}`, `P(bag I given red) = ${r1 * n2} ÷ (${r1 * n2} + ${r2 * n1}) = ${frac(num, den)}`],
+      tip: 'Bayes: of all the ways of drawing red, what share go through bag I? The ½ for choosing a bag cancels.' });
+  };
+  const SOLVE_P = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [3, 5], [1, 5], [4, 5], [1, 6], [5, 6]];
+  B['prob-solve'] = (r, m) => {
+    const n = m.level === 'expert' ? 3 : 2, ps = shuffle(r, SOLVE_P).slice(0, n), ask = pick(r, ['solved', 'exactly-one']), names = ['A', 'B', 'C'].slice(0, n), D = ps.reduce((s, [, d]) => s * d, 1);
+    const none = ps.reduce((s, [a, d]) => s * (d - a), 1), one = ps.reduce((s, _, i) => s + ps.reduce((t, [a, d], j) => t * (j === i ? a : d - a), 1), 0), num = ask === 'solved' ? D - none : one;
+    const sumN = ps.reduce((s, [a, d]) => s + a * D / d, 0), allN = ps.reduce((s, [a]) => s * a, 1);
+    return textual(r, m, `The probabilities that ${andList(names)} can solve a problem are ${andList(ps.map(([a, d]) => `${a}/${d}`))} respectively. If ${n === 2 ? 'both' : 'all three'} try it independently, what is the probability that ${ask === 'solved' ? 'the problem is solved' : 'exactly one of them solves it'}?`, frac(num, D),
+      [ask === 'solved' ? prob(sumN, D) : frac(D - none, D), frac(allN, D), frac(none, D), ask === 'solved' ? frac(one, D) : prob(sumN, D)], k => prob(num + k, D), {
+        inputs: { ps, ask }, steps: ask === 'solved' ? [`P(nobody solves it) = ${ps.map(([a, d]) => `${d - a}/${d}`).join(' × ')} = ${frac(none, D)}`, `P(solved) = 1 − ${frac(none, D)} = ${frac(num, D)}`]
+          : [`Exactly one: ${names.map((x, i) => ps.map(([a, d], j) => j === i ? `${a}/${d}` : `${d - a}/${d}`).join(' × ')).join(' + ')}`, `= ${frac(num, D)}`],
+        tip: '“At least one” = 1 − P(none). For “exactly one”, add the cases where one succeeds and every other person fails.' });
+  };
+  const TWO_CARDS = { kings: ['both are kings', 6, '4C2 = 6'], 'king-queen': ['one is a king and the other a queen', 16, '4 × 4 = 16'], 'same-suit': ['both are of the same suit', 312, '4 × 13C2 = 4 × 78 = 312'],
+    red: ['both are red', 325, '26C2 = 325'], face: ['both are face cards', 66, '12C2 = 66'], colours: ['one is red and the other black', 676, '26 × 26 = 676'] };
+  B['prob-two-cards'] = (r, m) => {
+    const ask = pick(r, Object.keys(TWO_CARDS)), [text, fav, how] = TWO_CARDS[ask];
+    return textual(r, m, `Two cards are drawn together from a well-shuffled pack of 52. What is the probability that ${text}?`, frac(fav, 1326), [prob(fav, 2652), prob(2 * fav, 2704), prob(2 * fav, 1326)], k => prob(fav + k, 1326), {
+      inputs: { ask }, steps: [`Ways to choose 2 cards: 52C2 = 1326`, `Favourable: ${how}`, `Probability = ${fav}/1326 = ${frac(fav, 1326)}`],
+      tip: 'Drawn together means without replacement: count pairs with nCr. For ordered draws, multiply step by step, e.g. 4/52 × 3/51.' });
+  };
+
+  const fullTable = r => ({ title: 'Annapurna Foods — sales by region (₹ crore)', columns: ['Year', ...REGIONS], rows: YEARS.map(y => [y, ...REGIONS.map(() => 5 * int(r, 12, 80))]) });
+  B['di-max-growth'] = (r, m) => {
+    for (;;) {
+      const table = fullTable(r), y1 = int(r, 0, 2), y2 = int(r, y1 + 1, 3), from = i => table.rows[y1][i + 1], to = i => table.rows[y2][i + 1];
+      const g = REGIONS.map((_, i) => to(i) / from(i) - 1), abs = REGIONS.map((_, i) => to(i) - from(i)), best = g.indexOf(Math.max(...g)), most = abs.indexOf(Math.max(...abs)), top = g.slice().sort((a, b) => b - a);
+      if (top[0] - top[1] < 0.03 || top[0] <= 0 || most === best) continue;
+      return make(m, `Using the table, which region had the highest percentage growth in sales from ${YEARS[y1]} to ${YEARS[y2]}?`, { options: REGIONS.slice(), answer: best, display: REGIONS[best] }, {
+        inputs: { table, y1, y2 }, table, steps: [REGIONS.map((x, i) => `${x}: ${from(i)} → ${to(i)} (${g[i] >= 0 ? '+' : '−'}${fmt(Math.abs(g[i]) * 100)}%)`).join('; '), `${REGIONS[best]} grew fastest in percentage terms. ${REGIONS[most]} added the most crore, which is the trap.`],
+        tip: 'The biggest jump in crore is not always the highest percentage growth: divide each change by its own starting value.' });
+    }
+  };
+  B['di-share-change'] = (r, m) => {
+    for (;;) {
+      const chart = barChart(r), s = chart.series[int(r, 0, 3)], T0 = chart.series.reduce((t, x) => t + x.values[0], 0), T1 = chart.series.reduce((t, x) => t + x.values[1], 0), sh0 = s.values[0] / T0 * 100, sh1 = s.values[1] / T1 * 100, ans = sh1 - sh0;
+      if (Math.abs(ans) < 0.5) continue;
+      const show = v => v > 0 ? `Up ${fmt(v)} percentage points` : v < 0 ? `Down ${fmt(-v)} percentage points` : 'No change';
+      return numeric(r, m, `Using the chart, by how many percentage points did ${s.label}’s share of total sales change from 2023 to 2024?`, ans, {
+        inputs: { chart, label: s.label }, chart, show, ok: Number.isFinite, step: 1, wrong: [(s.values[1] / s.values[0] - 1) * 100, -ans, sh1],
+        steps: [`2023: ${s.values[0]} of ${T0} = ${fmt(sh0)}%; 2024: ${s.values[1]} of ${T1} = ${fmt(sh1)}%`, `Change = ${fmt(sh1)} − ${fmt(sh0)} = ${fmt(ans)} percentage points`],
+        tip: 'A share can fall while sales rise, if the total rose faster. Percentage points compare two percentages directly.' });
+    }
+  };
+  B['di-required'] = (r, m) => {
+    const table = salesTable(r), col = int(r, 1, 3), name = table.columns[col]; let g; do g = 5 * int(r, -4, 12); while (!g);
+    table.rows[3][col] = 20 * int(r, 4, 15);
+    const vals = table.rows.map(row => row[col]), sum4 = vals.reduce((s, x) => s + x, 0), last = vals[3], need = last * (100 + g) / 100, Y = (sum4 + need) / 5;
+    return numeric(r, m, `Using the table, by what percentage must ${name} region’s sales change from 2024 to 2025 for its average annual sales over 2021–2025 to be ₹${fmt(Y)} crore?`, g, {
+      inputs: { table, col, Y }, table, show: signedPct, ok: Number.isFinite, step: 2.5, wrong: [(Y / last - 1) * 100, (need - last) / need * 100, (need - sum4 / 4) / (sum4 / 4) * 100],
+      steps: [`A five-year average of ${fmt(Y)} needs a total of 5 × ${fmt(Y)} = ${fmt(5 * Y)}`, `2025 sales = ${fmt(5 * Y)} − (${vals.join(' + ')}) = ${fmt(need)}`, `Change from ${last}: ${fmt(need - last)} ÷ ${last} × 100 = ${fmt(g)}%`],
+      tip: 'Turn the target average into a total, subtract what is already there, then compare the gap with the latest year.' });
+  };
+
+  /* Logical: higher levels add new formats rather than only bigger versions of the old ones. */
+  const OPS = ['+', '−', '×', '÷'], JS_OP = { '+': '+', '−': '-', '×': '*', '÷': '/' };
+  function evalOps(nums, ops) { // BODMAS; null if a division is not exact
+    const vals = [nums[0]], signs = [];
+    for (let i = 0; i < ops.length; i++) {
+      const o = ops[i], x = nums[i + 1], last = vals.length - 1;
+      if (o === '×') vals[last] *= x; else if (o === '÷') { if (vals[last] % x) return null; vals[last] /= x; } else { signs.push(o); vals.push(x); }
+    }
+    return vals.reduce((s, v, i) => i === 0 ? v : signs[i - 1] === '+' ? s + v : s - v, 0);
+  }
+  B['code-ops'] = (r, m) => {
+    for (;;) {
+      let perm; do perm = shuffle(r, OPS); while (perm.some((o, i) => o === OPS[i]));
+      const map = Object.fromEntries(OPS.map((o, i) => [o, perm[i]])), k = m.level === 'expert' ? 5 : 4, shownOps = Array.from({ length: k }, () => pick(r, OPS));
+      if (new Set(shownOps).size < 3) continue;
+      const real = shownOps.map(o => map[o]), nums = real.reduce((list, o) => [...list, o === '÷' ? pick(r, [2, 3, 4, 5, 6]) : int(r, 2, 20)], [int(r, 6, 40)]), ans = evalOps(nums, real);
+      if (ans == null || ans < 0 || ans > 999) continue;
+      const expr = ops => nums.map((x, i) => i ? `${ops[i - 1]} ${x}` : String(x)).join(' '), asIs = evalOps(nums, shownOps), ltr = real.reduce((s, o, i) => ({ '+': s + nums[i + 1], '−': s - nums[i + 1], '×': s * nums[i + 1], '÷': s / nums[i + 1] })[o], nums[0]);
+      return numeric(r, m, `If ${OPS.map(o => `‘${o}’ means ‘${map[o]}’`).join(', ')}, what is the value of\n${expr(shownOps)} ?`, ans, {
+        inputs: { nums, shownOps, map }, ok: Number.isFinite, step: Math.max(1, Math.round(Math.abs(ans) / 8)), wrong: [asIs, ltr, ans + nums[k], ans - nums[0]],
+        steps: [`Replace the symbols: ${expr(real)}`, `× and ÷ first, then + and − from left to right: ${ans}`],
+        tip: 'Rewrite the whole expression with the real signs before calculating anything, then apply BODMAS.' });
+    }
+  };
+  const CODE_POOL = ['tea', 'is', 'hot', 'very', 'sweet', 'cold', 'milk', 'fresh', 'good', 'food'], SYLLABLES = ['ka', 'pa', 'ta', 'ri', 'mo', 'zu', 'ne', 'lo', 'si', 'du', 've', 'xo'];
+  B['code-words'] = (r, m) => {
+    for (;;) {
+      const words = shuffle(r, CODE_POOL).slice(0, 6), syl = shuffle(r, SYLLABLES), code = Object.fromEntries(words.map((w, i) => [w, syl[i]]));
+      const sents = Array.from({ length: 4 }, () => shuffle(r, words).slice(0, 3)), known = {};
+      if (new Set(sents.map(s => s.slice().sort().join())).size < 4) continue;
+      for (let changed = true; changed;) {
+        changed = false;
+        for (const w of words) {
+          if (known[w]) continue;
+          const has = sents.filter(s => s.includes(w)); if (!has.length) continue;
+          let cand = has[0].map(x => code[x]);
+          for (const s of has.slice(1)) cand = cand.filter(c => s.some(x => code[x] === c));
+          for (const s of sents.filter(s => !s.includes(w))) cand = cand.filter(c => !s.some(x => code[x] === c));
+          cand = cand.filter(c => !Object.values(known).includes(c));
+          if (cand.length === 1) { known[w] = cand[0]; changed = true; }
+        }
+      }
+      const targets = Object.keys(known).filter(w => sents.filter(s => s.includes(w)).length >= 2);
+      if (!targets.length) continue;
+      const target = pick(r, targets), ans = known[target], shown = sents.map(s => ({ words: s, codes: shuffle(r, s.map(x => code[x])) }));
+      const near = shuffle(r, [...new Set(sents.filter(s => s.includes(target)).flat().map(x => code[x]))].filter(c => c !== ans)), all = Object.values(code);
+      return textual(r, m, `In a certain code language:\n${shown.map(s => `‘${s.words.join(' ')}’ is written as ‘${s.codes.join(' ')}’`).join('\n')}\nWhat is the code for ‘${target}’?`, ans, near, j => all[j % 6], {
+        inputs: { sentences: shown, target }, steps: [`‘${target}’ appears in ${andList(sents.filter(s => s.includes(target)).map(s => `‘${s.join(' ')}’`))}; compare their codes`, `The only code they share that is not taken by another word is ‘${ans}’`],
+        tip: 'Two sentences that share exactly one word share exactly one code. Fix the easy words first, then eliminate.' });
+    }
+  };
+  const REL_SYMS = ['+', '−', '×', '÷', '@', '#', '$', '%'], REL_WORDS = ['father', 'mother', 'son', 'daughter', 'brother', 'sister', 'husband', 'wife'];
+  B['blood-coded'] = (r, m) => {
+    const want = m.level === 'expert' ? 4 : 3;
+    for (let tries = 0; ; tries++) {
+      const people = family(r), y = pick(r, people).name, x = pick(r, people).name;
+      if (x === y) continue;
+      const steps = path(people, y, x), rel = steps && relationOf(people, y, x);
+      if (!steps || !rel || steps.length !== (tries > 400 ? want - 1 : want)) continue;
+      const used = [...new Set(steps.map(s => s.rel))], shownRels = shuffle(r, [...used, ...shuffle(r, REL_WORDS.filter(w => !used.includes(w))).slice(0, Math.max(1, 4 - used.length))]);
+      const syms = shuffle(r, REL_SYMS), sym = Object.fromEntries(shownRels.map((w, i) => [w, syms[i]])), expr = steps.reduce((s, st) => `${s} ${sym[st.rel]} ${st.b}`, steps[0].a);
+      return textual(r, m, `${shownRels.map(w => `‘P ${sym[w]} Q’ means P is the ${w} of Q.`).join('\n')}\nIf ${expr}, how is ${y} related to ${x}?`, cap(rel), NEAR_REL[rel].map(cap), j => cap(Object.keys(NEAR_REL)[j % 24]), {
+        inputs: { people, y, x, steps, sym }, steps: [...steps.map(s => `${s.a} ${sym[s.rel]} ${s.b}: ${s.a} is ${s.b}’s ${s.rel}`), `Put on one family tree, ${y} is ${x}’s ${rel}.`],
+        tip: 'Decode one symbol at a time and draw it at once. The relation word tells you the gender of the person on the left.' });
+    }
+  };
+  B['dir-shadow'] = (r, m) => {
+    const morning = r() < 0.5, shadow = morning ? 6 : 2, side = pick(r, ['left', 'right', 'front', 'behind']), facing = { left: (shadow + 2) % 8, right: (shadow + 6) % 8, front: shadow, behind: (shadow + 4) % 8 }[side];
+    const turn = m.level === 'expert' ? pick(r, [2, -2, 4]) : 0, end = (facing + turn + 8) % 8, name = pick(r, MEN);
+    const where = { left: 'to his left', right: 'to his right', front: 'straight in front of him', behind: 'directly behind him' }[side], turnText = turn === 4 ? 'turns around' : turn > 0 ? 'turns right' : 'turns left';
+    return textual(r, m, `${morning ? 'One morning, an hour after sunrise' : 'One evening, an hour before sunset'}, ${name} stands in an open field. His shadow falls ${where}.${turn ? ` He then ${turnText}.` : ''} Which direction is he facing${turn ? ' now' : ''}?`,
+      DIR8[end], [DIR8[(end + 4) % 8], DIR8[(end + 2) % 8], DIR8[(end + 6) % 8]], j => DIR8[(end + j) % 8], {
+        inputs: { morning, side, turn }, steps: [`The sun is in the ${morning ? 'east' : 'west'}, so shadows point ${DIR8[shadow].toLowerCase()}`, `The shadow falls ${where}, so he faces ${DIR8[facing]}`, ...(turn ? [`He ${turnText}: now he faces ${DIR8[end]}`] : [])],
+        tip: 'Morning sun in the east throws shadows west; evening sun in the west throws them east. Then place the shadow relative to the way he faces.' });
+  };
+  B['dir-points'] = (r, m) => {
+    const AX = ['north', 'east', 'south', 'west'], labels = ['P', 'Q', 'R', 'S', 'T'];
+    for (;;) {
+      const pos = { P: [0, 0] }, facts = [];
+      for (let i = 1; i < 5; i++) { const q = labels[int(r, 0, i - 1)], d = int(r, 0, 3), km = int(r, 2, 9); pos[labels[i]] = [pos[q][0] + [0, 1, 0, -1][d] * km, pos[q][1] + [1, 0, -1, 0][d] * km]; facts.push({ p: labels[i], q, d, km }); }
+      if (new Set(Object.values(pos).map(String)).size < 5) continue;
+      const [a, b] = shuffle(r, labels).slice(0, 2), dx = pos[a][0] - pos[b][0], dy = pos[a][1] - pos[b][1];
+      if (!dx || !dy || facts.some(f => (f.p === a && f.q === b) || (f.p === b && f.q === a))) continue;
+      const ans = compass(dx, dy), part = (v, plus, minus) => `${Math.abs(v)} km ${v > 0 ? plus : minus}`;
+      return textual(r, m, `${shuffle(r, facts).map(f => `${f.p} is ${f.km} km ${AX[f.d]} of ${f.q}.`).join(' ')}\nIn which direction is ${a} from ${b}?`, ans, [compass(-dx, -dy), compass(dx, -dy), compass(-dx, dy)], j => DIR8[j % 8], {
+        inputs: { facts, a, b }, steps: [`Put P at (0, 0) with east as +x and north as +y: ${labels.map(l => `${l} (${pos[l].join(', ')})`).join(', ')}`, `${a} is ${part(dx, 'east', 'west')} and ${part(dy, 'north', 'south')} of ${b}, so it lies to the ${ans}`],
+        tip: 'Give every point coordinates from one origin, then compare the two you need. North-east here means “north and east of”, not exactly 45°.' });
+    }
+  };
+
+  /* Circular seating, facing the centre. Seats run clockwise as seen from above; facing the centre, a person's left is the next seat clockwise. */
+  function circleHolds(c, p, n) {
+    const d = (x, y) => ((p[x] - p[y]) % n + n) % n; // clockwise seats from y to x
+    switch (c.t) {
+      case 'left': return d(c.a, c.b) === 1;
+      case 'right': return d(c.a, c.b) === n - 1;
+      case 'second-left': return d(c.a, c.b) === 2;
+      case 'second-right': return d(c.a, c.b) === n - 2;
+      case 'opposite': return d(c.a, c.b) === n / 2;
+      case 'not-next': return d(c.a, c.b) !== 1 && d(c.a, c.b) !== n - 1;
+      case 'between': return (d(c.a, c.b) === 1 && d(c.c, c.a) === 1) || (d(c.a, c.c) === 1 && d(c.b, c.a) === 1);
+    }
+  }
+  const CIRCLE = {};
+  const circlePerms = n => CIRCLE[n] || (CIRCLE[n] = perms(n - 1).map(q => [0, ...q.map(x => x + 1)])); // person 0 fixed in seat 0
+  function circleText(c, N) {
+    const a = N[c.a], b = N[c.b];
+    return { left: `${a} sits immediately to the left of ${b}.`, right: `${a} sits immediately to the right of ${b}.`, 'second-left': `${a} sits second to the left of ${b}.`, 'second-right': `${a} sits second to the right of ${b}.`,
+      opposite: `${a} sits directly opposite ${b}.`, 'not-next': `${a} is not an immediate neighbour of ${b}.`, between: `${a} sits between ${b} and ${N[c.c]}.` }[c.t];
+  }
+  /* Adds true clues until exactly one candidate is left, then drops any clue that is not needed. */
+  function uniqueClues(r, pool, all, holds) {
+    let cands = all, clues = [];
+    for (const c of pool) { const next = cands.filter(p => holds(c, p)); if (next.length < cands.length) { clues.push(c); cands = next; } if (cands.length === 1) break; }
+    for (const c of shuffle(r, clues)) { const rest = clues.filter(x => x !== c); if (all.filter(p => rest.every(x => holds(x, p))).length === 1) clues = rest; }
+    return shuffle(r, clues);
+  }
+  B['seating-circle'] = (r, m) => {
+    const n = m.level === 'expert' ? 8 : 6, names = shuffle(r, SEAT_NAMES).slice(0, n).sort(), P = [0, ...shuffle(r, Array.from({ length: n - 1 }, (_, i) => i + 1))], at = [];
+    P.forEach((seat, person) => { at[seat] = person; });
+    const d = (x, y) => ((P[x] - P[y]) % n + n) % n, pool = [];
+    for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+      if (a === b) continue;
+      const t = { 1: 'left', [n - 1]: 'right', 2: 'second-left', [n - 2]: 'second-right', [n / 2]: 'opposite' }[d(a, b)];
+      if (t && !(t === 'opposite' && a > b)) pool.push({ t, a, b });
+      if (a < b && d(a, b) !== 1 && d(a, b) !== n - 1) pool.push({ t: 'not-next', a, b });
+      if (d(a, b) === 1) pool.push({ t: 'between', a, b, c: at[(P[a] + 1) % n] });
+    }
+    const clues = uniqueClues(r, shuffle(r, pool), circlePerms(n), (c, p) => circleHolds(c, p, n));
+    const given = (t, a, b) => clues.some(c => c.t === t && ((c.a === a && c.b === b) || (t === 'opposite' && c.a === b && c.b === a)));
+    const seatOf = (x, k) => at[((P[x] + k) % n + n) % n];
+    const asks = shuffle(r, names.map((_, x) => [{ t: 'left-of', x, k: 1 }, { t: 'right-of', x, k: -1 }, { t: 'second-right-of', x, k: -2 }, { t: 'opposite-of', x, k: n / 2 }]).flat())
+      .filter(q => { const y = seatOf(q.x, q.k); return !({ 'left-of': given('left', y, q.x) || given('right', q.x, y), 'right-of': given('right', y, q.x) || given('left', q.x, y), 'second-right-of': given('second-right', y, q.x) || given('second-left', q.x, y), 'opposite-of': given('opposite', y, q.x) })[q.t]; });
+    const q = asks[0] || { t: 'left-of', x: 0, k: 1 }, ans = seatOf(q.x, q.k), wrong = [seatOf(q.x, -q.k), seatOf(q.x, q.k + 1), seatOf(q.x, q.k - 1), seatOf(q.x, q.k + 2)].filter(y => y !== q.x);
+    const question = { 'left-of': `Who sits immediately to the left of ${names[q.x]}?`, 'right-of': `Who sits immediately to the right of ${names[q.x]}?`, 'second-right-of': `Who sits second to the right of ${names[q.x]}?`, 'opposite-of': `Who sits directly opposite ${names[q.x]}?` }[q.t];
+    const prompt = `${{ 6: 'Six', 8: 'Eight' }[n]} friends — ${names.join(', ')} — sit around a circular table, evenly spaced and facing the centre.\n${clues.map(c => '• ' + circleText(c, names)).join('\n')}\n${question}`;
+    return textual(r, m, prompt, names[ans], wrong.map(i => names[i]), j => names[at[j % n]], {
+      inputs: { names, clues, ask: q, n }, steps: [`Facing the centre, each person’s left is the next seat clockwise (seen from above). Fix ${names[0]} and work round: clockwise from ${names[0]} the order is ${at.map(i => names[i]).join(', ')}.`, `So the answer is ${names[ans]}.`],
+      tip: 'Draw the circle and fix one person first. Facing the centre, left is clockwise; if they faced outwards, left and right would swap.' });
+  };
+
+  /* Floor puzzle: five people on five floors, each with a different subject. Clues can name a person or “the one who likes …”. */
+  const SUBJECTS = ['Maths', 'Physics', 'Chemistry', 'Biology', 'History', 'Economics', 'English'];
+  const FLOOR_ALL = (() => { const out = []; for (const F of perms(5)) for (const S of perms(5)) { const by = []; S.forEach((s, p) => { by[s] = p; }); out.push({ F, S, by }); } return out; })();
+  const entFloor = (e, c) => c.F[e.k === 'p' ? e.i : c.by[e.i]] + 1; // floors 1 (lowest) to 5 (top)
+  const samePerson = (a, b, c) => (a.k === 'p' ? a.i : c.by[a.i]) === (b.k === 'p' ? b.i : c.by[b.i]);
+  function floorHolds(cl, c) {
+    switch (cl.t) {
+      case 'floor': return entFloor(cl.a, c) === cl.f;
+      case 'above': return entFloor(cl.a, c) - entFloor(cl.b, c) === cl.k;
+      case 'gap': return Math.abs(entFloor(cl.a, c) - entFloor(cl.b, c)) === 2;
+      case 'even': return entFloor(cl.a, c) % 2 === 0;
+      case 'odd': return entFloor(cl.a, c) % 2 === 1;
+      case 'likes': return c.S[cl.p] === cl.s;
+      case 'not-likes': return c.S[cl.p] !== cl.s;
+    }
+  }
+  B['floors'] = (r, m) => {
+    const names = shuffle(r, SEAT_NAMES).slice(0, 5).sort(), subs = shuffle(r, SUBJECTS).slice(0, 5).sort(), truth = FLOOR_ALL[int(r, 0, FLOOR_ALL.length - 1)];
+    const ents = [...names.map((_, i) => ({ k: 'p', i })), ...subs.map((_, i) => ({ k: 's', i }))], pool = [];
+    for (const a of ents) {
+      const fa = entFloor(a, truth);
+      pool.push({ t: 'floor', a, f: fa }, { t: fa % 2 ? 'odd' : 'even', a });
+      for (const b of ents) {
+        if (a === b || samePerson(a, b, truth)) { continue; }
+        const diff = fa - entFloor(b, truth);
+        if (diff > 0 && diff <= 3) pool.push({ t: 'above', a, b, k: diff });
+        if (Math.abs(diff) === 2 && a.k <= b.k) pool.push({ t: 'gap', a, b });
+      }
+    }
+    for (let p = 0; p < 5; p++) for (let s = 0; s < 5; s++) pool.push(truth.S[p] === s ? { t: 'likes', p, s } : { t: 'not-likes', p, s });
+    const direct = ['floor', 'likes'], ordered = shuffle(r, pool).sort((x, y) => direct.includes(x.t) - direct.includes(y.t));
+    const clues = uniqueClues(r, ordered, FLOOR_ALL, floorHolds), onFloor = f => truth.F.indexOf(f - 1);
+    const stated = (f) => clues.some(c => c.t === 'floor' && c.f === f && c.a.k === 'p');
+    const asks = shuffle(r, [{ t: 'top' }, { t: 'bottom' }, ...names.map((_, p) => ({ t: 'subject', p })), ...subs.map((_, s) => ({ t: 'who', s }))])
+      .filter(q => !(q.t === 'subject' && clues.some(c => c.t === 'likes' && c.p === q.p)) && !(q.t === 'who' && clues.some(c => c.t === 'likes' && c.s === q.s)) && !(q.t === 'top' && stated(5)) && !(q.t === 'bottom' && stated(1)));
+    const q = asks[0] || { t: 'top' };
+    let ans, wrong, question;
+    if (q.t === 'top' || q.t === 'bottom') { const p = onFloor(q.t === 'top' ? 5 : 1); ans = names[p]; wrong = names.filter((_, i) => i !== p); question = `Who lives on the ${q.t === 'top' ? 'top floor' : 'lowest floor'}?`; }
+    else if (q.t === 'subject') { ans = subs[truth.S[q.p]]; wrong = subs.filter(s => s !== ans); question = `Which subject does ${names[q.p]} like?`; }
+    else { ans = names[truth.by[q.s]]; wrong = names.filter(x => x !== ans); question = `Who likes ${subs[q.s]}?`; }
+    const E = (e, start) => e.k === 'p' ? names[e.i] : `${start ? 'The' : 'the'} one who likes ${subs[e.i]}`;
+    const text = c => ({ floor: () => `${E(c.a, true)} lives on floor ${c.f}.`, above: () => `${E(c.a, true)} lives ${['', 'immediately', 'two floors', 'three floors'][c.k]} above ${E(c.b)}.`,
+      gap: () => `Exactly one person lives between ${E(c.a)} and ${E(c.b)}.`, even: () => `${E(c.a, true)} lives on an even-numbered floor.`, odd: () => `${E(c.a, true)} lives on an odd-numbered floor.`,
+      likes: () => `${names[c.p]} likes ${subs[c.s]}.`, 'not-likes': () => `${names[c.p]} does not like ${subs[c.s]}.` })[c.t]();
+    const prompt = `Five friends — ${names.join(', ')} — live in a five-storey building, one on each floor. Floor 1 is the lowest and floor 5 the top. Each likes a different subject: ${subs.join(', ')}.\n${clues.map(c => '• ' + text(c)).join('\n')}\n${question}`;
+    const order = [5, 4, 3, 2, 1].map(f => { const p = onFloor(f); return `floor ${f}: ${names[p]} (${subs[truth.S[p]]})`; });
+    return textual(r, m, prompt, ans, shuffle(r, wrong), j => wrong[j % wrong.length], {
+      inputs: { names, subs, clues, ask: q }, steps: [`Start with clues that fix a floor or link two people, then use the “not” clues. Only one arrangement fits: ${order.join('; ')}.`, `So the answer is ${ans}.`],
+      tip: 'Draw a table with floors as rows and two columns (person, subject). Fill certainties first and keep a list of what each clue rules out.' });
+  };
+
+  /* Syllogisms with “is a possibility” conclusions, as used in bank and higher campus tests. */
+  const POSSIBLE = { pA: 'A', pI: 'I' };
+  const sentenceAny = (s, T) => s.t === 'pA' ? `All ${T[s.a]} being ${T[s.b]} is a possibility.` : s.t === 'pI' ? `Some ${T[s.a]} being ${T[s.b]} is a possibility.` : sentence(s, T);
+  B['syllogism-possible'] = (r, m) => {
+    for (;;) {
+      const k = m.level === 'expert' ? 4 : 3, T = shuffle(r, pick(r, SYL_TERMS)).slice(0, k), premises = [];
+      for (let i = 0; i < k - 1; i++) { const t = pick(r, ['A', 'I', 'E', 'O', 'A']), flip = (t === 'I' || t === 'E') && r() < 0.5; premises.push({ t, a: flip ? i + 1 : i, b: flip ? i : i + 1 }); }
+      const live = models(k).filter(o => premises.every(s => truth(s, o)));
+      if (!live.length) continue;
+      const cands = [];
+      for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) {
+        if (a === b) continue;
+        for (const t of 'AEIO') if (!premises.some(p => p.t === t && p.a === a && p.b === b)) cands.push({ t, a, b, ok: live.every(o => truth({ t, a, b }, o)) });
+        for (const t of ['pA', 'pI']) { const base = { t: POSSIBLE[t], a, b }, some = live.some(o => truth(base, o)), every = live.every(o => truth(base, o)); if (!every) cands.push({ t, a, b, ok: some }); }
+      }
+      const poss = shuffle(r, cands.filter(c => c.t[0] === 'p')), want = pick(r, [0, 1, 2, 3]), first = poss.find(c => c.ok === (want === 0 || want === 2));
+      if (!first) continue;
+      const second = shuffle(r, cands).find(c => c !== first && c.ok === (want === 1 || want === 2) && !((c.a === first.a && c.b === first.b) || (c.a === first.b && c.b === first.a)));
+      if (!second) continue;
+      const [c1, c2] = r() < 0.5 ? [first, second] : [second, first], answer = c1.ok && c2.ok ? 2 : c1.ok ? 0 : c2.ok ? 1 : 3;
+      const why = c => c.t[0] === 'p' ? (c.ok ? `“${sentenceAny(c, T).slice(0, -1)}” follows: at least one diagram that fits the statements allows it.` : `“${sentenceAny(c, T).slice(0, -1)}” does not follow: the statements rule it out in every diagram.`)
+        : c.ok ? `“${sentence(c, T).slice(0, -1)}” follows: it is true in every diagram that fits the statements.` : `“${sentence(c, T).slice(0, -1)}” does not follow: some valid diagram makes it false.`;
+      const prompt = `Statements: ${premises.map(s => sentence(s, T)).join(' ')}\nConclusions:\nI. ${sentenceAny(c1, T)}\nII. ${sentenceAny(c2, T)}\nWhich conclusion(s) follow from the statements?`;
+      return make(m, prompt, { options: SYL_OPTIONS.slice(), answer, display: SYL_OPTIONS[answer] }, {
+        inputs: { k, terms: T, premises, conclusions: [c1, c2].map(c => ({ t: c.t, a: c.a, b: c.b })) }, steps: [`I: ${why(c1)}`, `II: ${why(c2)}`],
+        tip: 'A definite conclusion must hold in every diagram. A “possibility” only needs one diagram that allows it, and fails only if the statements forbid it.' });
+    }
+  };
+  const PAIR_RULES = { square: n => n * n, cube: n => n ** 3, sqplus: n => n * n + 1, twice1: n => 2 * n + 1, nnp1: n => n * (n + 1), cubeminus: n => n ** 3 - n, sqminus: n => n * n - 1, cubeplus: n => n ** 3 + 1, tri: n => n * (n + 1) / 2 };
+  const PAIR_TEXT = { square: 'the second number is the square of the first', cube: 'the second number is the cube of the first', sqplus: 'the second number is the first squared, plus 1', twice1: 'the second number is twice the first, plus 1',
+    nnp1: 'the second number is n × (n + 1)', cubeminus: 'the second number is n³ − n', sqminus: 'the second number is n² − 1', cubeplus: 'the second number is n³ + 1', tri: 'the second number is 1 + 2 + … + n' };
+  B['odd-pairs'] = (r, m) => {
+    for (;;) {
+      const rule = pick(r, m.level === 'expert' ? ['cubeminus', 'sqminus', 'cubeplus', 'nnp1', 'tri'] : ['square', 'cube', 'sqplus', 'twice1', 'nnp1']), f = PAIR_RULES[rule];
+      const ns = shuffle(r, Array.from({ length: 10 }, (_, i) => i + 3)).slice(0, 4), oddAt = int(r, 0, 3), pairs = ns.map((x, i) => [x, i === oddAt ? f(x) + pick(r, [1, -1, 2, -2]) : f(x)]);
+      if (Object.keys(PAIR_RULES).some(k => k !== rule && pairs.filter(([a, b]) => PAIR_RULES[k](a) === b).length >= 3)) continue;
+      const shown = pairs.map(([a, b]) => `${a} : ${b}`);
+      return make(m, 'Which pair is the odd one out?', { options: shown, answer: oddAt, display: shown[oddAt] }, {
+        inputs: { rule, pairs }, steps: [`In the other pairs, ${PAIR_TEXT[rule]} (for example ${shown[(oddAt + 1) % 4]}).`, `${shown[oddAt]} breaks the rule: it would need ${f(ns[oddAt])}.`],
+        tip: 'Test simple relations first (double, square, cube), then square ± 1, n(n + 1) and n³ ± n.' });
+    }
+  };
+
   /* ---------- Verbal (authored bank) ---------- */
   function bank() {
     if (root && root.APTITUDE_VERBAL) return root.APTITUDE_VERBAL;
@@ -870,35 +1513,52 @@
     return { id: item.id, section: 'verbal', topic, kind: topic, level: passage ? passage.level : item.level, prompt: item.prompt, options: item.options.slice(), answer: item.answer, display: item.options[item.answer],
       value: null, inputs: {}, solution: [item.explanation], shortcut: item.tip || topicOf(topic).tip, chart: null, table: null, passage: passage ? { id: passage.id, title: passage.title, text: passage.text } : null };
   }
-  function verbalPool(topic, level, r) {
-    const b = bank();
-    if (topic === 'reading') return shuffle(r, b.PASSAGES).sort((x, y) => (y.level === level) - (x.level === level));
-    return shuffle(r, b.ITEMS.filter(i => i.topic === topic)).sort((x, y) => (y.level === level) - (x.level === level));
+  /* Items at the wanted level come first, then the rest of the band (for mixed sets), then anything else. */
+  function verbalPool(topic, level, r, band = [level]) {
+    const b = bank(), rank = x => x.level === level ? 2 : band.includes(x.level) ? 1 : 0;
+    return shuffle(r, topic === 'reading' ? b.PASSAGES : b.ITEMS.filter(i => i.topic === topic)).sort((x, y) => rank(y) - rank(x));
   }
 
   /* ---------- Topic → question kinds by level ---------- */
+  /* Advanced and Expert lean on the new kinds; an older kind listed there runs with its Hard settings. */
   const KINDS = {
-    percent: { easy: ['pct-of', 'pct-successive', 'pct-reverse'], medium: ['pct-successive', 'pct-reverse', 'pct-compound', 'pct-of'], hard: ['pct-compound', 'pct-reverse', 'pct-successive', 'pct-of'] },
-    profit: { easy: ['pl-percent', 'pl-cp'], medium: ['pl-markup', 'pl-cp', 'pl-percent'], hard: ['pl-target', 'pl-weight', 'pl-markup'] },
-    interest: { easy: ['si'], medium: ['si-rate', 'ci', 'si'], hard: ['ci', 'ci-si-diff', 'si-rate'] },
-    ratio: { easy: ['ratio-share', 'prop-direct'], medium: ['ratio-chain', 'prop-inverse', 'ratio-share'], hard: ['ratio-age', 'ratio-chain', 'prop-inverse'] },
-    average: { easy: ['avg-add'], medium: ['avg-replace', 'alligation', 'avg-add'], hard: ['alligation-qty', 'avg-replace', 'alligation'] },
-    work: { easy: ['work-together', 'work-wages'], medium: ['work-together', 'work-leave', 'work-wages'], hard: ['work-three', 'work-leave', 'work-efficiency'] },
-    pipes: { easy: ['pipes-net'], medium: ['pipes-net', 'pipes-leak'], hard: ['pipes-three', 'pipes-leak'] },
-    speed: { easy: ['train-pole', 'avg-speed'], medium: ['train-platform', 'train-cross', 'avg-speed', 'boat'], hard: ['train-cross', 'boat', 'avg-speed'] },
-    number: { easy: ['lcm-bells', 'divisible', 'remainder-divisor'], medium: ['hcf-lcm', 'divisible', 'unit-digit', 'lcm-bells'], hard: ['remainder-power', 'unit-digit', 'divisible', 'hcf-lcm'] },
-    pnc: { easy: ['pnc-word', 'pnc-handshake'], medium: ['pnc-committee', 'pnc-circle', 'pnc-word'], hard: ['pnc-atleast', 'pnc-together', 'pnc-vowels', 'pnc-word'] },
-    probability: { easy: ['prob-dice', 'prob-coins', 'prob-balls'], medium: ['prob-cards', 'prob-balls', 'prob-dice', 'prob-coins'], hard: ['prob-balls', 'prob-cards', 'prob-dice'] },
-    di: { easy: ['di-average', 'di-share'], medium: ['di-growth', 'di-share', 'di-average'], hard: ['di-change', 'di-growth', 'di-share'] },
-    series: { easy: ['series-number', 'series-letter'], medium: ['series-number', 'series-letter'], hard: ['series-number', 'series-letter'] },
-    coding: { easy: ['code-shift', 'code-sum'], medium: ['code-shift', 'code-sum'], hard: ['code-shift', 'code-sum'] },
-    blood: { easy: ['blood'], medium: ['blood'], hard: ['blood'] },
-    direction: { easy: ['dir-distance', 'dir-facing'], medium: ['dir-distance', 'dir-facing'], hard: ['dir-distance', 'dir-facing'] },
-    seating: { easy: ['seating'], medium: ['seating'], hard: ['seating'] },
-    syllogism: { easy: ['syllogism'], medium: ['syllogism'], hard: ['syllogism'] },
-    odd: { easy: ['odd-number', 'odd-letters'], medium: ['odd-number', 'odd-letters'], hard: ['odd-number', 'odd-letters'] }
+    percent: { easy: ['pct-of', 'pct-successive', 'pct-reverse'], medium: ['pct-successive', 'pct-reverse', 'pct-compound', 'pct-of'], hard: ['pct-compound', 'pct-reverse', 'pct-successive', 'pct-of'],
+      advanced: ['pct-expense', 'pct-exam', 'pct-compound'], expert: ['pct-voters', 'pct-expense', 'pct-exam'] },
+    profit: { easy: ['pl-percent', 'pl-cp'], medium: ['pl-markup', 'pl-cp', 'pl-percent'], hard: ['pl-target', 'pl-weight', 'pl-markup'],
+      advanced: ['pl-free', 'pl-two-items', 'pl-target'], expert: ['pl-dishonest', 'pl-two-items', 'pl-free'] },
+    interest: { easy: ['si'], medium: ['si-rate', 'ci', 'si'], hard: ['ci', 'ci-si-diff', 'si-rate'],
+      advanced: ['ci-two-amounts', 'ci-si-diff', 'ci'], expert: ['ci-instalment', 'ci-si-diff3', 'ci-two-amounts'] },
+    ratio: { easy: ['ratio-share', 'prop-direct'], medium: ['ratio-chain', 'prop-inverse', 'ratio-share'], hard: ['ratio-age', 'ratio-chain', 'prop-inverse'],
+      advanced: ['ratio-coins', 'ratio-age', 'ratio-partnership'], expert: ['ratio-partnership', 'ratio-coins'] },
+    average: { easy: ['avg-add'], medium: ['avg-replace', 'alligation', 'avg-add'], hard: ['alligation-qty', 'avg-replace', 'alligation'],
+      advanced: ['avg-wrong', 'mix-replace', 'alligation-qty'], expert: ['mix-vessels', 'mix-replace', 'avg-wrong'] },
+    work: { easy: ['work-together', 'work-wages'], medium: ['work-together', 'work-leave', 'work-wages'], hard: ['work-three', 'work-leave', 'work-efficiency'],
+      advanced: ['work-mdh', 'work-alternate', 'work-efficiency'], expert: ['work-men-women', 'work-alternate', 'work-mdh'] },
+    pipes: { easy: ['pipes-net'], medium: ['pipes-net', 'pipes-leak'], hard: ['pipes-three', 'pipes-leak'],
+      advanced: ['pipes-close', 'pipes-three', 'pipes-leak'], expert: ['pipes-capacity', 'pipes-close'] },
+    speed: { easy: ['train-pole', 'avg-speed'], medium: ['train-platform', 'train-cross', 'avg-speed', 'boat'], hard: ['train-cross', 'boat', 'avg-speed'],
+      advanced: ['speed-late', 'boat-find', 'train-cross'], expert: ['speed-circle', 'speed-late', 'boat-find'] },
+    number: { easy: ['lcm-bells', 'divisible', 'remainder-divisor'], medium: ['hcf-lcm', 'divisible', 'unit-digit', 'lcm-bells'], hard: ['remainder-power', 'unit-digit', 'divisible', 'hcf-lcm'],
+      advanced: ['number-zeros', 'number-factors', 'remainder-power'], expert: ['number-crt', 'number-factors', 'number-zeros'] },
+    pnc: { easy: ['pnc-word', 'pnc-handshake'], medium: ['pnc-committee', 'pnc-circle', 'pnc-word'], hard: ['pnc-atleast', 'pnc-together', 'pnc-vowels', 'pnc-word'],
+      advanced: ['pnc-not-together', 'pnc-digits', 'pnc-vowels'], expert: ['pnc-distribute', 'pnc-digits', 'pnc-not-together'] },
+    probability: { easy: ['prob-dice', 'prob-coins', 'prob-balls'], medium: ['prob-cards', 'prob-balls', 'prob-dice', 'prob-coins'], hard: ['prob-balls', 'prob-cards', 'prob-dice'],
+      advanced: ['prob-two-bags', 'prob-solve', 'prob-balls'], expert: ['prob-bayes', 'prob-two-cards', 'prob-solve'] },
+    di: { easy: ['di-average', 'di-share'], medium: ['di-growth', 'di-share', 'di-average'], hard: ['di-change', 'di-growth', 'di-share'],
+      advanced: ['di-max-growth', 'di-change', 'di-share-change'], expert: ['di-share-change', 'di-required', 'di-max-growth'] },
+    series: { easy: ['series-number', 'series-letter'], medium: ['series-number', 'series-letter'], hard: ['series-number', 'series-letter'],
+      advanced: ['series-number', 'series-wrong'], expert: ['series-number', 'series-wrong'] },
+    coding: { easy: ['code-shift', 'code-sum'], medium: ['code-shift', 'code-sum'], hard: ['code-shift', 'code-sum'],
+      advanced: ['code-ops', 'code-shift'], expert: ['code-words', 'code-ops'] },
+    blood: { easy: ['blood'], medium: ['blood'], hard: ['blood'], advanced: ['blood-coded', 'blood'], expert: ['blood-coded'] },
+    direction: { easy: ['dir-distance', 'dir-facing'], medium: ['dir-distance', 'dir-facing'], hard: ['dir-distance', 'dir-facing'],
+      advanced: ['dir-shadow', 'dir-distance'], expert: ['dir-points', 'dir-shadow'] },
+    seating: { easy: ['seating'], medium: ['seating'], hard: ['seating'], advanced: ['seating-circle', 'seating'], expert: ['floors', 'seating-circle'] },
+    syllogism: { easy: ['syllogism'], medium: ['syllogism'], hard: ['syllogism'], advanced: ['syllogism-possible', 'syllogism'], expert: ['syllogism-possible'] },
+    odd: { easy: ['odd-number', 'odd-letters'], medium: ['odd-number', 'odd-letters'], hard: ['odd-number', 'odd-letters'], advanced: ['odd-pairs', 'odd-number'], expert: ['odd-pairs', 'odd-letters'] }
   };
   const levelId = l => LEVEL_IDS.includes(l) ? l : 'medium';
+  const CORE_KINDS = new Set(['easy', 'medium', 'hard'].flatMap(l => Object.values(KINDS).flatMap(k => k[l])).filter(k => k !== 'series-number'));
 
   function generate(topic, level, rand, kind) {
     if (!topicOf(topic)) throw new Error('Unknown topic: ' + topic);
@@ -910,7 +1570,9 @@
     }
     kind = kind || pick(rand, KINDS[topic][level]);
     if (!B[kind]) throw new Error('Unknown kind: ' + kind);
-    return B[kind](rand, { topic, kind, level });
+    const asHard = CORE_KINDS.has(kind) && !MIXES.mixed.includes(level), q = B[kind](rand, { topic, kind, level: asHard ? 'hard' : level });
+    q.level = level;
+    return q;
   }
 
   /* A set of questions for the chosen topics, balanced across them. Reading passages bring all their questions together. */
@@ -919,9 +1581,9 @@
     if (!chosen.length) throw new Error('Choose at least one topic.');
     const rand = rng(seed), order = shuffle(rand, chosen), seen = new Set(), out = [], pools = {};
     for (let i = 0; out.length < count; i++) {
-      const topic = order[i % order.length], lv = level === 'mixed' ? pick(rand, LEVEL_IDS) : levelId(level);
+      const topic = order[i % order.length], lv = MIXES[level] ? pick(rand, MIXES[level]) : levelId(level);
       if (VERBAL.includes(topic)) {
-        if (!pools[topic] || !pools[topic].length) pools[topic] = verbalPool(topic, lv, rand);
+        if (!pools[topic] || !pools[topic].length) pools[topic] = verbalPool(topic, lv, rand, MIXES[level] || [lv]);
         if (!pools[topic].length) throw new Error('No verbal questions for ' + topic);
         const item = pools[topic].shift();
         if (topic === 'reading') for (const q of item.questions.slice(0, count - out.length)) out.push(fromItem(q, topic, item));
@@ -961,6 +1623,6 @@
     return ranked.length && ranked[0].accuracy < 1 ? ranked[0] : null;
   }
 
-  const api = { LEVELS, LEVEL_IDS, SECTIONS, TOPICS, TOPIC_IDS, KINDS, topicOf, rng, generate, buildSet, buildTest, score, summarise, weakest, median, fmt, bank, relationOf, holds, perms };
+  const api = { LEVELS, LEVEL_IDS, MIXES, SECTIONS, TOPICS, TOPIC_IDS, KINDS, topicOf, rng, generate, buildSet, buildTest, score, summarise, weakest, median, fmt, bank, relationOf, holds, perms };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AptitudeQuestions = api;
 })(this);
