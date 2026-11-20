@@ -81,3 +81,37 @@
 .apt-preset:hover{border-color:var(--green)}
 .apt-preset.chosen{border-color:var(--green);background:#f0f5e9;box-shadow:inset 0 0 0 1px var(--green)}
 @media (max-width:640px){.apt-preset-list{grid-template-columns:1fr}}
+
+/* Exam conditions, placement notices, shared papers and collecting results. */
+.apt-notices,.apt-papers{grid-column:1/-1}
+.apt-notice-list{list-style:none;padding:0;margin:10px 0;display:grid;gap:10px}
+.apt-notice-list li{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:#fff}
+.apt-notice-info{flex:1 1 260px;min-width:0}
+.apt-notice-info b,.apt-notice-info small{display:block;overflow-wrap:anywhere}
+.apt-notice-info small{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+.apt-notice-actions{display:flex;flex-wrap:wrap;gap:8px}
+.apt-notice-actions button{min-height:40px}
+.apt-setup label[for=aptPaperCode],.apt-noticeform>label{display:block;font-weight:600;font-size:13px;margin:10px 0 4px}
+.apt-setup input[type=text],.apt-setup input[type=number],.apt-collect textarea,.apt-send input[type=text],.apt-send textarea,.apt-predict input,.apt-brief input[type=text],#modalContent input[type=text]{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:400}
+.apt-collect textarea,.apt-send textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;overflow-wrap:anywhere}
+.apt-an-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(90px,130px) minmax(90px,130px);gap:10px;align-items:end;margin:8px 0}
+.apt-an-row .selfcheck{margin:0}
+.apt-an-row label{font-size:12px;font-weight:600;display:block}
+.apt-an-row .apt-error{grid-column:1/-1}
+.apt-error{color:#8a3a10;font-size:13px;margin:4px 0 0;min-height:0}
+.apt-error:empty{display:none}
+.apt-strict{padding:12px 0}
+.apt-left-note{background:#f6dcc8;color:#5e2c0b;border-radius:8px;padding:10px 14px;margin:0 0 14px;font-size:14px;line-height:1.5}
+.apt-warn{background:#f6dcc8;color:#5e2c0b;border-radius:8px;padding:12px 14px;line-height:1.5}
+.apt-brief,.apt-predict,.apt-exam,.apt-send,.apt-collect,.apt-ranking{max-width:860px;margin:16px 0}
+.apt-brief h2{font-size:18px;margin:18px 0 6px}
+.apt-facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:12px 0}
+.apt-facts dt{font-weight:700;font-size:13px}
+.apt-facts dd{margin:0;overflow-wrap:anywhere}
+.apt-rules{padding-left:20px;line-height:1.6}
+.apt-notes{line-height:1.6;padding-left:20px}
+.apt-rank td,.apt-rank th{font-variant-numeric:tabular-nums}
+.apt-exam p{margin:6px 0}
+#aptExamNote{margin:8px 0 0}
+#aptExamLeft{font-variant-numeric:tabular-nums}
+@media(max-width:560px){.apt-an-row{grid-template-columns:1fr 1fr}.apt-an-row .selfcheck{grid-column:1/-1}.apt-facts{grid-template-columns:1fr}.apt-notice-actions{width:100%}.apt-notice-actions button{flex:1 1 40%}}

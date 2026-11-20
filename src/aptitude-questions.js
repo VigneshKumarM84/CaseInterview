@@ -1597,11 +1597,11 @@
     }
     return out;
   }
-  /* A placement-style test: sections in the usual order, each with `perSection` questions. */
-  function buildTest({ sections = ['quant', 'logical', 'verbal'], perSection = 10, level = 'mixed', seed = Date.now() } = {}) {
+  /* A placement-style test: sections in the usual order, each with `perSection` questions, or the number in `counts` for that section (for example { quant: 20, verbal: 25 }). */
+  function buildTest({ sections = ['quant', 'logical', 'verbal'], perSection = 10, level = 'mixed', seed = Date.now(), counts = {} } = {}) {
     const chosen = SECTIONS.map(s => s.id).filter(s => sections.includes(s));
     if (!chosen.length) throw new Error('Choose at least one section.');
-    return chosen.flatMap((s, i) => buildSet({ topics: TOPICS.filter(t => t.section === s).map(t => t.id), level, count: perSection, seed: (Number(seed) + i * 7919) >>> 0 }));
+    return chosen.flatMap((s, i) => buildSet({ topics: TOPICS.filter(t => t.section === s).map(t => t.id), level, count: Number.isInteger(counts && counts[s]) && counts[s] > 0 ? counts[s] : perSection, seed: (Number(seed) + i * 7919) >>> 0 }));
   }
 
   /* Marks: +1 for a correct answer, −negative for a wrong one, 0 when unanswered. */
