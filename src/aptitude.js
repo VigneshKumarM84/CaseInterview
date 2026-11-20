@@ -86,7 +86,7 @@
     return `<div class="apt-table-wrap"><table class="apt-data"><caption>${esc(t.title)}</caption><thead><tr>${t.columns.map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r => `<tr>${r.map((v, i) => i ? `<td>${esc(A.fmt(v))}</td>` : `<th scope="row">${esc(v)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   function passageMarkup(p, open = true) {
-    return `<details class="apt-passage" ${open ? 'open' : ''}><summary>Passage: ${esc(p.title)}</summary>${p.text.split(/\n\s*\n/).map(x => `<p>${esc(x)}</p>`).join('')}</details>`;
+    return `<details class="apt-passage" ${open ? 'open' : ''}><summary>${open ? 'Passage' : 'Show the passage'}: ${esc(p.title)}</summary>${p.text.split(/\n\s*\n/).map(x => `<p>${esc(x)}</p>`).join('')}</details>`;
   }
   const stem = q => `${q.passage ? passageMarkup(q.passage) : ''}${q.table ? tableMarkup(q.table) : ''}${q.chart ? chartMarkup(q.chart) : ''}<p class="apt-prompt" id="aptPrompt">${esc(q.prompt)}</p>`;
   function optionsMarkup(q, chosen, reveal) {
@@ -290,8 +290,8 @@
     const s = A.score(run.questions, run.answers, run.negative);
     const entry = { id: run.id, at: Date.now(), mode: 'test', level: run.level, sections: run.sections, perSection: run.perSection, pace: run.pace, timing: run.timing, negative: run.negative, auto: !!auto,
       score: s.score, correct: s.correct, wrong: s.wrong, unanswered: s.unanswered, total: s.total, elapsed: Math.round(run.elapsed / 1000),
-      results: run.questions.map((q, i) => ({ topic: q.topic, ok: run.answers[i] === q.answer, answered: run.answers[i] != null, seconds: Math.round(run.seconds[i] * 10) / 10 })) };
-    record(entry, { mode: 'test', auto: !!auto, level: run.level, sections: run.sections, perSection: run.perSection, negative: run.negative, timing: run.timing, pace: run.pace, elapsed: run.elapsed, score: s, items: run.questions.map((q, i) => ({ q, choice: run.answers[i], seconds: run.seconds[i], marked: run.marked[i] })) });
+      results: run.questions.map((q, i) => ({ topic: q.topic, ok: run.answers[i] === q.answer, answered: run.answers[i] != null, visited: !!run.visited[i], seconds: Math.round(run.seconds[i] * 10) / 10 })) };
+    record(entry, { mode: 'test', auto: !!auto, level: run.level, sections: run.sections, perSection: run.perSection, negative: run.negative, timing: run.timing, pace: run.pace, elapsed: run.elapsed, score: s, items: run.questions.map((q, i) => ({ q, choice: run.answers[i], seconds: run.seconds[i], marked: run.marked[i], visited: !!run.visited[i] })) });
   }
   function timeUp() {
     if (run.timing === 'sectional' && run.sectionIndex < run.sections.length - 1) {
@@ -317,30 +317,40 @@
     history.push(entry); history = history.slice(-MAX_HISTORY); save(HISTORY_KEY, history);
     run = null; persist(); lastResult = { ...res, entry }; renderResults(lastResult);
   }
+  function tally(res) {
+    const t = { right: 0, wrong: 0, skipped: 0, unreached: 0 };
+    for (const x of res.items) t[A.outcome(x, res.mode)]++;
+    return t;
+  }
+  const unansweredLabel = o => o === 'unreached' ? 'Not reached' : o === 'skipped' ? 'Skipped' : 'Not answered';
   function summaryText(res) {
-    const e = res.entry, head = res.mode === 'test'
-      ? `Timed test · ${levelTitle(res.level)} · ${res.timing === 'sectional' ? 'sectional timer' : 'one timer'} · negative marking ${negLabel(res.negative)}${res.auto ? ' · auto-submitted when time ran out' : ''}\nScore: ${marks(e.score)} / ${e.total} (${e.correct} correct, ${e.wrong} wrong, ${e.unanswered} unanswered)\nTime used: ${clock(Math.round(res.elapsed / 1000))}`
+    const e = res.entry, tl = tally(res), head = res.mode === 'test'
+      ? `Timed test · ${levelTitle(res.level)} · ${res.timing === 'sectional' ? 'sectional timer' : 'one timer'} · negative marking ${negLabel(res.negative)}${res.auto ? ' · auto-submitted when time ran out' : ''}\nScore: ${marks(e.score)} / ${e.total} (${tl.right} correct, ${tl.wrong} wrong, ${tl.skipped} skipped, ${tl.unreached} not reached)\nTime used: ${clock(Math.round(res.elapsed / 1000))}`
       : `Topic practice · ${levelTitle(res.level)}\nScore: ${e.correct} / ${e.total}`;
-    return `CASE ROOM — PLACEMENT APTITUDE\n${new Date(e.at).toLocaleString()}\n${head}\n\n` + res.items.map(({ q, choice, seconds: t }, i) =>
-      `${i + 1}. [${sectionOf(q.section).title} · ${topicOf(q.topic).title}]${q.passage ? ` (passage: ${q.passage.title})` : ''}\n${q.prompt}\n${q.options.map((o, j) => `   ${LETTERS[j]}. ${o}`).join('\n')}\n   ${choice == null ? 'Not answered' : `You chose ${LETTERS[choice]} — ${choice === q.answer ? 'correct' : 'incorrect'}`} · time ${seconds(t)}\n   Answer: ${LETTERS[q.answer]}. ${q.display}\n   Solution: ${q.solution.join(' → ')}`).join('\n\n') + '\n';
+    return `CASE ROOM — PLACEMENT APTITUDE\n${new Date(e.at).toLocaleString()}\n${head}\n\n` + res.items.map(({ q, choice, seconds: t, visited }, i) =>
+      `${i + 1}. [${sectionOf(q.section).title} · ${topicOf(q.topic).title}]${q.passage ? ` (passage: ${q.passage.title})` : ''}\n${q.prompt}\n${q.options.map((o, j) => `   ${LETTERS[j]}. ${o}`).join('\n')}\n   ${choice == null ? unansweredLabel(res.mode === 'test' ? A.outcome({ q, choice, seconds: t, visited }, 'test') : 'wrong') : `You chose ${LETTERS[choice]} — ${choice === q.answer ? 'correct' : 'incorrect'}`} · time ${seconds(t)}\n   Answer: ${LETTERS[q.answer]}. ${q.display}\n   Solution: ${q.solution.join(' → ')}`).join('\n\n') + '\n';
   }
   function renderResults(res) {
     pause(); stopMedia(); view = 'aptitude'; screen = 'results'; window.scrollTo(0, 0);
-    const e = res.entry, items = res.items, answered = items.filter(x => x.choice != null), missed = items.filter(x => x.choice !== x.q.answer);
-    const times = items.map(x => x.seconds).filter(fin), avg = times.length ? times.reduce((s, x) => s + x, 0) / times.length : null;
+    const e = res.entry, items = res.items, answered = items.filter(x => x.choice != null), tl = tally(res), isTest = res.mode === 'test',
+      wrongOnes = items.filter(x => A.outcome(x, res.mode) === 'wrong'), leftOnes = items.filter(x => ['skipped', 'unreached'].includes(A.outcome(x, res.mode))), toReview = wrongOnes.length + leftOnes.length;
+    const times = answered.map(x => x.seconds).filter(fin), avg = times.length ? times.reduce((s, x) => s + x, 0) / times.length : null;
     const byTopic = A.TOPICS.map(t => ({ t, list: items.filter(x => x.q.topic === t.id) })).filter(x => x.list.length);
     const weak = A.weakest(A.summarise(history));
     const headline = res.mode === 'test' ? `Score ${marks(e.score)} / ${e.total}` : `${e.correct} of ${e.total} correct`;
     $('#app').innerHTML = `<div class="eyebrow">${res.mode === 'test' ? `TEST SUBMITTED${res.auto ? ' · TIME RAN OUT' : ''}` : 'PRACTICE COMPLETE'} · ${esc(levelTitle(res.level).toUpperCase())}</div><h1 class="drill-title" id="aptHeadline">${headline}</h1>
       ${res.mode === 'test' ? `<p class="note">${e.correct} correct × 1${res.negative ? ` − ${e.wrong} wrong × ${negLabel(res.negative).slice(1)}` : ''} = ${marks(e.score)}. Unanswered questions score 0.</p>` : ''}
-      <div class="score-grid"><div><div class="metric">${percent(answered.length ? answered.filter(x => x.choice === x.q.answer).length / answered.length : null)}</div><span class="note">Accuracy (of attempted)</span></div><div><div class="metric">${answered.length}/${items.length}</div><span class="note">Attempted</span></div><div><div class="metric">${seconds(avg)}</div><span class="note">Average time per question</span></div><div><div class="metric">${res.mode === 'test' ? clock(Math.round(res.elapsed / 1000)) : missed.length}</div><span class="note">${res.mode === 'test' ? 'Time used' : 'To review'}</span></div></div>
-      <section class="panel drill-results apt-results"><h2>By topic</h2><div class="apt-table-wrap"><table class="drill-table"><thead><tr><th scope="col">Topic</th><th scope="col">Correct</th><th scope="col">Avg time</th></tr></thead><tbody>${byTopic.map(({ t, list }) => { const ts = list.map(x => x.seconds).filter(fin); return `<tr><th scope="row">${esc(t.title)}<small>${esc(sectionOf(t.section).title)}</small></th><td>${list.filter(x => x.choice === x.q.answer).length}/${list.length}</td><td>${seconds(ts.length ? ts.reduce((s, x) => s + x, 0) / ts.length : null)}</td></tr>`; }).join('')}</tbody></table></div>
+      <div class="score-grid"><div><div class="metric">${percent(answered.length ? answered.filter(x => x.choice === x.q.answer).length / answered.length : null)}</div><span class="note">Accuracy (of attempted)</span></div><div><div class="metric">${answered.length}/${items.length}</div><span class="note">Attempted</span></div><div><div class="metric">${seconds(avg)}</div><span class="note">Average time per attempted question</span></div><div><div class="metric">${isTest ? clock(Math.round(res.elapsed / 1000)) : toReview}</div><span class="note">${isTest ? 'Time used' : 'To review'}</span></div></div>
+      ${isTest ? `<div class="score-grid" id="aptCounts"><div><div class="metric" id="aptCntRight">${tl.right}</div><span class="note">Correct</span></div><div><div class="metric" id="aptCntWrong">${tl.wrong}</div><span class="note">Wrong</span></div><div><div class="metric" id="aptCntSkipped">${tl.skipped}</div><span class="note">Skipped (seen, not answered)</span></div><div><div class="metric" id="aptCntUnreached">${tl.unreached}</div><span class="note">Not reached</span></div></div>` : ''}
+      <section class="panel drill-results apt-results"><h2>By topic</h2><div class="apt-table-wrap"><table class="drill-table"><thead><tr><th scope="col">Topic</th><th scope="col">Accuracy (of attempted)</th><th scope="col">Attempted</th><th scope="col">Avg time per attempted</th></tr></thead><tbody>${byTopic.map(({ t, list }) => { const att = list.filter(x => x.choice != null), right = att.filter(x => x.choice === x.q.answer).length, ts = att.map(x => x.seconds).filter(fin); return `<tr><th scope="row">${esc(t.title)}<small>${esc(sectionOf(t.section).title)}</small></th><td>${att.length ? `${right}/${att.length} (${percent(right / att.length)})` : '—'}</td><td>${att.length} of ${list.length}</td><td>${seconds(ts.length ? ts.reduce((s, x) => s + x, 0) / ts.length : null)}</td></tr>`; }).join('')}</tbody></table></div>
       ${weakMarkup(weak)}
-      <h2>Every question</h2>${items.map(({ q, choice, seconds: t, marked }, i) => { const ok = choice === q.answer; return `<details class="drill-review ${ok ? 'ok' : 'miss'}" ${ok ? '' : 'open'}><summary><span>${ok ? '✓' : choice == null ? '–' : '✗'}</span> ${i + 1}. ${esc(topicOf(q.topic).title)}${marked ? ' ★' : ''} <small class="note">${seconds(t)}</small></summary>
+      <h2>Every question</h2>${items.map(({ q, choice, seconds: t, marked, visited }, i) => { const ok = choice === q.answer; return `<details class="drill-review ${ok ? 'ok' : 'miss'}" ${ok ? '' : 'open'}><summary><span>${ok ? '✓' : choice == null ? '–' : '✗'}</span> ${i + 1}. ${esc(topicOf(q.topic).title)}${marked ? ' ★' : ''} <small class="note">${seconds(t)}</small></summary>
         ${q.passage ? passageMarkup(q.passage, false) : ''}${q.table ? tableMarkup(q.table) : ''}${q.chart ? chartMarkup(q.chart) : ''}<p class="apt-prompt">${esc(q.prompt)}</p>${optionsMarkup(q, choice, true)}
-        <p>${choice == null ? 'Not answered.' : `You chose <b>${LETTERS[choice]}</b>.`} Answer: <b>${LETTERS[q.answer]}. ${esc(q.display)}</b></p>${solutionMarkup(q)}</details>`; }).join('')}
-      <div class="actions">${missed.length ? `<button class="primary" id="aptRetry">Retry the ${missed.length} I missed</button>` : ''}<button ${missed.length ? '' : 'class="primary"'} id="aptAgain">${res.mode === 'test' ? 'New test, same settings' : 'New practice, same settings'}</button><button id="aptBack">Aptitude home</button><button id="aptDownload">Download summary</button></div></section>`;
-    if ($('#aptRetry')) $('#aptRetry').onclick = () => beginPractice(missed.map(x => JSON.parse(JSON.stringify(x.q))), 'retry', A.MIXES[res.level] ? A.MIXES[res.level][1] : res.level);
+        <p>${choice == null ? unansweredLabel(isTest ? A.outcome({ q, choice, seconds: t, visited }, 'test') : 'wrong') + '.' : `You chose <b>${LETTERS[choice]}</b>.`} Answer: <b>${LETTERS[q.answer]}. ${esc(q.display)}</b></p>${solutionMarkup(q)}</details>`; }).join('')}
+      <div class="actions">${wrongOnes.length ? `<button class="primary" id="aptRetry">Retry the ${wrongOnes.length} I got wrong</button>` : ''}${leftOnes.length ? `<button ${wrongOnes.length ? '' : 'class="primary"'} id="aptLeft">Attempt the ${leftOnes.length} I left unanswered</button>` : ''}<button ${wrongOnes.length || leftOnes.length ? '' : 'class="primary"'} id="aptAgain">${res.mode === 'test' ? 'New test, same settings' : 'New practice, same settings'}</button><button id="aptBack">Aptitude home</button><button id="aptDownload">Download summary</button></div></section>`;
+    const retrySet = list => beginPractice(list.map(x => JSON.parse(JSON.stringify(x.q))), 'retry', A.MIXES[res.level] ? A.MIXES[res.level][1] : res.level);
+    if ($('#aptRetry')) $('#aptRetry').onclick = () => retrySet(wrongOnes);
+    if ($('#aptLeft')) $('#aptLeft').onclick = () => retrySet(leftOnes);
     $('#aptAgain').onclick = () => res.mode === 'test' ? beginTest(res.sections ? { sections: res.sections, perSection: res.perSection } : {}) : beginPractice(A.buildSet({ topics: prefs.topics[prefs.section], level: prefs.level, count: prefs.count, seed: Date.now() }), 'new', prefs.level);
     $('#aptBack').onclick = renderHome;
     $('#aptDownload').onclick = () => download(summaryText(res), `case-room-aptitude-${new Date(e.at).toISOString().slice(0, 10)}.txt`);

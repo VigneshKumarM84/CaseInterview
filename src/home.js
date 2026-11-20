@@ -53,7 +53,7 @@
     $('#app').innerHTML = `<section class="home-hero">
         <div><div class="eyebrow">CAMPUS PLACEMENT PRACTICE</div>
           <h1>Get ready for your <em>next round.</em></h1>
-          <p class="lead">Practise each round of a campus placement, from résumé shortlisting to the HR interview. Free, works offline, nothing to sign up for.</p>
+          <p class="lead">Practise each round of a campus placement, from résumé shortlisting to the HR interview. Free, no account, and your answers stay in this browser.</p>
           <div class="actions"><button class="primary" id="homePlan">Plan my prep →</button></div>
           <p class="note">Tell us your next round and how long you have. You get a short plan to start right away.</p></div>
         ${todo.length ? `<section class="home-continue" aria-labelledby="homeContinueTitle"><h2 id="homeContinueTitle">Continue where you left off</h2><ul>${todo.map(t => `<li><button class="home-continue-item" data-continue="${t.id}"><span class="eyebrow">${esc(t.label)}</span><b>${esc(t.title)}</b><span class="note">${esc(t.detail)}</span><span class="home-go" aria-hidden="true">→</span></button></li>`).join('')}</ul></section>`
@@ -64,7 +64,7 @@
         <ol class="round-tiles">${ROUNDS.map(r => `<li><button class="round-tile" data-round="${r.id}" id="round-${r.id}"><span class="round-n" aria-hidden="true">${r.n}</span><b>${esc(r.title)}</b>${r.tag ? `<span class="round-tag">${esc(r.tag)}</span>` : ''}<span class="note">${esc(r.text)}</span><span class="home-go" aria-hidden="true">→</span></button></li>`).join('')}</ol>
         <p class="note home-technical">Technical or coding round? Case Room does not cover it. <button class="wu-link" id="homeTechnical">See what you can still practise here</button></p>
       </section>
-      <p class="home-foot note">Free · works offline · your answers stay in this browser · optional AI feedback with your own key</p>`;
+      <p class="home-foot note">Free · no account · your answers stay in this browser · dictation may use your browser’s online speech service · optional AI feedback sends your answers to the provider you choose</p>`;
     $('#homePlan').onclick = () => NextRoundTool.open();
     $('#homeTechnical').onclick = () => NextRoundTool.open('technical');
     document.querySelectorAll('[data-round]').forEach(b => b.onclick = () => ROUNDS.find(r => r.id === b.dataset.round).open());

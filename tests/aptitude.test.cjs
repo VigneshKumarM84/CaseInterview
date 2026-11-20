@@ -409,7 +409,8 @@ test('a full timed test: palette, mark for review, negative marking and auto-sub
     assert.equal(f.w.localStorage.getItem('cr-aptitude-run'), 'null');
     assert.equal(doc(f).querySelectorAll('.drill-review').length, 5); assert(doc(f).querySelector('.drill-review.miss .drill-steps li'), 'missed questions show the worked solution');
     f.$('aptDownload').click();
-    f.$('aptRetry').click(); assert.equal(state(f).run.mode, 'practice'); assert.equal(state(f).run.questions.length, 3, 'retry the wrong and unanswered ones'); assert.equal(state(f).run.origin, 'retry');
+    assert.deepEqual([...doc(f).querySelectorAll('.actions .primary')].map(x => x.id), ['aptRetry']);
+    f.$('aptRetry').click(); assert.equal(state(f).run.mode, 'practice'); assert.equal(state(f).run.questions.length, 1, 'retry only the wrong answer'); assert.equal(state(f).run.origin, 'retry');
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
@@ -541,4 +542,102 @@ test('presets use only settings the timed test offers, and picking one fills the
     assert(run.questions.every(q => ['hard', 'advanced', 'expert'].includes(q.level)));
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
+});
+
+test('timed-test results separate wrong, skipped and not reached, and average time covers attempted questions only', () => {
+  const f = fixture(); try {
+    setupTest(f, { per: '30', pace: '36', negative: '0' });
+    const qs = state(f).run.questions; assert.equal(qs.length, 30);
+    choose(f, qs[0].answer); advance(f, 12000);
+    f.$('aptNextQ').click(); advance(f, 5000); // visited, left unanswered
+    f.$('aptSubmit').click();
+    assert.equal(state(f).screen, 'results');
+    const n = id => Number(f.$(id).textContent);
+    assert.deepEqual([n('aptCntRight'), n('aptCntWrong'), n('aptCntSkipped'), n('aptCntUnreached')], [1, 0, 1, 28]);
+    const grid = doc(f).querySelector('.score-grid'), tiles = [...grid.children].map(d => d.textContent);
+    const avg = tiles.find(t => t.includes('Average time'));
+    assert(avg.includes('per attempted question') && !avg.startsWith('0s') && !avg.startsWith('—'), avg);
+    const buttons = [...doc(f).querySelectorAll('.actions button')].map(b => b.textContent);
+    assert(!buttons.some(t => t.includes('I missed')), buttons.join('|'));
+    assert(!f.$('aptRetry'), 'nothing was answered wrongly');
+    assert(f.$('aptLeft').textContent.includes('29'), f.$('aptLeft').textContent);
+    assert.deepEqual([...doc(f).querySelectorAll('.actions .primary')].map(x => x.id), ['aptLeft']);
+    const touched = qs[0].topic, rows = [...doc(f).querySelectorAll('.drill-table tbody tr')];
+    const untouched = rows.filter(r => !r.querySelector('th').textContent.startsWith(A.topicOf(touched).title));
+    assert(untouched.length, 'some topics were never attempted');
+    for (const r of untouched) { const cells = [...r.querySelectorAll('td')].map(c => c.textContent); assert.equal(cells[0], '—'); assert.equal(cells[2], '—'); assert(/^0 of \d+$/.test(cells[1]), cells[1]); }
+    f.$('aptDownload').click();
+    f.$('aptLeft').click(); assert.equal(state(f).run.mode, 'practice'); assert.equal(state(f).run.questions.length, 29); assert.equal(state(f).run.origin, 'retry');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('a timed test with wrong answers offers both retry buttons; the text summary lists the three states', () => {
+  const f = fixture(); try {
+    setupTest(f, { per: '5', pace: '36', negative: '0' });
+    const qs = state(f).run.questions;
+    choose(f, (qs[0].answer + 1) % 4); f.$('aptNextQ').click(); advance(f, 3000); f.$('aptNextQ').click();
+    f.$('aptSubmit').click();
+    assert.deepEqual([...doc(f).querySelectorAll('.actions .primary')].map(x => x.id), ['aptRetry']);
+    assert(f.$('aptRetry').textContent.includes('1 I got wrong')); assert(f.$('aptLeft').textContent.includes('4 I left unanswered'));
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('in the results review a reading passage stays collapsed and says how to show it; in the test it is open', () => {
+  const f = fixture(); try {
+    setupTest(f, { sections: ['verbal'], per: '30', pace: '36', negative: '0' });
+    const run = state(f).run, at = run.questions.findIndex(q => q.passage); assert(at >= 0, 'a 30-question verbal test includes reading passages');
+    doc(f).querySelector(`[data-go="${at}"]`).click(); assert(doc(f).querySelector('.apt-passage[open] summary').textContent.startsWith('Passage:'));
+    f.$('aptSubmit').click();
+    const d = doc(f).querySelector('.drill-review .apt-passage'); assert(d && !d.open, 'collapsed in the review');
+    assert(d.querySelector('summary').textContent.startsWith('Show the passage: '), d.querySelector('summary').textContent);
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('A.outcome: practice counts a shown solution as a miss; older results without visited use time spent', () => {
+  const q = { answer: 2 };
+  assert.equal(A.outcome({ q, choice: 2 }, 'test'), 'right'); assert.equal(A.outcome({ q, choice: 1 }, 'test'), 'wrong');
+  assert.equal(A.outcome({ q, choice: null, seconds: 4 }, 'practice'), 'wrong');
+  assert.equal(A.outcome({ q, choice: null, seconds: 0, visited: true }, 'test'), 'skipped'); assert.equal(A.outcome({ q, choice: null, seconds: 9, visited: false }, 'test'), 'unreached');
+  assert.equal(A.outcome({ q, choice: null, seconds: 7 }, 'test'), 'skipped', 'legacy: time spent means it was seen');
+  assert.equal(A.outcome({ q, choice: null, seconds: 0 }, 'test'), 'unreached', 'legacy: no time means never reached');
+});
+
+test('count questions with an integer answer never offer a fractional option', () => {
+  let checked = 0; const bad = [];
+  each((q, topic, level, kind) => {
+    if (!/\bhow many\b/i.test(q.prompt) || !/^[\d,]+$/.test(q.display)) return;
+    checked++; for (const o of q.options) if (!/^[\d,]+$/.test(o)) bad.push(`${kind}/${level}: ${o} for "${q.prompt.slice(0, 60)}"`);
+  }, 200);
+  assert(checked > 500, 'the sweep covers many count questions: ' + checked); assert.deepEqual([...new Set(bad)].slice(0, 5), []);
+});
+
+test('seating questions never offer the person they ask about as an option', () => {
+  let asked = 0;
+  for (const level of A.LEVEL_IDS) for (const kind of new Set(A.KINDS.seating[level])) for (let s = 1; s <= 300; s++) {
+    const q = A.generate('seating', level, A.rng(s * 104729 + level.length), kind);
+    assert.equal(q.options.length, 4); assert.equal(new Set(q.options).size, 4);
+    const who = q.prompt.split('\n').pop().match(/(?:of|opposite) ([A-Z][a-z]+)\?$/);
+    if (!who) continue; asked++;
+    assert(!q.options.includes(who[1]), `${kind}/${level} seed ${s}: ${who[1]} offered in ${q.options.join(', ')}`);
+    assert.equal(q.options[q.answer], q.display);
+  }
+  assert(asked > 500, 'covers row and circular questions about a person: ' + asked);
+});
+
+test('the syllogism tip states which statements reverse', () => {
+  const q = A.generate('syllogism', 'medium', A.rng(5));
+  assert(q.shortcut.includes('“Some A are B” can be reversed to “Some B are A”') && q.shortcut.includes('neither can “Some A are not B”'), q.shortcut);
+});
+
+test('verbal explanations and tips never refer to an option by its position', () => {
+  const POSITION = /\b(first|second|third|fourth|last) (option|choice)\b|\boption [A-D]\b/i;
+  const LOOSE = /\b(first|second|third|fourth|last)( and (first|second|third|fourth|last))? (options|choices)\b|\bthe (first|second|third|last) (ignores|contradicts|goes|is)\b/i;
+  const texts = [];
+  for (const it of V.ITEMS) texts.push(it.explanation, it.tip);
+  for (const p of V.PASSAGES) for (const q of p.questions) texts.push(q.explanation, q.tip);
+  assert(texts.filter(Boolean).length > 100);
+  for (const t of texts.filter(Boolean)) { assert(!POSITION.test(t), t); assert(!LOOSE.test(t), t); }
 });

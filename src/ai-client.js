@@ -28,7 +28,7 @@
   }
   function slimSession(s){return {id:s.id,version:s.version,step:s.step,branch:s.branch,opened:s.opened,clarified:s.clarified,answers:s.answers,hints:s.hints,hint:s.hint,aiTurns:s.aiTurns,infoRequests:s.infoRequests};}
   async function request(action,s,extra={}) {
-    if(location.protocol==='file:')throw new Error('In-app AI needs the hosted Vercel site or the local server (npm start). Offline practice and copy-and-paste review still work.');
+    if(location.protocol==='file:')throw new Error('In-app AI needs the hosted Vercel site or the local server (npm start). Practice without AI and copy-and-paste review still work.');
     if(!enabled())throw new Error('Connect a provider, model and API key using AI settings first.');
     if(controller)throw new Error('An AI request is already running. Wait or cancel it.');
     const localController=new AbortController();controller=localController;const currentEpoch=epoch;
