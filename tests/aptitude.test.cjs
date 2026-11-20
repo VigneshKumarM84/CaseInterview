@@ -641,3 +641,394 @@ test('verbal explanations and tips never refer to an option by its position', ()
   assert(texts.filter(Boolean).length > 100);
   for (const t of texts.filter(Boolean)) { assert(!POSITION.test(t), t); assert(!LOOSE.test(t), t); }
 });
+
+/* ---------- Exam conditions, placement notices and shared papers (jsdom, faked time) ---------- */
+const E = require('../src/aptitude-exam.js');
+const setNow = (f, t) => f.run(`Date.now = () => ${t}`);
+const setVis = (f, v) => { Object.defineProperty(f.w.document, 'visibilityState', { value: v, configurable: true }); f.w.document.dispatchEvent(new f.w.Event('visibilitychange')); };
+const hide = f => setVis(f, 'hidden'), show = f => setVis(f, 'visible');
+const text = f => f.$('app').textContent;
+const toastText = f => f.$('toast').textContent;
+function prep(f, { sections = ['quant'], per = '5', pace = '36', negative = '1', timing = 'total', strict = true, nav = 'free' } = {}) {
+  f.$('aptitudeNav').click();
+  doc(f).querySelectorAll('[name=aptTestSection]').forEach(x => { x.checked = sections.includes(x.value); x.dispatchEvent(new f.w.Event('change', { bubbles: true })); });
+  pick(f, ['aptPer', per]); pick(f, ['aptPace', pace]); pick(f, ['aptNegative', negative]);
+  const t = doc(f).querySelector(`[name=aptTiming][value=${timing}]`); t.checked = true; t.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+  f.$('aptStrict').checked = strict; f.$('aptStrict').dispatchEvent(new f.w.Event('change', { bubbles: true })); pick(f, ['aptNav', nav]);
+}
+function strictTest(f, o = {}) { setNow(f, now(f)); prep(f, o); f.$('aptTest').click(); assert.equal(state(f).screen, 'brief', 'the brief comes first'); assert.equal(state(f).run, null, 'nothing runs before Start'); f.$('aptBegin').click(); return now(f); }
+const plain = x => JSON.parse(JSON.stringify(x));
+const GAP = /undefined|null|NaN|\[object/;
+const noGaps = f => { assert.doesNotMatch(text(f), GAP, text(f).slice(0, 200)); assert.doesNotMatch(f.$('app').innerHTML.replace(/<[^>]*>/g, ' '), GAP); };
+
+test('exam conditions: the brief comes first, the clock starts on Start, and there is no Save & exit', () => {
+  const f = fixture(); try {
+    let fs = 0; f.w.document.documentElement.requestFullscreen = () => { fs++; return Promise.reject(new Error('not allowed')); };
+    prep(f); assert(f.$('aptTestSummary').textContent.includes('Exam conditions'), 'the summary mentions exam conditions');
+    assert.equal(JSON.parse(f.w.localStorage.getItem('cr-aptitude-prefs')).strict, true);
+    const t0 = now(f); f.$('aptTest').click(); assert.equal(state(f).screen, 'brief'); noGaps(f);
+    for (const w of ['Timed test', 'Quantitative', 'Marking', 'Move freely between questions', 'The clock does not pause', 'guess your score']) assert(text(f).includes(w), w);
+    assert(doc(f).querySelector('#aptBrief table td').textContent === '5'); assert.equal(fs, 0, 'no full screen before Start');
+    setNow(f, t0 + 50000); f.$('aptBegin').click(); const run = state(f).run;
+    assert.deepEqual([run.strict, run.nav, run.left, run.away, run.clockAt], [true, 'free', 0, false, t0 + 50000], 'the clock starts at Start');
+    assert.equal(f.$('aptClock').textContent, '3:00 left'); assert.equal(f.$('aptPause'), null, 'no Save & exit'); assert(f.$('aptExamNote').textContent.includes('Exam conditions: the clock does not pause.')); assert.equal(f.$('aptLeftNote'), null);
+    assert.equal(fs, 1, 'full screen is requested once'); assert.equal(f.w.location.hash, '#aptitude');
+    f.$('aptitudeNav').click(); f.$('aptResume').click(); assert.equal(fs, 1, 'resuming does not ask again');
+    assert.deepEqual(f.errors, []);
+    const g = fixture(); try { prep(g, { strict: false }); g.$('aptTest').click(); assert.equal(state(g).screen, 'test', 'ordinary tests start at once'); assert(g.$('aptPause')); assert.equal(state(g).run.strict, undefined); } finally { g.dom.window.close(); }
+    const h = fixture(); try { h.$('aptitudeNav').click(); assert.equal(h.$('aptStrict').checked, false, 'off by default'); assert.equal(h.$('aptNav').value, 'free'); } finally { h.dom.window.close(); }
+  } finally { f.dom.window.close(); }
+});
+
+test('exam conditions: the clock keeps running on the home page and across a reload', () => {
+  const f = fixture(); let g; try {
+    const t0 = strictTest(f); choose(f, state(f).run.questions[0].answer);
+    setNow(f, t0 + 10000); f.run('Aptitude.tick()'); assert.equal(f.$('aptClock').textContent, '2:50 left');
+    f.$('aptitudeNav').click(); assert.equal(state(f).run.left, 1, 'going to another screen is a leave'); assert.equal(state(f).screen, 'home');
+    assert(f.$('aptResume').closest('section').textContent.includes('Exam in progress · 2:50 left · the clock is running'));
+    setNow(f, t0 + 70000); f.run('Aptitude.tick()'); assert(text(f).includes('Exam in progress · 1:50 left · the clock is running'), 'the figure follows the clock');
+    f.$('aptitudeNav').click(); assert(text(f).includes('1:50 left'), 'and is current when the page is drawn');
+    f.$('aptResume').click(); assert.equal(f.$('aptClock').textContent, '1:50 left');
+    const r = state(f).run; assert.deepEqual([r.left, r.awayMs, r.away, r.elapsed, r.seconds[0]], [1, 60000, false, 70000, 10], 'time away is not charged to the question');
+    assert.equal(f.$('aptLeftNote').textContent, 'You left the test 1 time, 1:00 away in total. The clock kept running.');
+    f.w.dispatchEvent(new f.w.Event('pagehide')); assert.equal(state(f).run.left, 2); assert.equal(state(f).run.away, true);
+    g = fixture({ url: 'https://case.example/#aptitude', storage: storage(f) }); setNow(g, t0 + 100000);
+    g.$('aptitudeNav').click(); assert(text(g).includes('Exam in progress · 1:20 left'), text(g).slice(0, 300)); assert.equal(state(g).run.left, 2, 'a reload that fired pagehide is counted once');
+    g.$('aptResume').click(); assert.equal(g.$('aptClock').textContent, '1:20 left'); assert.equal(state(g).run.awayMs, 90000); assert.equal(state(g).run.answers[0], state(f).run.answers[0]);
+    assert(g.$('aptLeftNote').textContent.includes('You left the test 2 times, 1:30 away in total.'));
+    assert.deepEqual([...f.errors, ...g.errors], []);
+  } finally { f.dom.window.close(); g?.dom.window.close(); }
+});
+
+test('exam conditions: a sectional absence that ends a section lands in the next one', () => {
+  const f = fixture(); try {
+    const t0 = strictTest(f, { sections: ['quant', 'verbal'], pace: '60', timing: 'sectional' }); assert.equal(f.$('aptClock').textContent, '5:00 left');
+    choose(f, state(f).run.questions[0].answer); setNow(f, t0 + 60000); hide(f);
+    assert.deepEqual([state(f).run.left, state(f).run.away], [1, true]);
+    setNow(f, t0 + 390000); f.run('Aptitude.tick()'); assert.equal(state(f).run.sectionIndex, 1, 'the clock moves on while away, without ending the test');
+    show(f); const r = state(f).run;
+    assert.deepEqual([r.sectionIndex, r.index, r.questions[r.index].section, r.away], [1, 5, 'verbal', false]); assert.equal(f.$('aptClock').textContent, '3:30 left', 'the next section had 1:30 used');
+    assert(toastText(f).includes('Time ran out for Quantitative while you were away') && toastText(f).includes('Verbal'), toastText(f));
+    assert.equal(f.$('aptLeftNote').textContent, 'You left the test 1 time, 5:30 away in total. The clock kept running.'); assert(!doc(f).querySelector('[data-go="0"]'), 'the finished section is locked');
+    assert.equal(r.answers[0], r.questions[0].answer, 'the answer given before leaving is kept');
+    f.$('aptitudeNav').click(); setNow(f, t0 + 390000 + 600000); f.$('aptitudeNav').click(); assert.equal(state(f).screen, 'predict', 'opening the tool after the end submits the test');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('exam conditions: an absence past the end submits on return and the result is saved before the guess', () => {
+  const f = fixture(); let g; try {
+    const t0 = strictTest(f); const qs = state(f).run.questions; choose(f, qs[0].answer); f.$('aptNextQ').click(); choose(f, qs[1].answer);
+    setNow(f, t0 + 20000); hide(f); setNow(f, t0 + 1000000); show(f);
+    assert.equal(state(f).run, null); assert.equal(state(f).screen, 'predict'); noGaps(f);
+    assert(toastText(f).includes('Time ran out while you were away. Your test was submitted.'));
+    const h = JSON.parse(f.w.localStorage.getItem('cr-aptitude-history')); assert.equal(h.length, 1, 'recorded before the predict screen');
+    assert.deepEqual([h[0].strict, h[0].left, h[0].auto, h[0].correct, h[0].elapsed], [true, 1, true, 2, 180]);
+    assert(text(f).includes('Before you see your score: how many of the 5 questions do you think you got right?'));
+    assert.equal(f.$('aptGuess').max, '5'); f.$('aptGuess').value = '7'; f.$('aptReveal').click(); assert.equal(state(f).screen, 'predict', 'a guess out of range is refused'); assert(f.$('aptGuessErr').textContent.includes('0 to 5'));
+    g = fixture({ url: 'https://case.example/#aptitude', storage: storage(f) });
+    assert.equal(state(g).screen, 'results', 'after a reload the student lands on the results directly'); assert.match(g.$('aptHeadline').textContent, /^Score [\d.]+ \/ 5$/); assert(g.$('aptExam')); assert(!text(g).includes('You guessed'));
+    g.$('aptBack').click(); assert.equal(g.$('aptResume'), null, 'nothing is left to resume'); assert.equal(JSON.parse(g.w.localStorage.getItem('cr-aptitude-run')), null, 'shown once, then cleared');
+    f.$('aptGuess').value = '4'; f.$('aptReveal').click(); assert.equal(state(f).screen, 'results'); assert.equal(f.w.localStorage.getItem('cr-aptitude-run'), 'null');
+    assert(doc(f).querySelector('.eyebrow').textContent.includes('TIME RAN OUT'));
+    assert.equal(f.$('aptExam').querySelectorAll('p')[0].textContent, 'You guessed 4 right. You got 2.');
+    assert(f.$('aptExam').textContent.includes('You left the test 1 time, 2:40 away in total') && f.$('aptExam').textContent.includes('time ran out'), f.$('aptExam').textContent);
+    noGaps(f);
+    assert.deepEqual([...f.errors, ...g.errors], []);
+  } finally { f.dom.window.close(); g?.dom.window.close(); }
+});
+
+test('exam conditions: leaving is counted once per absence, with a banner on return', () => {
+  const f = fixture(); try {
+    const t0 = strictTest(f); setNow(f, t0 + 5000); hide(f); hide(f); f.w.dispatchEvent(new f.w.Event('pagehide')); assert.equal(state(f).run.left, 1, 'hidden, hidden and pagehide are one absence');
+    f.$('aptitudeNav').click(); assert.equal(state(f).run.left, 1, 'nor does going to another screen while already away');
+    setNow(f, t0 + 17000); f.$('aptResume').click(); assert.equal(f.$('aptLeftNote').getAttribute('role'), 'status'); assert.equal(f.$('aptLeftNote').textContent, 'You left the test 1 time, 0:12 away in total. The clock kept running.');
+    setNow(f, t0 + 20000); hide(f); assert.equal(state(f).run.left, 2); setNow(f, t0 + 30000); show(f);
+    assert.equal(f.$('aptLeftNote').textContent, 'You left the test 2 times, 0:22 away in total. The clock kept running.', 'no switch limit, so no count of exits left');
+    f.run('document.dispatchEvent(new Event("fullscreenchange"))'); assert.equal(state(f).run.left, 3, 'leaving full screen counts as leaving (jsdom has no full-screen element)');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('exam conditions: a notice with a switch limit of 3 ends the test at the third absence', () => {
+  const notice = { id: 'drive1', name: 'Drive 1', source: '', sections: [{ id: 'quant', count: 5, minutes: 10 }], timing: 'total', negative: 0, level: 'easy', nav: 'free', strict: true, switchLimit: 3 };
+  const f = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([notice]) } }); try {
+    f.$('aptitudeNav').click(); doc(f).querySelector('[data-notice-start]').click(); f.$('aptBegin').click(); let t = now(f);
+    hide(f); t += 5000; setNow(f, t); show(f); assert(f.$('aptLeftNote').textContent.includes('You can leave 2 more times before the test is submitted.'), f.$('aptLeftNote').textContent);
+    hide(f); t += 5000; setNow(f, t); show(f); assert(f.$('aptLeftNote').textContent.includes('You can leave 1 more time before the test is submitted.'));
+    assert(state(f).run, 'still running after two absences'); hide(f);
+    assert.equal(state(f).run, null); assert.equal(state(f).screen, 'predict'); assert(toastText(f).includes('You left the test 3 times. Your test was submitted.'));
+    const h = JSON.parse(f.w.localStorage.getItem('cr-aptitude-history')); assert.deepEqual([h.length, h[0].ended, h[0].auto, h[0].left, h[0].name], [1, 'switches', true, 3, 'Drive 1']);
+    f.$('aptSkipGuess').click(); assert(doc(f).querySelector('.eyebrow').textContent.includes('LEAVING THE TEST')); assert(f.$('aptExam').textContent.includes('The test ended after you left it 3 times.')); assert(f.$('aptExam').textContent.includes('You skipped the guess.'));
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('forward-only navigation: no Previous or marking, earlier questions disabled, and Aptitude cannot be driven backwards', () => {
+  const f = fixture(); try {
+    strictTest(f, { nav: 'forward' }); assert.equal(state(f).run.nav, 'forward');
+    assert.equal(f.$('aptPrev'), null); assert.equal(f.$('aptMark'), null); assert.equal(f.$('aptNextQ').textContent, 'Save & next → (no going back)');
+    f.$('aptNextQ').click(); f.$('aptNextQ').click(); assert.equal(state(f).run.index, 2);
+    const btn = j => doc(f).querySelector(`[data-go="${j}"]`);
+    assert(btn(0).disabled && btn(1).disabled, 'earlier questions are disabled'); assert(!btn(2).disabled && !btn(3).disabled && !btn(4).disabled, 'current and later questions stay open');
+    btn(0).disabled = false; btn(0).click(); assert.equal(state(f).run.index, 2, 'the handler also refuses a backwards move'); btn(4).click(); assert.equal(state(f).run.index, 4, 'skipping forward is allowed');
+    assert(f.$('app').textContent.includes('You cannot go back to earlier questions.')); assert.equal(state(f).run.visited[3], false);
+    const g = fixture(); try { prep(g, { strict: false, nav: 'forward' }); g.$('aptTest').click(); assert.equal(state(g).screen, 'test', 'forward-only alone starts at once'); assert.equal(g.$('aptPrev'), null); assert(g.$('aptPause')); } finally { g.dom.window.close(); }
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('exam conditions: the results show guess against score, time away and how it ended, in the page and the download', () => {
+  const f = fixture(); try {
+    const t0 = strictTest(f); const qs = state(f).run.questions; qs.forEach((q, i) => { if (i < 3) { choose(f, q.answer); } f.$('aptNextQ') && !f.$('aptNextQ').disabled && f.$('aptNextQ').click(); });
+    setNow(f, t0 + 30000); hide(f); setNow(f, t0 + 75000); show(f); f.$('aptSubmit').click();
+    assert.equal(state(f).screen, 'predict'); assert.equal(state(f).run, null); noGaps(f);
+    assert.deepEqual(JSON.parse(f.w.localStorage.getItem('cr-aptitude-history')).map(h => [h.strict, h.left]), [[true, 1]]);
+    f.$('aptGuess').value = '5'; f.$('aptReveal').click();
+    assert.equal(f.$('aptExam').querySelectorAll('p')[0].textContent, 'You guessed 5 right. You got 3.'); assert(f.$('aptExam').textContent.includes('You left the test 1 time, 0:45 away in total.')); assert(f.$('aptExam').textContent.includes('You submitted the test yourself.'));
+    assert(!doc(f).querySelector('.eyebrow').textContent.includes('TIME RAN OUT')); noGaps(f);
+    let saved = ''; f.w.URL.createObjectURL = b => { saved = b; return 'blob:x'; }; f.$('aptDownload').click();
+    return saved.text().then(t => { assert(t.includes('Exam conditions: the clock did not pause.') && t.includes('You guessed 5 right. You got 3.') && t.includes('You left the test 1 time, 0:45 away in total.') && t.includes('You submitted the test yourself.'), t.slice(0, 600)); assert.doesNotMatch(t.split('\n\n')[0], GAP); assert.deepEqual(f.errors, []); }).finally(() => f.dom.window.close());
+  } catch (e) { f.dom.window.close(); throw e; }
+});
+
+test('recent attempts mark exam-condition tests', () => {
+  const f = fixture(); try {
+    const t0 = strictTest(f); choose(f, 0); setNow(f, t0 + 5000); f.$('aptSubmit').click(); f.$('aptSkipGuess').click(); f.$('aptBack').click();
+    assert(doc(f).querySelector('.drill-recent li span').textContent.endsWith('· exam conditions'), doc(f).querySelector('.drill-recent').textContent);
+    const g = fixture({ storage: { 'cr-aptitude-history': JSON.stringify([{ id: 'x', at: 5, mode: 'test', results: [{ topic: 'percent', ok: true, answered: true }], score: 1, total: 1, strict: 'yes', name: 7, left: 'a' }]) } }); try { g.$('aptitudeNav').click(); assert(!g.$('app').textContent.includes('exam conditions'), 'a bad flag is ignored'); assert.deepEqual(g.errors, []); } finally { g.dom.window.close(); }
+  } finally { f.dom.window.close(); }
+});
+
+const goodNotice = (o = {}) => ({ id: 'n1', name: 'Infosys drive', source: 'https://example.com/notice <b>x</b>', sections: [{ id: 'quant', count: 8, minutes: 12 }, { id: 'logical', count: 6, minutes: 9 }, { id: 'verbal', count: 4, minutes: 7 }], timing: 'sectional', negative: 0.25, level: 'medium', nav: 'free', strict: true, switchLimit: 0, ...o });
+const fill = (f, id, v) => { f.$(id).value = v; f.$(id).dispatchEvent(new f.w.Event('input', { bubbles: true })); };
+const tick = (f, id, on) => { f.$(id).checked = on; f.$(id).dispatchEvent(new f.w.Event('change', { bubbles: true })); };
+
+test('placement notices: create, validate, edit, delete; shown as plain text and ordered after the timed-test panel', () => {
+  const f = fixture(); try {
+    f.$('aptitudeNav').click();
+    const panels = [...doc(f).querySelectorAll('.apt-grid > section')], ni = panels.findIndex(x => x.id === 'aptNotices');
+    assert(ni > 0 && panels[ni - 1].querySelector('#aptTest'), 'directly after the Timed test panel');
+    assert(text(f).includes('You entered these settings yourself. Case Room has not checked them against any employer.'));
+    f.$('aptNoticeNew').click(); assert.equal(state(f).screen, 'notice'); noGaps(f);
+    assert.equal(f.$('anStrict').checked, true, 'exam conditions default on');
+    f.$('anSave').click(); assert.equal(state(f).screen, 'notice', 'nothing saved'); assert(f.$('anNameErr').textContent.includes('Enter a name')); assert.equal(f.w.localStorage.getItem('cr-aptitude-notices'), null);
+    fill(f, 'anName', 'Acme drive'); fill(f, 'anCount-quant', '41'); fill(f, 'anMin-quant', '0'); f.$('anSave').click();
+    assert(f.$('anErr-quant').textContent.includes('1 to 40') && f.$('anErr-quant').textContent.includes('1 to 120'), f.$('anErr-quant').textContent); assert.equal(state(f).notices.length, 0);
+    fill(f, 'anCount-quant', '12.5'); f.$('anSave').click(); assert(f.$('anErr-quant').textContent.includes('Questions'));
+    fill(f, 'anCount-quant', '12'); fill(f, 'anMin-quant', '15'); tick(f, 'anOn-logical', true); fill(f, 'anCount-logical', '0'); f.$('anSave').click(); assert(f.$('anErr-logical').textContent.includes('1 to 40'));
+    tick(f, 'anOn-logical', false); tick(f, 'anOn-quant', false); f.$('anSave').click(); assert(f.$('anSectionsErr').textContent.includes('at least one section'));
+    tick(f, 'anOn-quant', true); tick(f, 'anOn-verbal', true); fill(f, 'anCount-verbal', '31'); f.$('anSave').click(); assert(f.$('anErr-verbal').textContent.includes('1 to 30'), 'verbal is limited to 30');
+    fill(f, 'anCount-verbal', '10'); fill(f, 'anMin-verbal', '10'); fill(f, 'anSource', 'https://x.example/<script>alert(1)</script>'); pick(f, ['anNegative', String(1 / 3)]); pick(f, ['anNav', 'forward']);
+    doc(f).querySelector('[name=anTiming][value=total]').checked = true; pick(f, ['anSwitch', '5']); f.$('anSave').click();
+    assert.equal(state(f).screen, 'home'); const saved = JSON.parse(f.w.localStorage.getItem('cr-aptitude-notices')); assert.equal(saved.length, 1);
+    assert.deepEqual(saved[0], { ...saved[0], name: 'Acme drive', sections: [{ id: 'quant', count: 12, minutes: 15 }, { id: 'verbal', count: 10, minutes: 10 }], timing: 'total', negative: 1 / 3, nav: 'forward', strict: true, switchLimit: 5, level: 'mixed' });
+    const li = doc(f).querySelector('.apt-notice-list li'); assert(li.textContent.includes('Acme drive') && li.textContent.includes('Quant 12 · Verbal 10 · 25 min in all · −1/3 · no going back · exam conditions, ends after 5 exits'), li.textContent);
+    assert.equal(li.querySelectorAll('script, a').length, 0, 'the source is plain text'); assert(li.textContent.includes('<script>'));
+    for (const a of ['start', 'share', 'edit', 'delete']) assert(li.querySelector(`[data-notice-${a}]`), a);
+    doc(f).querySelector('[data-notice-edit]').click(); assert.equal(f.$('anName').value, 'Acme drive'); assert.equal(f.$('anCount-verbal').value, '10'); assert.equal(f.$('anOn-logical').checked, false); assert.equal(f.$('anSwitch').value, '5');
+    fill(f, 'anName', 'Acme drive (round 1)'); f.$('anSave').click(); const edited = JSON.parse(f.w.localStorage.getItem('cr-aptitude-notices')); assert.equal(edited.length, 1, 'editing replaces'); assert.equal(edited[0].id, saved[0].id); assert.equal(edited[0].name, 'Acme drive (round 1)');
+    f.$('aptNoticeNew').click(); f.$('anCancel').click(); assert.equal(state(f).notices.length, 1);
+    let asked = 0; f.w.confirm = () => { asked++; return false; }; doc(f).querySelector('[data-notice-delete]').click(); assert.equal(state(f).notices.length, 1, 'cancelled'); f.w.confirm = () => true;
+    doc(f).querySelector('[data-notice-delete]').click(); assert.deepEqual(JSON.parse(f.w.localStorage.getItem('cr-aptitude-notices')), []); assert(text(f).includes('No notices saved yet'));
+    for (let i = 0; i < 10; i++) { f.$('aptNoticeNew').click(); fill(f, 'anName', 'N' + i); f.$('anSave').click(); }
+    assert.equal(state(f).notices.length, 10); f.$('aptNoticeNew').click(); fill(f, 'anName', 'Eleven'); f.$('anSave').click(); assert(f.$('anSaveErr').textContent.includes('up to 10')); assert.equal(state(f).notices.length, 10); assert.equal(state(f).screen, 'notice');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('placement notices: corrupt stored notices are ignored without errors', () => {
+  for (const raw of ['{not json', '"x"', '{}', '[1,null,"a",{"name":"x"},{"name":"ok","sections":[]}]', JSON.stringify(Array.from({ length: 14 }, (_, i) => goodNotice({ id: 'n' + i, name: 'N' + i }))), JSON.stringify([goodNotice(), goodNotice({ name: 'Same id' })]),
+    JSON.stringify([goodNotice({ sections: [{ id: 'quant', count: 999, minutes: 5 }, { id: 'verbal', count: 3, minutes: 4 }], negative: 7, level: 'bogus', nav: 'x', switchLimit: 9, timing: 'y', strict: 'maybe', name: 'A'.repeat(100) })])]) {
+    const f = fixture({ storage: { 'cr-aptitude-notices': raw } }); try {
+      f.$('aptitudeNav').click(); const n = plain(state(f).notices);
+      assert(n.length <= 10); assert(n.every(x => x.name && x.name.length <= 60 && x.sections.length && E.cleanNotice(x))); assert.equal(new Set(n.map(x => x.id)).size, n.length, 'ids are unique');
+      if (raw.includes('Same id')) assert.equal(n.length, 2); if (raw.includes('999')) { assert.deepEqual(n[0].sections, [{ id: 'verbal', count: 3, minutes: 4 }]); assert.deepEqual([n[0].negative, n[0].level, n[0].nav, n[0].switchLimit, n[0].timing, n[0].strict, n[0].name.length], [0, 'mixed', 'free', 0, 'total', true, 60]); }
+      noGaps(f); assert.deepEqual(f.errors, []);
+    } finally { f.dom.window.close(); }
+  }
+});
+
+test('a notice test has exactly its own counts and budgets, shows a brief, and keeps the name in headings', () => {
+  const f = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([goodNotice()]) } }); try {
+    f.$('aptitudeNav').click(); doc(f).querySelector('[data-notice-start]').click(); assert.equal(state(f).screen, 'brief'); noGaps(f);
+    assert(doc(f).querySelector('.drill-title').textContent === 'Infosys drive');     assert.deepEqual([...doc(f).querySelectorAll('#aptBrief tbody tr')].map(r => [...r.children].map(c => c.textContent)), [['Quantitative', '8', '12'], ['Logical', '6', '9'], ['Verbal', '4', '7'], ['Whole test', '18', '28']], 'one row per section plus the total');
+    assert(text(f).includes('+1 for each correct answer, −0.25 for each wrong one')); assert(text(f).includes('Move freely between questions')); assert.equal(state(f).run, null);
+    f.$('aptBriefBack').click(); assert.equal(state(f).screen, 'home'); assert.equal(state(f).run, null);
+    doc(f).querySelector('[data-notice-start]').click(); f.$('aptBegin').click(); const r = state(f).run;
+    assert.deepEqual(['quant', 'logical', 'verbal'].map(s => r.questions.filter(q => q.section === s).length), [8, 6, 4]); assert.deepEqual(plain(r.sectionMs), [720000, 540000, 420000]); assert.equal(r.totalMs, 1680000);
+    assert.deepEqual([r.name, r.timing, r.negative, r.strict, r.nav, r.switchLimit], ['Infosys drive', 'sectional', 0.25, true, 'free', 0]);
+    assert.equal(f.$('aptClock').textContent, '12:00 left'); assert(doc(f).querySelector('.eyebrow').textContent.startsWith('INFOSYS DRIVE · QUANTITATIVE'));
+    const t0 = r.clockAt; choose(f, r.questions[0].answer); setNow(f, t0 + 720000 + 60000); f.run('Aptitude.tick()');
+    assert.deepEqual([state(f).run.sectionIndex, state(f).run.index], [1, 8]); assert.equal(f.$('aptClock').textContent, '8:00 left', 'each section has its own minutes'); assert(toastText(f).includes('Time is up for Quantitative. On to Logical.'));
+    assert.deepEqual(f.errors, []);
+    const g = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([goodNotice({ timing: 'total', strict: false, id: 'n2' })]) } }); try {
+      g.$('aptitudeNav').click(); doc(g).querySelector('[data-notice-start]').click(); assert.equal(state(g).screen, 'brief', 'a notice test shows the brief even without exam conditions'); assert(!text(g).includes('The clock does not pause.')); assert(text(g).includes('save and exit'));
+      g.$('aptBegin').click(); assert.equal(state(g).run.strict, undefined); assert.equal(g.$('aptClock').textContent, '28:00 left'); assert(g.$('aptPause'));
+      g.$('aptSubmit').click(); assert.equal(state(g).screen, 'results', 'no guess screen without exam conditions'); assert.deepEqual(JSON.parse(g.w.localStorage.getItem('cr-aptitude-history'))[0].name, 'Infosys drive'); assert.deepEqual(g.errors, []);
+    } finally { g.dom.window.close(); }
+  } finally { f.dom.window.close(); }
+});
+
+test('an older stored run without the new fields still resumes with a paused clock and Save & exit', () => {
+  const f = fixture(); let g; try {
+    setupTest(f, { pace: '60' }); const stored = JSON.parse(storage(f)['cr-aptitude-run']);
+    for (const k of ['strict', 'nav', 'switchLimit', 'sectionMs', 'totalMs', 'clockAt', 'left', 'awayMs', 'away', 'awaySec', 'name', 'paper', 'ended', 'done']) assert(!(k in stored), 'a plain run does not carry ' + k);
+    advance(f, 40000); f.$('aptPause').click(); setNow(f, now(f) + 3600000);
+    g = fixture({ url: 'https://case.example/#aptitude', storage: storage(f) }); assert(g.$('app').textContent.includes('4:20 left (the clock is paused)'), g.$('app').textContent.slice(0, 300));
+    g.$('aptResume').click(); assert.equal(g.$('aptClock').textContent, '4:20 left'); assert(g.$('aptPause')); assert.equal(g.$('aptExamNote'), null); assert(g.$('aptPrev') && g.$('aptMark'));
+    hide(g); assert.equal(state(g).run.left, undefined, 'leaving is not counted without exam conditions');
+    assert.deepEqual([...f.errors, ...g.errors], []);
+  } finally { f.dom.window.close(); g?.dom.window.close(); }
+});
+
+test('a stored strict run needs a clock stamp, and malformed exam fields are rejected', () => {
+  const f = fixture(); try {
+    const t0 = strictTest(f); const good = JSON.parse(storage(f)['cr-aptitude-run']); assert.equal(good.strict, true);
+    const tries = [{ clockAt: undefined }, { clockAt: 'x' }, { nav: 'sideways' }, { switchLimit: 4 }, { left: -1 }, { left: 1.5 }, { awayMs: -5 }, { away: 'yes' }, { sectionMs: [1, 2] }, { totalMs: -1 }, { name: 5 }, { ended: 'quit' }, { paper: { code: 'x' } }, { awaySec: 3 }];
+    for (const bad of tries) { const g = fixture({ url: 'https://case.example/#aptitude', storage: { 'cr-aptitude-run': JSON.stringify({ ...good, ...bad }) } }); try { assert.equal(g.$('aptResume'), null, JSON.stringify(bad)); assert.deepEqual(g.errors, []); } finally { g.dom.window.close(); } }
+    const ok = fixture({ url: 'https://case.example/#aptitude', storage: { 'cr-aptitude-run': JSON.stringify({ ...good, left: 2, awayMs: 5000, away: true, name: 'X', nav: 'forward', switchLimit: 3, ended: null }) } }); try { assert(ok.$('aptResume')); } finally { ok.dom.window.close(); }
+    assert(t0 > 0);
+  } finally { f.dom.window.close(); }
+});
+
+test('topic practice is unaffected by exam conditions being on', () => {
+  const f = fixture(); try {
+    prep(f); f.$('aptPractice').click(); assert.equal(state(f).run.mode, 'practice'); assert.equal(state(f).screen, 'practice'); assert.equal(state(f).run.strict, undefined);
+    f.$('aptitudeNav').click(); assert(f.$('aptResume').closest('section').textContent.includes('question 1 of')); assert(!f.$('app').textContent.includes('Exam in progress'));
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('every new screen has no stray undefined, null, NaN or [object]', () => {
+  const f = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([goodNotice({ timing: 'total' }), goodNotice({ id: 'n9', name: 'Second', source: '', timing: 'total', strict: false, nav: 'forward', negative: 0 })]) } }); try {
+    f.$('aptitudeNav').click(); noGaps(f); f.$('aptNoticeNew').click(); noGaps(f); f.$('anCancel').click();
+    doc(f).querySelector('[data-notice-edit]').click(); noGaps(f); f.$('anSave').click(); noGaps(f);
+    f.$('aptCollect').click(); noGaps(f); f.$('acRank').click(); noGaps(f); f.$('acBack').click();
+    doc(f).querySelectorAll('[data-notice-start]')[1].click(); noGaps(f); f.$('aptBegin').click(); noGaps(f); f.$('aptitudeNav').click(); noGaps(f); f.$('aptDiscard').click();
+    doc(f).querySelector('[data-notice-start]').click(); noGaps(f); f.$('aptBegin').click(); noGaps(f); f.$('aptSubmit').click(); noGaps(f); f.$('aptReveal').click(); assert.equal(state(f).screen, 'predict'); f.$('aptSkipGuess').click(); noGaps(f);
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+/* ---------- Shared papers ---------- */
+const { settle } = require('./dom.cjs');
+const sharedNotice = (o = {}) => goodNotice({ id: 'sh1', name: 'Campus drive – 28 Nov', sections: [{ id: 'quant', count: 6, minutes: 9 }, { id: 'verbal', count: 4, minutes: 5 }], timing: 'sectional', negative: 0.5, level: 'hard', nav: 'forward', strict: false, switchLimit: 0, ...o });
+function shareLink(f, id = 'sh1') { f.$('aptitudeNav').click(); doc(f).querySelector(`[data-notice-share="${id}"]`).click(); return { link: f.$('aptShareLink').value, code: f.$('aptShareCode').value }; }
+const sameQuestions = (a, b) => assert.deepEqual(plain(a.questions.map(q => q.id)), plain(b.questions.map(q => q.id)));
+
+test('sharing a notice gives a link and a code that open the same paper in another browser', async () => {
+  const f = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([sharedNotice()]) } }); let g, h, copied = [];
+  try {
+    const { link, code } = shareLink(f); const modalText = f.$('modalContent').textContent;
+    assert.equal(link, 'https://case.example/#aptitude/paper/' + code); assert(code.startsWith('CR1.')); assert(f.$('modal').open);
+    assert(modalText.includes('Everyone who opens this link gets the same questions and the same clock rules, as long as they use this same site and version. Nothing is sent anywhere: the link itself carries the settings.'));
+    const d = E.decodePaper(code); assert.deepEqual(plain(d.config.counts), { quant: 6, verbal: 4 }); assert.deepEqual(plain(d.config.sectionMs), [540000, 300000]); assert.equal(d.config.name, 'Campus drive – 28 Nov'); assert(Number.isInteger(d.seed) && d.seed >= 0 && d.seed < 2 ** 32);
+    assert.equal(d.check, E.paperCheck(A.buildTest({ sections: ['quant', 'verbal'], counts: d.config.counts, level: 'hard', seed: d.seed })));
+    Object.defineProperty(f.w.navigator, 'clipboard', { value: { writeText: s => { copied.push(s); return Promise.resolve(); } }, configurable: true });
+    f.$('aptCopyLink').click(); f.$('aptCopyCode').click(); await settle(); assert.deepEqual(copied, [link, code]); assert.equal(f.$('aptShareStatus').textContent, 'Copied.');
+    Object.defineProperty(f.w.navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('blocked')) }, configurable: true });
+    f.$('aptCopyCode').click(); await settle(); assert(f.$('aptShareStatus').textContent.includes('Select the text and copy it.'), 'falls back to selecting the text');
+    const g1 = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([sharedNotice()]) } }); try { g1.$('aptitudeNav').click(); doc(g1).querySelector('[data-notice-share]').click(); assert.notEqual(g1.$('aptShareCode').value, code, 'every share picks a new seed'); } finally { g1.dom.window.close(); }
+
+    g = fixture({ url: link }); assert.equal(state(g).screen, 'brief', 'the route opens the brief'); assert(doc(g).querySelector('.drill-title').textContent === 'Shared paper'); assert(text(g).includes('Campus drive – 28 Nov')); assert(g.$('aptName')); assert.equal(g.$('aptMismatch'), null); noGaps(g);
+    assert.equal(g.w.location.hash, '#aptitude'); assert(text(g).includes('No going back to earlier questions')); assert.equal(state(g).run, null);
+    g.$('aptName').value = 'Riya Sharma'; g.$('aptBegin').click(); const gr = state(g).run;
+    f.$('aptitudeNav').click(); f.$('aptPaperCode').value = code; f.$('aptPaperOpen').click(); assert.equal(state(f).screen, 'brief', 'the bare code works from the form'); f.$('aptBegin').click(); const fr = state(f).run;
+    h = fixture(); h.$('aptitudeNav').click(); h.$('aptPaperCode').value = 'see this: ' + link + ' thanks'; h.$('aptPaperOpen').click(); h.$('aptBegin').click(); const hr = state(h).run;
+    sameQuestions(gr, fr); sameQuestions(gr, hr); assert.deepEqual(plain(gr.sectionMs), plain(fr.sectionMs)); assert.deepEqual(plain(hr.sectionMs), [540000, 300000]); assert.equal(gr.totalMs, 840000);
+    assert.deepEqual([gr.paper.match, gr.paper.check, gr.paper.player, gr.nav, gr.negative, gr.name], [true, d.check, 'Riya Sharma', 'forward', 0.5, 'Campus drive – 28 Nov']);
+    assert.deepEqual(['quant', 'verbal'].map(s => gr.questions.filter(q => q.section === s).length), [6, 4]);
+    assert.deepEqual([...f.errors, ...g.errors, ...h.errors], []);
+  } finally { f.dom.window.close(); g?.dom.window.close(); h?.dom.window.close(); }
+});
+
+test('a paper code that does not match what this site builds warns on the brief and marks the result line', () => {
+  const f = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([sharedNotice({ nav: 'free', timing: 'total' })]) } }); try {
+    const { code } = shareLink(f), d = E.decodePaper(code), wrong = E.encodePaper({ seed: d.seed, config: d.config, check: d.check === 'zzzzzz' ? 'yyyyyy' : 'zzzzzz' });
+    f.$('modalContent'); f.w.document.getElementById('modal').open = false;
+    f.$('aptPaperCode').value = wrong; f.$('aptPaperOpen').click(); assert.equal(state(f).screen, 'brief');
+    assert(f.$('aptMismatch').textContent.includes('different questions from the organiser') && f.$('aptMismatch').textContent.includes('not be comparable'), f.$('aptMismatch').textContent); noGaps(f);
+    f.$('aptBegin').click(); assert.deepEqual([state(f).run.paper.match, state(f).run.paper.check], [false, d.check], 'the line carries this copy\'s own check');
+    f.$('aptSubmit').click(); assert.equal(state(f).screen, 'results'); assert.equal(E.parseResultLine(f.$('aptLine').value).check, d.check); assert(f.$('aptSend').textContent.includes('different questions'));
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('invalid paper codes say so and stay on the aptitude home', () => {
+  const f = fixture(); try {
+    f.$('aptitudeNav').click(); const good = E.encodePaper({ seed: 1, config: E.noticeConfig(E.cleanNotice(goodNotice())), check: 'abcdef' });
+    for (const bad of ['', '   ', 'hello', 'CR1.', 'CR1.@@@@', 'CR2.' + good.slice(4), good.slice(4), good.slice(0, -4), 'CR1.' + 'A'.repeat(1500)]) {
+      f.$('toast').textContent = ''; f.$('aptPaperCode').value = bad; f.$('aptPaperOpen').click();
+      assert.equal(state(f).screen, 'home', JSON.stringify(bad.slice(0, 20))); assert.equal(f.$('toast').textContent, 'That is not a Case Room paper code.', JSON.stringify(bad.slice(0, 20))); assert(f.$('aptPaperCode'), 'still on the aptitude home');
+    }
+    assert.equal(f.run('Aptitude.openPaper(null)'), false); assert.deepEqual(f.errors, []);
+    for (const hash of ['#aptitude/paper/garbage', '#aptitude/paper/%E0%A4%A', '#aptitude/paper/']) { const g = fixture({ url: 'https://case.example/' + hash }); try { assert.equal(state(g).screen, 'home', hash); assert.equal(g.$('toast').textContent, 'That is not a Case Room paper code.'); assert(g.$('aptPaperCode')); assert.deepEqual(g.errors, [], hash); } finally { g.dom.window.close(); } }
+  } finally { f.dom.window.close(); }
+});
+
+test('after a shared paper the result line parses back to the on-screen numbers and follows the name', async () => {
+  const f = fixture({ storage: { 'cr-aptitude-notices': JSON.stringify([sharedNotice({ nav: 'free', timing: 'total', strict: true }), sharedNotice({ id: 'sh2', name: 'Plain paper', nav: 'free', timing: 'total', strict: false })]) } }); try {
+    f.$('aptitudeNav').click(); doc(f).querySelector('[data-notice-share="sh1"]').click(); const code = f.$('aptShareCode').value; f.w.document.getElementById('modal').open = false;
+    setNow(f, now(f)); f.$('aptPaperCode').value = code; f.$('aptPaperOpen').click(); f.$('aptName').value = 'Asha | K'; f.$('aptBegin').click(); const t0 = now(f), qs = state(f).run.questions;
+    choose(f, qs[0].answer); f.$('aptNextQ').click(); choose(f, qs[1].answer); f.$('aptNextQ').click(); choose(f, (qs[2].answer + 1) % 4); f.$('aptNextQ').click(); f.$('aptNextQ').click();
+    setNow(f, t0 + 20000); hide(f); setNow(f, t0 + 50000); show(f); setNow(f, t0 + 65000); f.$('aptSubmit').click();
+    assert.equal(state(f).screen, 'predict'); f.$('aptGuess').value = '3'; f.$('aptReveal').click(); assert.equal(state(f).screen, 'results'); noGaps(f);
+    assert(f.$('aptSend').textContent.includes('Send your result to the organiser') && f.$('aptSend').textContent.includes('This line is for convenience. It is not tamper-proof.'));
+    const line = f.$('aptLine').value, p = E.parseResultLine(line); assert(f.$('aptLine').readOnly); assert(!p.error, line);
+    assert.deepEqual([p.name, p.correct, p.wrong, p.skipped, p.unreached, p.left, p.seconds, p.check], ['Asha K', 2, 1, 2, 5, 1, 65, state(f).lastResult.paper.check]);
+    assert.equal(p.score, 1.5, '2 correct − 1 wrong × 0.5'); assert.equal(f.$('aptCntRight').textContent, '2'); assert.equal(f.$('aptCntWrong').textContent, '1'); assert.equal(f.$('aptCntSkipped').textContent, '2'); assert.equal(f.$('aptCntUnreached').textContent, '5');
+    assert(f.$('aptHeadline').textContent.includes('1.5'));
+    fill(f, 'aptName', 'Riya'); assert.equal(E.parseResultLine(f.$('aptLine').value).name, 'Riya'); assert.deepEqual({ ...E.parseResultLine(f.$('aptLine').value), name: 'Asha K' }, p, 'only the name changed');
+    fill(f, 'aptName', ''); assert.equal(E.parseResultLine(f.$('aptLine').value).name, 'Anonymous');
+    let copied = []; Object.defineProperty(f.w.navigator, 'clipboard', { value: { writeText: s => { copied.push(s); return Promise.resolve(); } }, configurable: true }); f.$('aptCopyLine').click(); await settle(); assert.deepEqual(copied, [f.$('aptLine').value]); assert.equal(f.$('aptCopyStatus').textContent, 'Copied.');
+    f.$('aptBack').click(); f.w.document.getElementById('modal').open = false;
+    doc(f).querySelector('[data-notice-start="sh2"]').click(); f.$('aptBegin').click(); f.$('aptSubmit').click(); assert.equal(f.$('aptSend'), null, 'a notice test that is not shared has no send panel');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('collecting results ranks the biggest group, with ties, broken lines, other papers, duplicate names and CSV', async () => {
+  const f = fixture(); try {
+    const mk = (check, name, score, seconds, left = 0) => E.resultLine({ check, name, score, correct: Math.floor(score), wrong: 1, skipped: 2, unreached: 3, seconds, left });
+    const lines = [mk('aaaaaa', 'Dev', 10, 900), mk('aaaaaa', 'Asha, K', 12, 1000, 2), 'CR1|aaaaaa|Broken|1|2|3', '', mk('bbbbbb', 'Stranger', 20, 100), mk('aaaaaa', 'Bala', 12, 800), mk('aaaaaa', 'Chitra "C"', 10, 900), mk('aaaaaa', 'dev', 3, 700), mk('aaaaaa', 'Eli', 2, 600).replace('|2|', '|9|')];
+    f.$('aptitudeNav').click(); f.$('aptCollect').click(); assert.equal(state(f).screen, 'collect'); noGaps(f); assert.equal(f.$('acCsv'), null); f.$('acRank').click(); assert(text(f).includes('No readable result lines yet.')); assert.equal(f.$('acCsv'), null);
+    f.$('acLines').value = lines.join('\n'); f.$('acRank').click(); noGaps(f);
+    const rows = [...doc(f).querySelectorAll('.apt-rank tbody tr')].map(r => [...r.children].map(c => c.textContent));
+    assert.deepEqual(rows, [['1', 'Bala', '12', '12', '1', '2', '3', '13:20', '0'], ['2', 'Asha, K', '12', '12', '1', '2', '3', '16:40', '2'], ['3', 'Chitra "C"', '10', '10', '1', '2', '3', '15:00', '0'], ['3', 'Dev', '10', '10', '1', '2', '3', '15:00', '0'], ['5', 'dev', '3', '3', '1', '2', '3', '11:40', '0']]);
+    assert.deepEqual([...doc(f).querySelectorAll('.apt-rank thead th')].map(x => x.textContent), ['Rank', 'Name', 'Score', 'Correct', 'Wrong', 'Skipped', 'Not reached', 'Time', 'Times left']);
+    const out = f.$('acOut').textContent; assert(out.includes('Line 3: Expected 11 parts, found 6.'), out); assert(out.includes('Line 9: The check characters do not match'), out);
+    assert(out.includes('Line 5 belongs to a different paper (check bbbbbb), so it is not ranked.'), out); assert(out.includes('The name “Dev” appears on lines 1 and 8. Both are kept'), out); assert(!out.includes('Stranger'), 'other papers are not ranked');
+    assert.equal(f.w.localStorage.getItem('cr-aptitude-notices'), null); assert(!Object.keys(storage(f)).some(k => /collect|result/i.test(k)), 'nothing is stored');
+    let blob; f.w.URL.createObjectURL = b => { blob = b; return 'blob:x'; }; f.$('acCsv').click(); const csv = await blob.text();
+    assert.equal(csv.split('\n')[0], 'Rank,Name,Score,Correct,Wrong,Skipped,Not reached,Time (seconds),Times left the test'); assert(csv.includes('2,"Asha, K",12,12,1,2,3,1000,2')); assert(csv.includes('3,"Chitra ""C""",10')); assert.equal(csv.trim().split('\n').length, 6);
+    f.$('acBack').click(); assert.equal(state(f).screen, 'home'); assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('the paper and collect routes open from the address', () => {
+  const f = fixture({ url: 'https://case.example/#aptitude/collect' }); try { assert.equal(state(f).screen, 'collect'); assert.equal(f.run('view'), 'aptitude'); assert(f.$('acLines')); assert.deepEqual(f.errors, []); } finally { f.dom.window.close(); }
+  const g = fixture(); try { g.$('aptitudeNav').click(); g.$('aptCollect').click(); assert.equal(g.w.location.hash, '#aptitude'); g.run('home()'); assert.equal(g.w.location.hash, ''); } finally { g.dom.window.close(); }
+  const p = E.encodePaper({ seed: 77, config: E.noticeConfig(E.cleanNotice(goodNotice({ strict: false }))), check: E.paperCheck(A.buildTest({ sections: ['quant', 'logical', 'verbal'], counts: { quant: 8, logical: 6, verbal: 4 }, level: 'medium', seed: 77 })) });
+  const h = fixture({ url: 'https://case.example/#aptitude/paper/' + p }); try { assert.equal(state(h).screen, 'brief'); assert.equal(h.$('aptMismatch'), null); assert.deepEqual(h.errors, []); h.$('aptBriefBack').click(); assert.equal(state(h).screen, 'home'); } finally { h.dom.window.close(); }
+});
+
+test('exam conditions: time running out while the student is on the aptitude home submits the test', () => {
+  const f = fixture(); try {
+    const t0 = strictTest(f); choose(f, state(f).run.questions[0].answer); setNow(f, t0 + 1000); f.$('aptitudeNav').click(); assert(f.$('aptResume'));
+    setNow(f, t0 + 179000); f.run('Aptitude.tick()'); assert(text(f).includes('0:01 left')); assert(state(f).run, 'one second to go');
+    setNow(f, t0 + 181000); f.run('Aptitude.tick()'); assert.equal(state(f).run, null); assert.equal(state(f).screen, 'predict'); assert(toastText(f).includes('Time ran out while you were away.'));
+    f.$('aptitudeNav').click(); assert.equal(state(f).screen, 'predict', 'the guess is still asked for if the student goes elsewhere first');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('notice form: a field message clears as soon as that field is edited', () => { const f = fixture(); try {
+  f.run('Aptitude.open()'); f.$('aptNoticeNew').click(); f.$('anSave').click();
+  assert.equal(f.$('anNameErr').textContent, 'Enter a name for this test.'); assert.equal(f.$('anName').getAttribute('aria-invalid'), 'true');
+  f.$('anName').value = 'Campus drive'; f.$('anName').dispatchEvent(new f.w.Event('input', { bubbles: true }));
+  assert.equal(f.$('anNameErr').textContent, ''); assert.equal(f.$('anName').getAttribute('aria-invalid'), null);
+  f.$('anCount-quant').value = '999'; f.$('anSave').click(); assert.match(f.$('anErr-quant').textContent, /whole number from 1 to 40/);
+  f.$('anCount-quant').value = '20'; f.$('anCount-quant').dispatchEvent(new f.w.Event('input', { bubbles: true })); assert.equal(f.$('anErr-quant').textContent, '');
+  assert.deepEqual(f.errors, []);
+} finally { f.dom.window.close(); } });
