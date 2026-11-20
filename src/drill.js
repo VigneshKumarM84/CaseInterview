@@ -121,7 +121,7 @@
         primary: r ? `<button class="primary next" id="drillNext">${last ? 'See results →' : 'Next question →'}</button>`
           : q.type === 'choice' ? '' : '<button class="primary next" type="submit" form="drillForm" id="drillCheck">Check →</button>',
         hint: r ? '' : q.type === 'choice' ? 'Choose an answer to check it.' : '' })}</section>`;
-    $('#drillSpeak').onclick = () => speak(q.spoken || q.prompt);
+    $('#drillSpeak').onclick = () => speak(q.spoken || q.prompt); syncSilent();
     if ($('#drillShowPrompt')) $('#drillShowPrompt').onclick = () => { run.showPrompt = true; persistRun(); renderQuestion(); };
     $('#drillExit').onclick = renderHome;
     $('#drillEnd').onclick = () => { if (!run.results.length) { if (confirm('End this round? No questions have been answered, so nothing will be saved.')) { run = null; persistRun(); renderHome(); } return; } if (confirm('End the round now? Answered questions will count towards your progress.')) finish(); };

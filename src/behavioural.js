@@ -113,7 +113,7 @@
   const analyseA = a => B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags, pauses: a.pauses });
   const questionOf = d => B.findQuestion(d.qid);
   const strict = () => !!(set && set.strict);
-  const canSpeak = () => !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  const canSpeak = () => voiceOn();
   /* What the interviewer is asking right now: the question, or the follow-up the draft is answering. */
   const promptOf = d => strict() && d.follow && set.plan[d.follow - 1] ? set.plan[d.follow - 1].text : questionOf(d).text;
 
@@ -295,25 +295,25 @@
     enter('question', '#behavioural');
     const q = questionOf(draft), c = comp(draft.competency), linked = storyOf(draft.storyId);
     if (strict()) return renderStrictQuestion(q, c);
-    $('#app').innerHTML = `<section class="flow-screen bh-question">${sessionHead(q, c)}
-      ${q.hypothetical ? '<p class="note">Hypothetical: say what you would do and why. If you have a real example, use it.</p>' : ''}
-      <label for="bhAnswer" class="flow-label">Your answer</label><textarea id="bhAnswer" placeholder="Speak or type your answer, as you would say it in the room…">${esc(draft.text)}</textarea>
-      <div class="flow-tools"><button id="bhMic" class="mic">🎙 Speak your answer</button><span id="bhVoiceStatus" class="note" role="status"></span>
-        <span class="bh-clock"><span id="bhTimerText" aria-live="off"></span> <button class="wu-link" id="bhTimerBtn">Start timer</button></span></div>
+    $('#app').innerHTML = `<section class="flow-screen fit bh-question">${sessionHead(q, c)}
+      ${q.hypothetical ? '<p class="note fit-note">Hypothetical: say what you would do and why. If you have a real example, use it.</p>' : ''}
+      ${micRow('bhMic', 'bhVoiceStatus', '<span class="bh-clock"><span id="bhTimerText" aria-live="off"></span> <button class="wu-link" id="bhTimerBtn">Start timer</button></span>')}
       <div class="bh-meter" id="bhMeter" aria-hidden="true"><span id="bhMeterFill"></span><i style="left:${80 * c.target[0] / c.target[1]}%"></i><i style="left:80%"></i></div>
-      <details class="flow-help"><summary>Need help with this question?</summary>
+      <div class="answer-head"><label for="bhAnswer" class="flow-label">Your answer · appears here as you speak, or type</label>
+      <details class="flow-help"><summary>Need help?</summary><div class="help-body">
         <p><b>Structure.</b> ${c.frame === 'star' ? 'Situation, Task, Action, Result.' : esc(B.FRAMES[c.frame].title) + '.'} ${esc(c.tip)}</p>
         <p><b>What the interviewer listens for</b></p><ul class="bh-cues">${c.listenFor.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-        ${storyOptions(draft.storyId, c.id)}<div id="bhLinked">${linkedNotes(linked)}</div></details>
+        ${storyOptions(draft.storyId, c.id)}<div id="bhLinked">${linkedNotes(linked)}</div></div></details></div>
+      <div class="dictation-box"><textarea id="bhAnswer" placeholder="Your words appear here as you speak. You can also type or edit.">${esc(draft.text)}</textarea></div>
       ${flowBar({ back: `<button class="wu-link" id="bhSkip">${set && set.fixed ? 'Skip this question' : 'Ask me a different question'}</button>`,
-        primary: '<button id="bhFinish" class="primary next">Done · see feedback →</button>', hint: draft.text.trim() ? '' : 'Speak or type your answer. The timer starts when you do.' })}</section>`;
+        primary: '<button id="bhFinish" class="primary next">Done · see feedback →</button>', hint: draft.text.trim() ? '' : 'Press the microphone to answer, or type. The timer starts when you do.' })}</section>`;
     bindSpeech(q.text); paintTimer(); bindAnswer();
     $('#bhTimerBtn').onclick = () => { if (draft.runningSince) pauseTimer(); else startTimer(); paintTimer(); };
     if ($('#bhStory')) $('#bhStory').onchange = e => { draft.storyId = e.target.value || null; persist(); $('#bhLinked').innerHTML = linkedNotes(storyOf(draft.storyId)); };
     $('#bhExit').onclick = () => { pauseTimer(); renderHome(); };
     $('#bhSkip').onclick = skip;
     $('#bhFinish').onclick = () => finish();
-    if (prefs.aloud && !draft.spoken) { draft.spoken = true; persist(); speak(q.text); }
+    if (prefs.aloud && !draft.spoken) { draft.spoken = true; persist(); if (canSpeak()) speak(q.text); }
   }
   /* Speech and typing for the answer box, shared by practice and interview conditions. */
   function bindAnswer() {
@@ -327,11 +327,12 @@
   /* ---------- Interview conditions: the question and its follow-ups, with nothing to lean on ---------- */
   function renderStrictQuestion(q, c) {
     const prompt = promptOf(draft);
-    $('#app').innerHTML = `<section class="flow-screen bh-question bh-strict">${sessionHead(q, c)}
-      <label for="bhAnswer" class="flow-label">Your answer</label><textarea id="bhAnswer" placeholder="Speak or type your answer, as you would say it in the room…">${esc(draft.text)}</textarea>
-      <div class="flow-tools"><button id="bhMic" class="mic">🎙 Speak your answer</button><span id="bhVoiceStatus" class="note" role="status"></span><span class="bh-clock"><span id="bhTimerText" class="bh-time" aria-live="off"></span></span></div>
-      <p class="note bh-strict-note">Interview conditions: no skipping, no second attempt and no help. While you dictate, the interviewer moves on after a long silence and cuts in if an answer runs far over. Feedback comes at the end.</p>
-      ${flowBar({ primary: '<button id="bhFinish" class="primary next">I have finished answering →</button>', hint: draft.text.trim() ? '' : 'Speak or type your answer.' })}</section>`;
+    $('#app').innerHTML = `<section class="flow-screen fit bh-question bh-strict">${sessionHead(q, c)}
+      ${micRow('bhMic', 'bhVoiceStatus', '<span class="bh-clock"><span id="bhTimerText" class="bh-time" aria-live="off"></span></span>')}
+      <label for="bhAnswer" class="flow-label">Your answer · appears here as you speak, or type</label>
+      <div class="dictation-box"><textarea id="bhAnswer" placeholder="Your words appear here as you speak. You can also type or edit.">${esc(draft.text)}</textarea></div>
+      <p class="note bh-strict-note">Interview conditions: no skipping, retrying or help. The interviewer moves on after a long silence and cuts in if an answer runs far over. Feedback comes at the end.</p>
+      ${flowBar({ primary: '<button id="bhFinish" class="primary next">I have finished answering →</button>', hint: draft.text.trim() ? '' : 'Press the microphone to answer, or type.' })}</section>`;
     bindSpeech(prompt); paintTimer(); bindAnswer(); away = false;
     $('#bhExit').onclick = endEarly;
     $('#bhFinish').onclick = () => finish();

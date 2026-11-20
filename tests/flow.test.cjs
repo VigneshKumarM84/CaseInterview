@@ -17,7 +17,7 @@ test('a practice interview runs question → quick feedback → next question �
     assert.equal(set().qids.length, 5); assert.equal(new Set(set().qids).size, 5);
     assert.equal(st().draft.competency, 'intro', 'a typical round opens with "tell me about yourself"');
     assert.match(text(f), /QUESTION 1 OF 5/); assert.equal(primaries(f), 1); assert.equal(f.$('bhFinish').textContent, 'Done · see feedback →');
-    assert.match(f.$('flowHint').textContent, /Speak or type your answer/);
+    assert.match(f.$('flowHint').textContent, /Press the microphone to answer, or type/);
     assert.equal(doc(f).querySelector('.flow-help').open, false, 'help is there but closed');
     assert.equal(doc(f).querySelectorAll('#app select').length, 0, 'no voice or language pickers on the question screen');
 
@@ -131,6 +131,66 @@ test('warm-up steps use the same bar: one next step, help as a link, the reason 
     assert.equal(primaries(f), 1); assert.equal(f.$('wuCheck').textContent, 'Compare with an example →'); assert(f.$('wuStuck').classList.contains('wu-link'));
     f.$('wuCheck').click(); assert.match(f.$('flowHint').textContent, /Write your answer first/);
     input(f, 'wuAnswer', 'Revenue or surplus?'); f.$('wuCheck').click(); assert.equal(primaries(f), 1); assert.equal(f.$('wuNext').textContent, 'Next step →');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+/* ---------- Speak first, and watch your words appear ---------- */
+function fakeMic(f) {
+  const made = []; f.w.SpeechRecognition = function () { made.push(this); this.start = () => this.onstart?.(); this.abort = () => { this.aborted = true; this.onend?.(); }; this.stop = this.abort; };
+  const result = (t, isFinal) => Object.assign([{ transcript: t }], { isFinal });
+  return { made, hear(finished, inProgress = '') { made.at(-1).onresult({ results: [...finished.map(t => result(t, true)), ...(inProgress ? [result(inProgress, false)] : [])] }); } };
+}
+
+test('the microphone leads every answer screen and the screen is built to fit the window', () => {
+  const f = fixture(); try {
+    f.$('behaviouralNav').click(); f.$('bhStart').click();
+    const mic = f.$('bhMic'), box = f.$('bhAnswer');
+    assert(mic.classList.contains('mic-hero'), 'the mic is the highlighted control');
+    assert(mic.compareDocumentPosition(box) & f.w.Node.DOCUMENT_POSITION_FOLLOWING, 'the mic comes before the answer box');
+    assert(doc(f).querySelector('.flow-screen.fit'), 'the screen opts into the no-scroll layout');
+    assert(box.parentElement.classList.contains('dictation-box'), 'the box sits in the scrolling area');
+    assert.match(box.placeholder, /appear here as you speak/);
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('while the mic is on, the words heard appear at once: finished words and words still being recognised are shown apart', () => {
+  const f = fixture(); try {
+    const mic = fakeMic(f); f.$('behaviouralNav').click(); f.$('bhStart').click();
+    const live = () => doc(f).querySelector('.live-caption');
+    assert.match(f.$('bhVoiceStatus').textContent, /Press the microphone/);
+    assert(live().hidden, 'nothing is laid over the box before the mic is on');
+    f.$('bhMic').click();
+    assert.equal(live().hidden, false); assert.match(live().textContent, /Listening… start speaking/);
+    assert.match(f.$('bhVoiceStatus').textContent, /^Listening/);
+    mic.hear(['I led the finance club'], 'and we doubled');
+    assert.equal(live().querySelector('.interim').textContent.trim(), 'and we doubled', 'words still being recognised are marked');
+    assert.equal(live().textContent, 'I led the finance club and we doubled');
+    assert.equal(f.$('bhAnswer').value, 'I led the finance club and we doubled', 'the box already holds everything heard');
+    assert.equal(f.run('Behavioural.state().draft.text'), 'I led the finance club and we doubled', 'and it is saved as it comes');
+    mic.hear(['I led the finance club', 'and we doubled the sponsors']);
+    assert.equal(live().querySelector('.interim').textContent, '', 'recognised words stop being marked');
+    assert.equal(f.$('bhAnswer').value, 'I led the finance club and we doubled the sponsors');
+    f.$('bhMic').click();
+    assert(live().hidden, 'stopping hands the text back to the box to edit'); assert.equal(f.$('bhAnswer').readOnly, false);
+    assert.equal(f.$('bhAnswer').value, 'I led the finance club and we doubled the sponsors');
+    f.$('bhMic').click(); mic.hear(['then I presented it']);
+    assert.equal(f.$('bhAnswer').value, 'I led the finance club and we doubled the sponsors then I presented it', 'starting again adds to what was there');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
+test('the case interview puts the mic first too, beside the reference rather than under it', () => {
+  const f = fixture(); try {
+    fakeMic(f); f.run("start('cement')");
+    const ref = doc(f).querySelector('.case-desk .case-ref'), ans = doc(f).querySelector('.case-desk .case-answer');
+    assert(ref && ans, 'two panes: reference and answer');
+    assert(ans.contains(f.$('mic')) && ans.contains(f.$('answer')) && !ref.contains(f.$('mic')));
+    assert(f.$('mic').classList.contains('mic-hero'));
+    f.run("session.step=2;persist();renderSession()");
+    assert(doc(f).querySelector('.case-answer #number'), 'the number goes with the answer, not the reading');
+    f.$('mic').click(); assert.equal(doc(f).querySelector('.live-caption').hidden, false);
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
