@@ -140,7 +140,8 @@
       out.push(`<details class="rc-bullet ${b.issues ? 'warn' : 'pass'}" id="rcB${i}"><summary>${mark(b.issues ? 'warn' : 'pass')}<span class="rc-btext" id="rcText${i}">${esc(b.text)}</span><span class="rc-count" id="rcCount${i}">${countLabel(b)}</span></summary>
         <label class="rc-edit-label" for="rcEdit${i}">Edit this bullet (the checks update as you type, and the résumé box above changes too)</label>
         <textarea class="rc-edit" id="rcEdit${i}" data-i="${i}" rows="3">${esc(b.text)}</textarea>
-        <ul class="rc-checks" id="rcChecks${i}">${checksHtml(b)}</ul></details>`);
+        <ul class="rc-checks" id="rcChecks${i}">${checksHtml(b)}</ul>
+        <p class="rc-defend-row"><button type="button" class="wu-link rc-defend" data-defend="${i}">Defend this line in an interview →</button></p></details>`);
     });
     return out.join('');
   }
@@ -186,6 +187,8 @@
       <div class="actions">${none ? '' : '<button class="primary" id="rcCopy">Copy improved bullets</button>'}<button id="rcDownload">Download report (.txt)</button></div></section>${matchHtml()}`;
     el.querySelectorAll('.rc-edit').forEach(t => { t.oninput = () => edit(Number(t.dataset.i), t.value); });
     if ($('#rcCopy')) $('#rcCopy').onclick = copyBullets;
+    // The bullet's current text, since edits update the analysis in place.
+    el.querySelectorAll('[data-defend]').forEach(b => { b.onclick = () => { const x = analysis && analysis.bullets[Number(b.dataset.defend)]; if (x) DefenceTool.openLine(x.text, { fromResume: true }); }; });
     bindMatch();
     $('#rcDownload').onclick = () => download(RC.reportText(analysis), `case-room-resume-check-${new Date().toISOString().slice(0, 10)}.txt`);
   }
@@ -215,6 +218,20 @@
     renderMatch(false);
   }
 
+  /* Used by the defence tool: find a bullet by its text and replace it, whether or not this screen is showing. */
+  const norm = t => String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+  function currentAnalysis() {
+    if (analysis && analysis.source !== draft.resume) { clearTimeout(refreshTimer); analysis = RC.analyse(draft.resume, draft.jd); analysis.source = draft.resume; if ($('#rcResults')) renderResults(); }
+    return analysis;
+  }
+  const bulletIndex = text => { const a = norm(text) && currentAnalysis(); return a ? a.bullets.findIndex(b => norm(b.text) === norm(text)) : -1; };
+  const hasBullet = text => bulletIndex(text) >= 0;
+  function replaceBullet(oldText, newText) {
+    const i = bulletIndex(oldText), text = norm(newText);
+    if (i < 0 || !text) return false;
+    edit(i, text); return true;
+  }
+
   function copyBullets() {
     const text = RC.improvedBullets(analysis);
     const fallback = () => { modal(`<h2>Copy your bullets</h2><p class="note">Select all the text below and copy it.</p><textarea id="rcCopyText" rows="14" readonly>${esc(text)}</textarea>`); const t = $('#rcCopyText'); t.focus(); t.select(); };
@@ -230,5 +247,5 @@
   };
 
 
-  window.ResumeTool = { open, check, takeFile, state: () => ({ draft, analysis, saving, fileInfo }) };
+  window.ResumeTool = { open, check, takeFile, hasBullet, replaceBullet, state: () => ({ draft, analysis, saving, fileInfo }) };
 })();

@@ -106,6 +106,7 @@
     if (o.tool === 'behavioural') return Behavioural.ask(o.mode);
     if (o.tool === 'stories') return Behavioural.stories();
     if (o.tool === 'resume') return ResumeTool.open();
+    if (o.tool === 'defence') return DefenceTool.open(o.mode);
   }
 
   /* ---------- Integration with the rest of Case Room ---------- */

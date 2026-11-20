@@ -1,6 +1,6 @@
 # Case Room
 
-Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode, behavioural (HR) interview practice with a story bank, campus placement aptitude practice and a résumé checker sit alongside the cases.
+Twelve original fictional cases (nine consulting, three product and analytics), eight stages, two paths per case, spoken prompts and optional bring-your-own-key AI coaching. A case maths drill, a peer interview mode, behavioural (HR) interview practice with a story bank, a résumé and project defence, campus placement aptitude practice and a résumé checker sit alongside the cases.
 
 ## Product and analytics cases
 
@@ -53,6 +53,25 @@ Open **Behavioural** in the header, or link straight to `/#behavioural`. Practic
 - **Story bank** (`/#behavioural-stories`): write 6–8 STAR stories, tag the competencies each one covers, and see which competencies have no story yet. Link a practice answer to a story. Export and import the bank as JSON.
 - **Practise with a friend** (`/#behavioural-sheet/<competency>` or `/#behavioural-sheet/all`): a printable interviewer sheet with the questions, follow-ups, "listen for" ticks and a 1–5 scoring line, in the same style as the peer interview sheet.
 - No AI and no server. Everything stays in this browser (`cr-behavioural-*` keys). Questions and checks live in `src/behavioural-content.js` (no DOM, unit-tested in Node).
+
+## Résumé and project defence
+
+Link straight to `/#defence`, or open it from the HR interview page, from a bullet in the résumé checker, or from a plan. An interviewer picks one line of your résumé, or one project, and keeps asking until they know what you did. It runs under interview conditions like the HR interview: no help, no skipping, no second attempt, and feedback only at the end. No AI and no server.
+
+- **Two ways in:** paste one résumé line (or pick one from the résumé you checked), or name a project and say what kind of work it was (course project, lab or thesis, internship task, fest or club, volunteering, family business or own venture). No internship is needed.
+- **The questions come from simple rules** in `lineQuestions()` and `projectQuestions()` in `src/defence-content.js`. A line gets up to five: it always opens on the story and closes on what went wrong, and the middle ones depend on what the words in the line show.
+  - A claimed change (a verb such as "reduced" or "grew" with a figure) draws a question on how it was measured, and one on what else could explain it.
+  - A prize, rank or selection draws "how many others were in the running". A line with a figure but no change, or no figure at all, draws a question on what came of the work.
+  - A vague opener ("helped", "responsible for", "worked on") draws "what exactly did you do yourself". Being in charge of a team draws a question on one problem inside it, and other team words draw "which part was yours alone".
+  - A named tool (Excel, SQL, Python…) draws "what exactly did you do in it", and a named method (a model, a survey, a dashboard…) draws "explain it to someone who has never seen one".
+  - A project gets five fixed questions: why you went about it this way, what you did yourself, what failed, how you checked it worked, and what you would change.
+- **One follow-up at most per answer**, chosen by counting: an answer under 25 words ("that was brief"), "we" outnumbering "I" on the contribution question, or no number in an answer about evidence. A follow-up never gets a follow-up. Each question and follow-up carries the reason it was asked, which is shown only in the debrief.
+- **The debrief** shows every question with why it was asked, your answer (collapsed, with word count and time), the follow-up and your reply, and three "did your answer cover these?" ticks that you fill in yourself. Nothing is scored. It says plainly that the rules cannot check whether a claim is true or an answer is good. "End the defence" keeps what was answered and goes straight to the debrief.
+- **Rewrite the line** (line defences): hints from the rules, a box prefilled with your line, and live checks from the résumé checker's bullet rules (heuristics, not a score). Copy the new line, or, if the original line is in the résumé currently loaded in the checker, put it back there in one click. The checker updates; the résumé is saved only if "Remember my text" is ticked there, as before.
+- **Keep it as a story:** copies your answers into the HR story bank (as one story, `df` plus the session id, so saving again updates it instead of adding another). You tag its competencies in the story bank. Download the whole defence as a text file.
+- **Stored in this browser:** `cr-defence-run` (the defence in progress, so a reload resumes at the same question or follow-up with your typed text) and `cr-defence-past` (up to 20 finished defences, newest first). Only the one line or project title and your answers are kept, never the résumé. Everything read back is validated field by field and anything corrupt is ignored.
+- **Links:** a "Defend this line in an interview" button inside every bullet of the résumé checker; a panel on the HR interview page; the HR round tile and "Continue where you left off" on the home page; and two plan items ("Defend one line of your résumé" in the HR and résumé plans, "Defend a project" first in the technical plan).
+- The rules and wording are in `src/defence-content.js` (no DOM, unit-tested in Node); the screens are in `src/defence.js` and `assets/defence.css`; tests are in `tests/defence.test.cjs`.
 
 ## Placement aptitude practice
 
@@ -140,7 +159,7 @@ Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel
 ### Project layout
 
 - `index.html`: page shell. It loads the files below in order.
-- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css`, `behavioural.css`, `aptitude.css` and `resume.css` for those tools).
+- `assets/`: stylesheets (`app.css` shared, `drill.css`, `peer.css`, `behavioural.css`, `aptitude.css`, `resume.css` and `defence.css` for those tools).
 - `content/cases.js`: the authored case catalogue. Edit cases here.
 - `content/aptitude-verbal.js`: the original verbal aptitude bank (items and reading passages). Edit verbal questions here.
 - `content/resume-words.js`: the résumé checker's word lists (action verbs, weak openers, filler words, section names, stop words, skills and variants) and the fictional sample résumé and job description.
@@ -149,6 +168,7 @@ Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel
 - `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
 - `src/peer.js`: peer interview guide, candidate screen, feedback and printable sheet. It reads the case catalogue and reuses the case flow helpers in `src/cases.js`.
 - `src/behavioural-content.js` and `src/behavioural.js`: behavioural question bank and answer heuristics (no DOM, unit-tested in Node), and the practice, story bank and printable sheet UI.
+- `src/defence-content.js` and `src/defence.js`: the résumé and project defence's question rules, follow-ups, rewrite hints and story mapping (no DOM, unit-tested in Node), and its screens (home, interview conditions, debrief). It is linked from the résumé checker, the HR page, the home page and the plan, and loads after `src/resume.js`.
 - `content/english.js`, `src/english-check.js` and `src/english.js`: spoken English practice content, scoring (no DOM, unit-tested in Node) and UI.
 - `src/aptitude-questions.js` and `src/aptitude.js`: aptitude question generators, scoring and progress statistics (no DOM, unit-tested in Node), and the practice, timed test and results UI.
 - `src/resume-check.js`, `src/resume-files.js` and `src/resume.js`: résumé analysis (structure, bullet checks, keyword matching, PDF line rebuilding, .docx XML conversion; no DOM, unit-tested in Node), reading files on the device (zip, inflate, pdf.js loading), and the checker UI.
@@ -193,6 +213,7 @@ The site owner can configure `CUSTOM_AI_BASE_URL`, such as `https://your-provide
 - Provider rate limits and charges apply. Each request has a bounded output, a timeout, no automatic retry, and a 100 KB input limit. Answers are capped at 5,000 characters for AI review. An in-memory per-key rate guard is best-effort per server instance, not a distributed quota or spend cap. Use provider account spend controls and Vercel firewall/rate limits for wider public access.
 - Cancellation prevents stale results from changing the interface; a provider may still finish and bill an already-started request.
 - Only exact quote existence is verified, not the correctness of an AI interpretation. Numerical checks remain deterministic. AI follow-ups can still be imperfect.
+- The résumé and project defence stores only the one line or project title and your answers in this browser (`cr-defence-*` keys), never the résumé, and sends nothing anywhere.
 - The résumé checker reads files in the browser and uploads nothing. It stores résumé and job-description text only if you tick "Remember my text", and never stores the file.
 - Browser speech services may process audio/text online. This integration does not send recordings to the AI provider and does not retain audio recordings.
 
