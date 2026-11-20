@@ -40,6 +40,8 @@ Open **Behavioural** in the header, or link straight to `/#behavioural`. Practic
 - An original bank of 66 questions across nine competencies: tell me about yourself, why this company or role, leadership, teamwork, conflict, failure or mistake, handling pressure, initiative, and ethics. Each competency has "listen for" cues, follow-up questions and a target length (60–120 s for the opening pitch, 45–90 s for motivation, 90–120 s for stories).
 - Pick a competency or mixed questions. The question can be read aloud. Answer by dictation or typing; a visible timer starts when you start answering.
 - Feedback is computed in the browser and labelled as heuristics, not a score: word count and estimated speaking time, pace (dictated answers only), filler words ("um", "uh", "like", "basically", "actually", "you know", "kind of" and a few more, with common legitimate uses such as "I like" excluded), and "I" versus "we".
+- Delivery checks (also heuristics): hedging phrases ("I think", "maybe", "probably"…), softeners and intensifiers ("just", "really", "very"), sentences that keep starting the same way and "and then" chains, sentence length (when the answer has full stops), and long pauses of 3 seconds or more while dictating (measured from gaps between the browser's speech results, so approximate).
+- **Delivery goals:** set your own targets for filler words, hedging, long pauses, speaking pace (120–160 words a minute) and answer length, or switch any off. Every answer shows which goals it met, and the HR page shows a strip of your last ten answers per goal (met, missed or not measured) with whether you are improving.
 - STAR check: tag each sentence of your transcript as Situation, Task, Action or Result (or Present/Past/Future for "tell me about yourself" and Them/Role/You for "why us"). The page shows each part's share and flags missing parts, a long set-up, an Action that is not the largest part, a Result without an outcome or number, and, for failure questions, a missing lesson. Dictation without full stops is split into chunks you can re-split by editing the transcript.
 - Answers are saved with your tags, self-review ticks and notes. The behavioural home shows history per competency, with view, delete and text download.
 - **Story bank** (`/#behavioural-stories`): write 6–8 STAR stories, tag the competencies each one covers, and see which competencies have no story yet. Link a practice answer to a story. Export and import the bank as JSON.
@@ -67,6 +69,19 @@ Open **Aptitude** in the header, or link straight to `/#aptitude`. Practice for 
   - **Verbal:** new Advanced and Expert items in every verbal topic and one new reading passage at each level. With only three passages at Hard or above, a long verbal section at these levels can fall back to easier passages.
 - **Questions:** every question is multiple choice with four distinct options and exactly one correct answer. Wrong options come from common mistakes, such as adding percentages instead of compounding, dividing by the wrong base, swapping left and right, or stopping a series one step early. Indian context and units (₹, lakh, crore, km/h) are used where natural.
 - Generated questions are reproducible from a seed (`src/aptitude-questions.js`, no DOM, unit-tested in Node). Progress stays in this browser (`cr-aptitude-*` keys). Stored data is validated when read, and anything corrupt is ignored. Delete history from the aptitude page.
+
+## Spoken English practice
+
+Open it from the Aptitude or HR interview page, or link straight to `/#english`. Practice for the spoken-English sections some employers add to campus online tests. Free, no AI, nothing recorded.
+
+- **Read aloud** (needs dictation): read a sentence on screen. The result highlights the words the browser did not hear as written, lists extra words, and gives a reading pace.
+- **Repeat the sentence:** hear a sentence (at most twice) without seeing it, then say it back. It can be typed where dictation is unavailable; without read-aloud it shows for five seconds instead.
+- **Quick answers:** hear a short question and answer in a word or two. Accepted answers allow common variants.
+- **Just a minute:** 15 seconds to think, then one minute on a topic. Dictation stops itself at the minute. The report covers time spoken, words, pace, filler words, repeated words and the delivery checks from the HR practice, plus a self-check of structure.
+- **Full practice** (about 8 minutes): 3 read, 3 repeat, 4 quick answers and 1 talk, easier sentences first, avoiding recently used items. An unfinished practice resumes after a reload and appears under "Continue where you left off".
+- **Words to practise:** words the browser missed at least twice in recent reading and repeating.
+- Scoring compares the browser's transcript with the expected text after normalising case, punctuation, contractions, numbers (9 = nine), hyphens and British/American spellings. It describes what the browser heard; microphone, noise and accent all affect it, and a real test may score pronunciation in ways this cannot. The page says so.
+- Original content in `content/english.js` (18 sentences to read, 18 to repeat, 18 questions, 20 topics). Scoring is in `src/english-check.js` (no DOM, unit-tested in Node) and the UI in `src/english.js`. Results stay in this browser (`cr-english-*` keys) and can be deleted from the page.
 
 ## Résumé and job-description checker
 
@@ -127,6 +142,7 @@ Open http://127.0.0.1:3000. The local server uses the same API handler as Vercel
 - `src/drill-questions.js` and `src/drill.js`: drill question generators (no DOM, unit-tested in Node) and the drill UI.
 - `src/peer.js`: peer interview guide, candidate screen, feedback and printable sheet. It reads the case catalogue and reuses the case flow helpers in `src/cases.js`.
 - `src/behavioural-content.js` and `src/behavioural.js`: behavioural question bank and answer heuristics (no DOM, unit-tested in Node), and the practice, story bank and printable sheet UI.
+- `content/english.js`, `src/english-check.js` and `src/english.js`: spoken English practice content, scoring (no DOM, unit-tested in Node) and UI.
 - `src/aptitude-questions.js` and `src/aptitude.js`: aptitude question generators, scoring and progress statistics (no DOM, unit-tested in Node), and the practice, timed test and results UI.
 - `src/resume-check.js`, `src/resume-files.js` and `src/resume.js`: résumé analysis (structure, bullet checks, keyword matching, PDF line rebuilding, .docx XML conversion; no DOM, unit-tested in Node), reading files on the device (zip, inflate, pdf.js loading), and the checker UI.
 - `vendor/pdfjs/`: Mozilla's pdf.js 6.5.438 (Apache-2.0), stored in the repository and loaded only when a PDF is chosen. See `vendor/pdfjs/README.md`.

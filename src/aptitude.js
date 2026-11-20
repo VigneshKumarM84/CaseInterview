@@ -121,6 +121,7 @@
         <label class="selfcheck"><input type="radio" name="aptTiming" value="sectional" ${prefs.timing === 'sectional' ? 'checked' : ''}> A separate timer for each section; sections are locked once finished</label></fieldset>
         <p class="note" id="aptTestSummary"></p>
         <div class="actions"><button class="primary" id="aptTest">Start timed test →</button><span id="aptTestStatus" class="note" role="status"></span></div></section>
+      <section class="panel en-callout"><div><div class="eyebrow">ALSO IN SOME ONLINE TESTS</div><h2>Spoken English</h2><p class="note">Read aloud, repeat sentences, quick answers and a one-minute talk, checked against what your browser hears.</p></div><button id="aptEnglish">Practise spoken English →</button></section>
       <section class="panel drill-stats apt-progress"><h2>Your progress</h2>${practised.length ? `<p class="note">Accuracy and median time per question, from your last 30 answered questions in each topic (practice and tests).</p>
         <table class="drill-table"><thead><tr><th scope="col">Topic</th><th scope="col">Accuracy</th><th scope="col">Median time</th></tr></thead><tbody>${practised.map(s => `<tr><th scope="row">${esc(s.title)}<small>${esc(sectionOf(s.section).title)} · ${s.attempts} answered</small></th><td><div class="drill-meter" aria-hidden="true"><span style="width:${Math.round(s.accuracy * 100)}%"></span></div>${percent(s.accuracy)}</td><td>${seconds(s.medianSeconds)}</td></tr>`).join('')}</tbody></table>
         ${weakMarkup(weak)}
@@ -156,6 +157,7 @@
     if ($('#aptResume')) $('#aptResume').onclick = () => { if (run.mode === 'test') renderTest(); else { if (!run.results[run.index]) run.qStarted = Date.now(); persist(); renderPractice(); } };
     if ($('#aptDiscard')) $('#aptDiscard').onclick = () => { if (!confirm('Discard this unfinished attempt? Its answers will not count towards your progress.')) return; run = null; persist(); renderHome(); };
     bindWeak();
+    $('#aptEnglish').onclick = () => EnglishTool.open();
     if ($('#aptClear')) $('#aptClear').onclick = () => { if (!confirm('Delete all aptitude practice and test history from this browser? This cannot be undone.')) return; history = []; save(HISTORY_KEY, history); renderHome(); };
   }
   function renderTopicChips() {

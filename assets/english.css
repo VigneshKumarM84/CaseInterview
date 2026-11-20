@@ -1,0 +1,17 @@
+/* Spoken English practice. Shares the flow screens, checklists and summary list with the HR practice. */
+.en-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:24px 0}
+.en-grid .panel{padding:22px;display:flex;flex-direction:column;gap:6px}.en-grid h2{font-size:22px;margin:4px 0}.en-grid h3{margin:0}
+.en-grid .panel button{margin-top:auto;align-self:flex-start}.en-full{grid-column:1/-1;background:#f0f4e9}
+.en-stat{font-size:13px;font-weight:600;color:#4f6b45;margin:4px 0 10px}
+.en-sentence{font:500 22px/1.5 Manrope,sans-serif;background:#f6f8f3;border-left:4px solid var(--green);border-radius:8px;padding:18px 20px;margin:18px 0}
+.en-marked mark{background:#f6dcc8;color:inherit;border-radius:4px;padding:0 3px;text-decoration:underline dotted #b0652c}
+.en-question{font:500 19px/1.5 Manrope,sans-serif;margin:14px 0}
+.en-listen{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.en-heard{min-height:90px}.en-input{width:100%;padding:13px;border:1px solid #bcc8b8;border-radius:8px;margin:10px 0}
+.en-said{background:#fff;border:1px dashed var(--line);border-radius:8px;padding:12px 14px}
+.en-clock{font:600 18px Manrope,sans-serif;font-variant-numeric:tabular-nums;color:var(--green)}.en-clock.over{color:#b0652c}
+.en-verdict{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:8px;margin:12px 0;background:#eef4e6}.en-verdict.miss{background:#fbf0e4}
+.en-words{display:flex;flex-wrap:wrap;gap:8px}.en-words span{background:#f6f8f3;border:1px solid var(--line);border-radius:16px;padding:5px 12px;font-size:14px}.en-words small{color:var(--muted)}
+.en-scores{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.en-callout{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:24px 0}.en-callout h2{font-size:22px;margin:4px 0}
+@media(max-width:600px){.en-sentence{font-size:19px;padding:14px}}
