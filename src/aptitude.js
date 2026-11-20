@@ -10,6 +10,8 @@
   const MIX_TITLES = { mixed: 'Mixed difficulty', 'mixed-high': 'Mixed: Hard to Expert' };
   const NEGATIVES = [[0, 'No negative marking'], [0.25, '−0.25 per wrong answer'], [1 / 3, '−1/3 per wrong answer'], [0.5, '−0.5 per wrong answer']];
   const LETTERS = ['A', 'B', 'C', 'D'];
+  const PRESET_DATA = (typeof window !== 'undefined' && window.APTITUDE_PRESETS) || { PRESETS: [], NOTE: '' };
+  const PRESETS = Array.isArray(PRESET_DATA.PRESETS) ? PRESET_DATA.PRESETS : [], PRESET_NOTE = PRESET_DATA.NOTE || '';
   const topicOf = A.topicOf, sectionOf = id => A.SECTIONS.find(s => s.id === id);
   const topicsIn = s => A.TOPICS.filter(t => t.section === s).map(t => t.id);
   const levelTitle = id => MIX_TITLES[id] || (A.LEVELS.find(l => l.id === id) || A.LEVELS[1]).title;
@@ -112,6 +114,8 @@
         <label for="aptTarget">Target per question<select id="aptTarget">${TARGETS.map(([n, t]) => `<option value="${n}" ${prefs.target === n ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
         <div class="actions"><button class="primary" id="aptPractice">Start practice →</button><span id="aptPracticeStatus" class="note" role="status"></span></div></section>
       <section class="panel drill-setup apt-setup"><h2>Timed test</h2><p class="note">A placement-style mock: no feedback until you submit, and it submits itself when time runs out.</p>
+        ${PRESETS.length ? `<fieldset class="apt-presets"><legend>Start from a typical pattern</legend><div class="apt-preset-list">${PRESETS.map(p => `<button type="button" class="apt-preset" data-preset="${esc(p.id)}" aria-describedby="aptPresetNote"><b>${esc(p.title)}</b><small>${esc(p.shape)}</small><small class="apt-preset-eg">e.g. ${esc(p.examples)}</small></button>`).join('')}</div>
+        <p class="note" id="aptPresetNote" role="status">${esc(PRESET_NOTE)} Picking one fills in the settings below; you can still change them.</p></fieldset>` : ''}
         <fieldset><legend>Sections</legend><div class="apt-tabs">${A.SECTIONS.map(s => `<label class="drill-chip"><input type="checkbox" name="aptTestSection" value="${s.id}" ${prefs.sections.includes(s.id) ? 'checked' : ''}><span><b>${esc(s.title)}</b><small>${topicsIn(s.id).length} topics</small></span></label>`).join('')}</div></fieldset>
         <div class="drill-options apt-test-options"><label for="aptPer">Questions per section<select id="aptPer">${PER_SECTION.map(n => `<option value="${n}" ${prefs.perSection === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
         <label for="aptTestLevel">Difficulty<select id="aptTestLevel">${[...A.LEVELS.map(l => [l.id, l.title]), ['mixed', 'Mixed (like real tests)'], ['mixed-high', 'Mixed: Hard to Expert']].map(([id, t]) => `<option value="${id}" ${prefs.testLevel === id ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
@@ -150,6 +154,12 @@
       if (!checkedTopics().length) { $('#aptPracticeStatus').textContent = 'Choose at least one topic.'; return; }
       remember(); beginPractice(A.buildSet({ topics: prefs.topics[prefs.section], level: prefs.level, count: prefs.count, seed: Date.now() }), 'new', prefs.level);
     };
+    document.querySelectorAll('.apt-preset').forEach(b => b.onclick = () => {
+      const p = PRESETS.find(x => x.id === b.dataset.preset); if (!p) return;
+      prefs = cleanPrefs({ ...prefs, ...p.settings }); save(PREFS_KEY, prefs); renderHome();
+      $('#aptPresetNote').textContent = `Settings filled in for “${p.title}”. ${PRESET_NOTE}`;
+      document.querySelector(`.apt-preset[data-preset="${p.id}"]`)?.classList.add('chosen'); $('#aptTest').focus();
+    });
     $('#aptTest').onclick = () => {
       if (!testSections().length) { $('#aptTestStatus').textContent = 'Choose at least one section.'; return; }
       remember(); beginTest();

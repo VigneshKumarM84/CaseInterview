@@ -514,3 +514,31 @@ test('aptitude practice does not interfere with case sessions, the drill, peer i
     assert.deepEqual(f.errors, []);
   } finally { f.dom.window.close(); }
 });
+
+test('presets use only settings the timed test offers, and picking one fills the form for a matching test', () => {
+  const P = require('../content/aptitude-presets.js');
+  assert(P.PRESETS.length >= 3 && P.NOTE.includes('Approximate'));
+  assert.equal(new Set(P.PRESETS.map(p => p.id)).size, P.PRESETS.length);
+  for (const p of P.PRESETS) {
+    assert(p.title && p.shape && p.examples, p.id);
+    const s = p.settings;
+    assert(s.sections.length && s.sections.every(x => A.SECTIONS.some(y => y.id === x)), p.id);
+    assert([5, 10, 20, 30].includes(s.perSection) && [36, 60, 90, 120].includes(s.pace) && ['total', 'sectional'].includes(s.timing) && [0, 0.25, 1 / 3, 0.5].includes(s.negative), p.id);
+    assert(A.LEVEL_IDS.includes(s.testLevel) || A.MIXES[s.testLevel], p.id);
+  }
+  const f = fixture(); try {
+    f.$('aptitudeNav').click();
+    assert.equal(doc(f).querySelectorAll('.apt-preset').length, P.PRESETS.length);
+    const adv = P.PRESETS.find(p => p.id === 'advanced');
+    doc(f).querySelector('[data-preset="advanced"]').click();
+    assert(doc(f).querySelector('[data-preset="advanced"]').classList.contains('chosen'));
+    assert(f.$('aptPresetNote').textContent.includes(adv.title));
+    assert.equal(f.$('aptPer').value, String(adv.settings.perSection)); assert.equal(f.$('aptPace').value, String(adv.settings.pace)); assert.equal(f.$('aptTestLevel').value, adv.settings.testLevel);
+    assert.deepEqual([...doc(f).querySelectorAll('[name=aptTestSection]:checked')].map(x => x.value), adv.settings.sections);
+    assert.deepEqual(JSON.parse(f.w.localStorage.getItem('cr-aptitude-prefs')).sections, adv.settings.sections, 'the choice is remembered');
+    f.$('aptTest').click();
+    const run = state(f).run; assert.equal(run.questions.length, 20); assert.equal(run.pace, 120); assert(run.questions.every(q => ['quant', 'logical'].includes(q.section)));
+    assert(run.questions.every(q => ['hard', 'advanced', 'expert'].includes(q.level)));
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
