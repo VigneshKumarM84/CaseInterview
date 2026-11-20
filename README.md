@@ -54,6 +54,7 @@ Open **Aptitude** in the header, or link straight to `/#aptitude`. Practice for 
 
 - **Topic practice:** choose a section and one or more topics, a difficulty (Easy, Medium, Hard, Advanced, Expert), 5/10/20 questions and an optional per-question target (up to 2 minutes). Every answer gets instant feedback, a worked solution and a shortcut. "Show solution" counts as a miss.
 - **Timed test:** choose sections, 5/10/20/30 questions per section, difficulty (a single level, Mixed for the usual Easy–Hard spread, or Mixed: Hard to Expert), time (36 s, 1 minute, 90 s or 2 minutes per question) and negative marking (none, −0.25, −1/3 or −0.5).
+  - **Start from a typical pattern:** four generic presets (standard placement test, short screening round, higher-package track, competitive-exam style) fill in the settings above; nothing starts until you press Start. Company names appear only as “e.g.” examples drawn from public prep-site write-ups, and the page labels every preset approximate and tells students to follow their drive notice. Edit them in `content/aptitude-presets.js`.
   - Pick one timer for the whole test, or a separate timer for each section (finished sections are locked).
   - A question palette shows answered, not answered, not visited and marked-for-review questions and lets you jump around. Clear a response, or mark it for review (answered marked questions still count).
   - There is no feedback until you submit. The test submits itself when time runs out.
