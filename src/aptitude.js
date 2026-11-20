@@ -533,6 +533,7 @@
     $('#aptBack').onclick = renderHome;
     $('#aptDownload').onclick = () => download(summaryText(res), `case-room-aptitude-${new Date(e.at).toISOString().slice(0, 10)}.txt`);
     bindWeak(); if (res.paper) bindSend(res);
+    if (window.MovesTool && MovesTool.afterAptitudeResults) MovesTool.afterAptitudeResults(res);
   }
 
   /* ---------- Brief, guess, notices, shared papers and collecting results ---------- */

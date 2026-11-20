@@ -35,7 +35,7 @@ nav button[aria-current=page]{background:#eef2e7;font-weight:700;color:var(--gre
 .home-foot{margin-top:28px;text-align:center}
 
 .page-head{max-width:760px;padding-bottom:4px}
-.case-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:16px 0 32px}
+.case-tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:16px 0 32px}
 .case-tool{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;align-items:flex-start}
 .case-tool.first{border-left:4px solid var(--lime)}
 .case-tool h3{margin:6px 0 2px;font:600 18px Manrope,sans-serif}

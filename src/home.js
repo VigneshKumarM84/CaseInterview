@@ -3,7 +3,7 @@
    something unfinished, or open one round. Each round tile leads straight to that round's page.
    The case library (12 full cases) now lives on its own Case interview page, with the warm-up, maths drill
    and peer interview in front of it.
-   Loaded after every tool and before ai-client.js, which wraps home() and casesPage() to cancel AI requests.
+   Also holds a short "Train one move" row for Moves. Loaded after every tool and before ai-client.js, which wraps home() and casesPage() to cancel AI requests.
 
    How it hooks in: each tool wraps home() to tidy up when the student leaves it (pause timers, clear its #hash).
    That chain ends in cases.js, which draws the case library. leaveTool() below runs that whole chain, so the
@@ -42,6 +42,8 @@
     if (gd && gd.phase !== 'debrief') out.push({ id: 'gd', label: 'Group discussion', title: GD_CONTENT.BRIEFS.find(b => b.id === gd.briefId).title, detail: { prepare: 'Reading the brief', discuss: 'Discussing now', summary: 'At the summary' }[gd.phase], go: () => GDTool.resume() });
     const p = PeerMock.state().run;
     if (p) out.push({ id: 'peer', label: 'Peer interview', title: 'Mock interview with a friend', detail: 'In progress', go: () => PeerMock.open() });
+    const mv = MovesTool.progress();
+    if (mv) out.push({ id: 'moves', label: 'Move', title: mv.title, detail: mv.detail, go: () => MovesTool.resume() });
     const plan = NextRoundTool.state();
     if (plan.round && plan.items.length) {
       const r = NextRound.ROUNDS.find(x => x.id === plan.round);
@@ -68,9 +70,15 @@
         <ol class="round-tiles">${ROUNDS.map(r => `<li><button class="round-tile" data-round="${r.id}" id="round-${r.id}"><span class="round-n" aria-hidden="true">${r.n}</span><b>${esc(r.title)}</b>${r.tag ? `<span class="round-tag">${esc(r.tag)}</span>` : ''}<span class="note">${esc(r.text)}</span><span class="home-go" aria-hidden="true">→</span></button></li>`).join('')}</ol>
         <p class="note home-technical">Technical or coding round? Case Room does not cover it. <button class="wu-link" id="homeTechnical">See what you can still practise here</button></p>
       </section>
+      <section class="home-moves" aria-labelledby="homeMovesTitle">
+        <div class="row"><div><div class="eyebrow">FIVE MINUTES, ONE SKILL</div><h2 class="section-title" id="homeMovesTitle">Train one move · 5 minutes</h2></div><button class="wu-link" id="homeMovesHub">See all moves</button></div>
+        <ul class="home-move-list">${MovesContent.MOVES.map(m => `<li><button class="home-move" id="homeMove-${m.id}"><b>${esc(m.title)}</b><span class="note">${esc(MovesTool.statusLine(m.id))}</span></button></li>`).join('')}</ul>
+      </section>
       <p class="home-foot note">Free · no account · your answers stay in this browser · dictation may use your browser’s online speech service · optional AI feedback sends your answers to the provider you choose</p>`;
     $('#homePlan').onclick = () => NextRoundTool.open();
     $('#homeTechnical').onclick = () => NextRoundTool.open('technical');
+    $('#homeMovesHub').onclick = () => MovesTool.open();
+    MovesContent.MOVES.forEach(m => { $('#homeMove-' + m.id).onclick = () => MovesTool.openMove(m.id); });
     document.querySelectorAll('[data-round]').forEach(b => b.onclick = () => ROUNDS.find(r => r.id === b.dataset.round).open());
     document.querySelectorAll('[data-continue]').forEach(b => b.onclick = () => todo.find(t => t.id === b.dataset.continue).go());
   };
@@ -84,14 +92,15 @@
     const tools = [
       { id: 'warmup', eyebrow: fresh ? 'NEW TO CASES? START HERE · 10 MIN' : 'WARM-UP · 10 MIN', title: 'Guided warm-up', text: 'One question, one number, one calculation and a 30-second recommendation, with an example after each.', label: seen === 'done' ? 'Redo the warm-up' : 'Start the warm-up →', go: () => WarmupTool.open() },
       { id: 'drill', eyebrow: 'CASE MATHS · 5–10 MIN', title: 'Maths drill', text: 'Percentages, margins, break-evens, growth and estimates, with the working after every answer.', label: 'Start a maths drill →', go: () => CaseDrill.open() },
-      { id: 'peer', eyebrow: 'WITH A FRIEND · 45 MIN', title: 'Peer interview', text: 'One of you interviews from a guide with answers and scoring cues; the other answers out loud.', label: 'Set up a peer interview →', go: () => PeerMock.open() }
+      { id: 'peer', eyebrow: 'WITH A FRIEND · 45 MIN', title: 'Peer interview', text: 'One of you interviews from a guide with answers and scoring cues; the other answers out loud.', label: 'Set up a peer interview →', go: () => PeerMock.open() },
+      { id: 'moves', eyebrow: 'ONE SKILL · 5 MIN', title: 'Train one move', text: 'Answer first, read a table, catch a wrong number, sort test questions. Five minutes each, with the reason after every pick.', label: 'Choose a move →', go: () => MovesTool.open() }
     ];
     box.innerHTML = tools.map((t, i) => `<div class="case-tool${i === 0 && fresh ? ' first' : ''}"><div class="eyebrow">${t.eyebrow}</div><h3>${t.title}</h3><p class="note">${t.text}</p><button class="${i === 0 && fresh ? 'primary' : ''}" id="caseTool-${t.id}">${t.label}</button></div>`).join('');
     tools.forEach(t => { $('#caseTool-' + t.id).onclick = t.go; });
   };
 
   /* ---------- Navigation: in round order, with the current page marked ---------- */
-  const NAV = { homeNav: ['home', 'gd'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
+  const NAV = { homeNav: ['home', 'gd', 'moves'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
   function markNav() { for (const [id, views] of Object.entries(NAV)) { const b = document.getElementById(id); if (b) { if (views.includes(view)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); } } }
   $('#planNav').onclick = () => NextRoundTool.open();
   $('#casesNav').onclick = () => casesPage();

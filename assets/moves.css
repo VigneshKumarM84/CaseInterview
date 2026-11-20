@@ -1,0 +1,115 @@
+/* Moves: the hub, option buttons, the table box, graded answers and the home-page section. Builds on app.css, drill.css, flow.css and behavioural.css. */
+.mv-head{max-width:760px;padding-bottom:8px}
+.mv-screen{max-width:820px;margin:0 auto}
+.mv-top{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.mv-links{display:flex;gap:6px 16px;flex-wrap:wrap}
+.mv-links .wu-link,.mv-panel .wu-link,.mv-transfer button{min-height:44px;padding:8px 4px}
+.mv-cards{list-style:none;padding:0;margin:16px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.mv-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:flex-start}
+.mv-card.ready{border-left:4px solid var(--green)}
+.mv-card h2{font:600 20px Manrope,sans-serif;margin:6px 0 2px}
+.mv-card p{margin:4px 0}
+.mv-card .mv-tag{font-weight:600}
+.mv-card button{margin-top:auto;min-height:44px}
+.mv-card .mv-status{margin:10px 0 14px}
+.mv-status{font-size:14px;color:var(--muted)}
+.mv-status.ready{color:#4f7a36;font-weight:700}
+.mv-note{max-width:760px}
+.mv-panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 26px;margin:16px 0}
+.mv-panel h3{font-size:15px;margin:20px 0 6px}
+.mv-rule{padding-left:22px;line-height:1.7;font-size:16px}
+.mv-claim{margin:12px 0;padding:12px 18px;border-left:4px solid var(--green);background:#f0f4e9;border-radius:8px}
+.mv-claim p{margin:4px 0;font-size:17px;line-height:1.55}
+.mv-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.mv-ex{border:1px solid var(--line);border-radius:10px;padding:12px 16px;background:#fff}
+.mv-ex.strong{border-color:#a9c98d;background:#f7faef}
+.mv-ex blockquote,.mv-grade blockquote{margin:6px 0 0;line-height:1.6;overflow-wrap:anywhere}
+.mv-prompt{font:600 19px/1.4 Manrope,sans-serif;margin:16px 0 10px}
+.mv-timer{display:flex;gap:10px;align-items:center;margin:0 0 10px}
+.mv-timer .note{margin:0}
+.mv-over{font-size:13px;font-weight:700;color:#b0602a}
+.mv-facts{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 18px;margin:12px 0}
+.mv-facts h3{font-size:14px;margin:4px 0}
+.mv-facts ul{margin:4px 0;padding-left:20px;line-height:1.6}
+/* The table scrolls inside its own box, so a wide table never widens the page. */
+.mv-table-box{overflow-x:auto;max-width:100%;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:#fff;-webkit-overflow-scrolling:touch}
+.mv-table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.mv-table caption{text-align:left;font-weight:700;padding:10px 12px;color:var(--ink)}
+.mv-table th,.mv-table td{padding:9px 12px;border-top:1px solid var(--line);text-align:left;vertical-align:bottom}
+.mv-table td,.mv-table tbody th{white-space:nowrap;vertical-align:top}
+.mv-table thead th{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.mv-table .num{text-align:right}
+.mv-options{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px}
+.mv-opt{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"mark state" "mark text" "mark kind" "mark why";gap:2px 12px;width:100%;min-height:44px;text-align:left;padding:12px 14px;border-radius:10px;line-height:1.5;color:var(--ink)}
+.mv-mark{grid-area:mark;width:20px;font-weight:700;font-size:18px}
+.mv-state{grid-area:state;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.mv-text{grid-area:text;overflow-wrap:anywhere}
+.mv-kind{grid-area:kind;font-size:12px;font-weight:700;color:var(--muted)}
+.mv-why{grid-area:why;font-size:13px;color:var(--muted)}
+.mv-opt:disabled,.mv-opt.locked{opacity:1;cursor:default;color:var(--ink)}
+.mv-opt.locked:hover{background:#fff;border-color:var(--line)}
+.mv-opt.right{border:2px solid #4f7a36;background:#eef6e6}.mv-opt.right .mv-mark,.mv-opt.right .mv-state{color:#4f7a36}
+.mv-opt.wrong{border:2px solid #b0602a;background:#fbf0e5}.mv-opt.wrong .mv-mark,.mv-opt.wrong .mv-state{color:#b0602a}
+.mv-opt.correct{border:2px dashed #4f7a36;background:#f7faef}.mv-opt.correct .mv-mark,.mv-opt.correct .mv-state{color:#4f7a36}
+.mv-opt.chosen-plain{border:2px solid var(--green);background:#f0f5e9}
+.mv-verdict{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.mv-what{font:600 17px Manrope,sans-serif;margin:20px 0 4px}
+#mvFeedback:focus{outline:none}
+.mv-feedback h3{font-size:15px;margin:18px 0 4px}
+.mv-feedback>:first-child{margin-top:0}
+.mv-took{margin:8px 0 0}
+.mv-grades{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0}
+.mv-grade{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+.mv-grade .note{margin:2px 0}
+.mv-grade.strong{border-color:#a9c98d;background:#f7faef}
+.mv-pick{border:1px solid var(--line);border-radius:8px;padding:8px 16px;margin:16px 0;display:flex;gap:8px 20px;flex-wrap:wrap}
+.mv-pick legend{font-weight:600;padding:0 6px}
+.mv-radio{display:flex;align-items:center;gap:8px;min-height:44px;font-size:15px}
+.mv-radio input{width:20px;height:20px;accent-color:var(--green)}
+.mv-figure input{width:100%;max-width:260px;min-height:44px;padding:12px;border:1px solid var(--line);border-radius:8px;font-size:18px;font-variant-numeric:tabular-nums}
+.mv-screen textarea{width:100%;min-height:130px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff;resize:vertical;line-height:1.6}
+.mv-screen .wu-timer button{min-height:44px}
+.mv-transfer{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
+.mv-transfer .selfcheck{display:flex;gap:8px;align-items:flex-start;padding:8px 0;min-height:44px}
+.mv-transfer .selfcheck input{margin:3px 0 0;flex-shrink:0}
+/* Home page: a short row of the moves under the round tiles. */
+.home-moves{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+.home-move-list{list-style:none;padding:0;margin:12px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.home-move{width:100%;min-height:44px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 16px}
+.home-move b{font-size:15px}
+.home-move .note{margin:0}
+@media(max-width:800px){.mv-grades{grid-template-columns:1fr}}
+@media(max-width:600px){.mv-compare,.mv-verdict{grid-template-columns:1fr}.mv-panel{padding:18px 16px}.mv-prompt{font-size:17px}.mv-screen .flow-bar .primary{min-height:44px}.mv-table{font-size:13px}.mv-table th,.mv-table td{padding:8px 8px}.mv-table thead th{letter-spacing:.5px}}
+/* Attempt, leave or guess: the sort and sit screens, the three calls and the debrief. */
+.tg-count{font-weight:700;margin:12px 0 4px}
+.tg-q{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:10px 0}
+.tg-prompt{white-space:pre-line;overflow-wrap:anywhere;line-height:1.6;font-size:17px;margin:4px 0}
+.tg-options{list-style:none;padding:0;margin:10px 0;display:grid;gap:8px}
+.tg-options>li,.tg-opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);line-height:1.5}
+.tg-options>li{color:var(--muted);background:#fafaf6}
+.tg-opt.chosen-plain{border:2px solid var(--green);background:#f0f5e9}
+.tg-letter{font-weight:700;min-width:1.2em}
+.tg-text{overflow-wrap:anywhere}
+/* The three calls stay in reach while the ten seconds run, however long the question is. */
+.tg-callbar{position:sticky;bottom:0;z-index:5;margin:16px -4px 0;padding:10px 4px 12px;background:var(--paper);border-top:1px solid var(--line)}
+.tg-callbar .mv-prompt{margin:0 0 8px}
+.tg-calls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0}
+.tg-call{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;min-height:64px;padding:12px 14px}
+.tg-call .note{margin:0}
+.tg-calls-list{padding-left:20px;line-height:1.7}
+.tg-call-label{margin:8px 0}
+.tg-guess{display:flex;gap:8px;align-items:center;min-height:44px;margin:8px 0}
+.tg-guess input{width:20px;height:20px;accent-color:var(--green)}
+.tg-rows{list-style:none;padding:0;margin:8px 0 20px;display:grid;gap:10px}
+.tg-row{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:10px 16px;background:#fff}
+.tg-row.good{border-left-color:#4f7a36}.tg-row.miss{border-left-color:#b0602a}
+.tg-row p{margin:4px 0}
+.tg-rowhead{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+.tg-row.good .mv-mark{color:#4f7a36}.tg-row.miss .mv-mark{color:#b0602a}
+.tg-called{color:var(--muted);font-size:14px}
+.tg-row details{margin-top:6px}.tg-row summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
+.tg-review{padding-left:24px;line-height:1.6}.tg-review .tg-right{font-weight:700}
+.tg-takeaway{margin:20px 0;padding:14px 18px;border-left:4px solid var(--green);background:#f0f4e9;border-radius:8px;font-size:17px}
+.tg-pass{margin:12px 0}.tg-pass.ok span{color:#4f7a36}.tg-pass.miss span{color:#b0602a}
+@media(max-width:600px){.tg-calls{gap:6px}.tg-call{min-height:48px;align-items:center;padding:10px 6px}.tg-call .note{display:none}.tg-callbar .mv-prompt{font-size:15px}.tg-prompt{font-size:16px}}
+@media print{.tg-callbar{position:static}}

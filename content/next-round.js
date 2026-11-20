@@ -64,6 +64,14 @@
       why: 'Three prepared stories (a challenge, a team success and a mistake) cover most behavioural questions.' },
     'resume': { tool: 'Résumé check', title: 'Check your résumé against the job', minutes: 10, open: { tool: 'resume' },
       why: 'Interviewers ask about anything on your résumé. Check every bullet, and paste the job description if you have it.' },
+    'move-answer-first': { tool: 'Moves', title: 'Train one move: Answer first', minutes: 5, open: { tool: 'moves', move: 'answer-first' },
+      why: 'Interviewers decide early whether you understood the question. Practise putting your answer in the first sentence, then the reasons.' },
+    'move-so-what': { tool: 'Moves', title: 'Train one move: So what?', minutes: 5, open: { tool: 'moves', move: 'so-what' },
+      why: 'In a case, reading a table back earns nothing. Practise saying what it means and what you would do next.' },
+    'move-number-sense': { tool: 'Moves', title: 'Train one move: Does that number make sense?', minutes: 5, open: { tool: 'moves', move: 'number-sense' },
+      why: 'A confident wrong figure is hard to recover from. Practise catching lakh and crore, period and percentage slips before you say them.' },
+    'move-triage': { tool: 'Moves', title: 'Train one move: Attempt, leave or guess', minutes: 5, open: { tool: 'moves', move: 'triage' },
+      why: 'A test gives about a minute a question. Practise sorting the questions first, so the quick marks are not left for the last minutes.' },
     'gd-kit': { tool: 'Group discussion', title: 'Run a group discussion with friends', minutes: 15, open: { tool: 'gd' },
       why: 'Three to six of you, a brief with evidence that pulls both ways, a clock and an observer’s tally.' },
     'gd-moves': { tool: 'Read here', title: 'Five moves that count in a group discussion', minutes: 3, open: { tool: 'read' },
@@ -84,11 +92,11 @@
   function candidates(round, role, { warmupDone = false, minutes = DEFAULT_MINUTES } = {}) {
     const short = minutes < 45;
     switch (round) {
-      case 'aptitude': return minutes <= 10 ? ['apt-mixed'] : minutes <= 20 ? ['apt-mock-short', 'apt-weak'] : ['apt-mock', 'apt-weak', 'apt-mixed', 'drill-maths'];
-      case 'case': return short ? (warmupDone ? ['drill-maths', 'bh-motivation'] : ['warmup', 'drill-maths'])
-        : [CASE_FOR[role] || CASE_FOR.other, SECOND_CASE[role] || SECOND_CASE.other, 'drill-maths', 'bh-motivation'];
-      case 'hr': return ['bh-intro', 'bh-motivation', 'defence-line', 'bh-mixed', 'resume', 'bh-stories'];
-      case 'gd': return ['gd-kit', { id: 'gd-moves' }, 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
+      case 'aptitude': return minutes <= 10 ? ['apt-mixed'] : minutes <= 20 ? ['apt-mock-short', 'apt-weak'] : ['apt-mock', 'apt-weak', 'move-triage', 'apt-mixed', 'drill-maths', ...(minutes >= 45 ? ['move-number-sense'] : [])];
+      case 'case': return short ? (warmupDone ? ['drill-maths', 'bh-motivation', 'move-so-what', 'move-number-sense'] : ['warmup', 'drill-maths', 'move-so-what', 'move-number-sense'])
+        : [CASE_FOR[role] || CASE_FOR.other, SECOND_CASE[role] || SECOND_CASE.other, 'drill-maths', 'bh-motivation', 'move-so-what', 'move-number-sense'];
+      case 'hr': return ['bh-intro', 'move-answer-first', 'defence-line', 'bh-motivation', 'bh-mixed', 'resume', 'bh-stories'];
+      case 'gd': return ['gd-kit', { id: 'gd-moves' }, 'move-answer-first', 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
       case 'resume': return ['resume', 'defence-line', 'bh-intro', 'bh-stories', 'bh-motivation', 'apt-mixed'];
       case 'technical': return ['defence-project', 'apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock'];
       case 'unknown': return ['apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock-short', warmupDone ? 'drill-maths' : 'warmup'];
