@@ -10,7 +10,7 @@
   const str = (v, max = 4000) => typeof v === 'string' ? v.slice(0, max) : '';
   const fin = x => typeof x === 'number' && Number.isFinite(x);
   const hasMic = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-  const hasVoice = () => !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  const hasVoice = () => voiceOn();
   const newId = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const day = t => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
@@ -89,17 +89,17 @@
     enter('item');
     const ref = run.items[run.index], item = E.findItem(ref.type, ref.id), owner = run;
     live = { firstAt: null, lastAt: null, startAt: null, pauses: null, plays: 0, typedAt: null, owner };
-    const answerBox = ref.type === 'quick' ? '<input id="enHeard" class="en-input" autocomplete="off" placeholder="Speak or type your answer…">' : `<textarea id="enHeard" class="en-heard" placeholder="${ref.type === 'read' ? 'What the browser hears appears here…' : 'What the browser hears appears here. You can also type.'}"></textarea>`;
+    const answerBox = ref.type === 'quick' ? '<input id="enHeard" class="en-input" autocomplete="off" placeholder="Speak or type your answer…">' : `<textarea id="enHeard" class="en-heard" placeholder="${ref.type === 'read' ? 'Your words appear here as you read…' : 'Your words appear here as you speak. You can also type.'}"></textarea>`;
     const prompt = {
       read: `<p class="en-sentence">${esc(item.text)}</p>`,
       repeat: `<div class="en-listen"><button id="enPlay" class="listen">🔊 Play the sentence</button><span class="note" id="enPlays">You can play it ${MAX_PLAYS} times.</span></div><p class="en-sentence en-hidden" id="enShown" hidden>${esc(item.text)}</p>`,
       quick: `<div class="en-listen"><button id="enPlay" class="listen">🔊 Play the question</button><button class="wu-link" id="enShowQ">Show the question</button></div><p class="en-question" id="enShown" ${hasVoice() ? 'hidden' : ''}>${esc(item.prompt)}</p>`,
       jam: `<div class="interviewer flow-question"><div class="eyebrow">YOUR TOPIC</div><p>${esc(item.topic)}</p></div><p class="en-clock" id="enClock" aria-live="off">Think time: ${THINK}s</p>
-        <details class="flow-help"><summary>A simple shape for one minute</summary><p>Say your view in one sentence. Give two reasons, each with an example from your own life. Finish by repeating your view in different words. Silence is worse than a simple point.</p></details>`
+        <details class="flow-help"><summary>A simple shape for one minute</summary><div class="help-body"><p>Say your view in one sentence. Give two reasons, each with an example from your own life. Finish by repeating your view in different words. Silence is worse than a simple point.</p></div></details>`
     }[ref.type];
-    $('#app').innerHTML = `<section class="flow-screen en-item">${head(ref)}<p class="note">${esc(INSTRUCTIONS[ref.type])}</p>${prompt}
-      <label for="enHeard" class="flow-label">${ref.type === 'read' ? 'What the browser heard' : 'Your answer'}</label>${answerBox}
-      <div class="flow-tools"><button id="enMic" class="mic">🎙 Speak your answer</button><span id="enVoiceStatus" class="note" role="status"></span></div>
+    $('#app').innerHTML = `<section class="flow-screen fit en-item">${head(ref)}<p class="note fit-note">${esc(INSTRUCTIONS[ref.type])}</p>${prompt}
+      ${micRow('enMic', 'enVoiceStatus')}
+      <label for="enHeard" class="flow-label">${ref.type === 'read' ? 'What the browser heard, as you speak' : 'Your answer · appears here as you speak, or type'}</label>${ref.type === 'quick' ? answerBox : `<div class="dictation-box">${answerBox}</div>`}
       ${flowBar({ back: '<button class="wu-link" id="enSkip">Skip this task</button>', primary: `<button class="primary next" id="enCheck">${ref.type === 'jam' ? 'Finish · see feedback →' : 'Check →'}</button>`, hint: '' })}</section>`;
     const box = $('#enHeard'), mine = () => live && live.owner === owner && screen === 'item';
     const heard = () => { const now = Date.now(); if (live.firstAt == null) live.firstAt = now; live.lastAt = now; live.pauses = BehaviouralContent.notePause(live.pauses, now); };
@@ -119,7 +119,7 @@
   }
   /* Repeat: at most two plays, then the sentence is not available again until the result. */
   function play(ref, item) {
-    if (ref.type === 'quick') { speak(item.prompt); live.plays++; return; }
+    if (ref.type === 'quick') { if (hasVoice()) speak(item.prompt); else $('#enShown').hidden = false; live.plays++; return; }
     if (live.plays >= MAX_PLAYS) return;
     live.plays++;
     if (hasVoice()) speak(item.text);

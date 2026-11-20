@@ -75,7 +75,7 @@
   const savePast = () => save(PAST_KEY, past);
   const elapsedMs = () => (run ? run.elapsedMs : 0) + (since != null ? Math.max(0, Date.now() - since) : 0);
   function persist() { if (run) save(RUN_KEY, { ...run, elapsedMs: Math.min(MAX_MS, elapsedMs()) }); else save(RUN_KEY, null); }
-  const canSpeak = () => !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  const canSpeak = () => voiceOn();
   const prompt = () => run.follow ? run.follow.text : run.questions[run.index].text;
 
   function setHash(h) { try { window.history.replaceState(null, '', location.pathname + location.search + h); } catch { /* file:// or sandboxed frames */ } }
@@ -162,13 +162,14 @@
     if (!run) return open();
     enter('question');
     const i = run.index, n = run.questions.length, follow = !!run.follow, p = prompt();
-    $('#app').innerHTML = `<section class="flow-screen df-question"><div class="flow-head"><div><div class="eyebrow">${run.kind === 'project' ? 'PROJECT' : 'RÉSUMÉ'} DEFENCE · INTERVIEW CONDITIONS</div><h2 class="section-title">Question ${i + 1} of ${n}${follow ? ' · follow-up' : ''}</h2></div><button class="wu-link" id="dfExit">End the defence</button></div>
+    $('#app').innerHTML = `<section class="flow-screen fit df-question"><div class="flow-head"><div><div class="eyebrow">${run.kind === 'project' ? 'PROJECT' : 'RÉSUMÉ'} DEFENCE · INTERVIEW CONDITIONS</div><h2 class="section-title">Question ${i + 1} of ${n}${follow ? ' · follow-up' : ''}</h2></div><button class="wu-link" id="dfExit">End the defence</button></div>
       <ol class="flow-progress" aria-hidden="true">${run.questions.map((_, k) => `<li class="${k < i ? 'done' : k === i ? 'now' : ''}"></li>`).join('')}</ol>
       <div class="interviewer flow-question"><div class="eyebrow">${follow ? 'THE INTERVIEWER FOLLOWS UP' : 'THE INTERVIEWER ASKS'}</div><p id="dfPrompt">${esc(p)}</p>${voiceControls()}</div>
-      <label for="dfAnswer" class="flow-label">Your answer</label><textarea id="dfAnswer" maxlength="${L.answer}" placeholder="Speak or type your answer, as you would say it in the room…">${esc(run.draft)}</textarea>
-      <div class="flow-tools"><button id="dfMic" class="mic">🎙 Speak your answer</button><span id="dfVoiceStatus" class="note" role="status"></span><span class="bh-clock"><span id="dfTimerText" class="bh-time" aria-live="off"></span></span></div>
-      <p class="note">Interview conditions: no skipping, no second attempt and no help. Feedback comes at the end.</p>
-      ${flowBar({ primary: '<button id="dfFinish" class="primary next">I have finished answering →</button>', hint: run.draft.trim() ? '' : 'Speak or type your answer. The clock starts when you do.' })}</section>`;
+      ${micRow('dfMic', 'dfVoiceStatus', '<span class="bh-clock"><span id="dfTimerText" class="bh-time" aria-live="off"></span></span>')}
+      <label for="dfAnswer" class="flow-label">Your answer · appears here as you speak, or type</label>
+      <div class="dictation-box"><textarea id="dfAnswer" maxlength="${L.answer}" placeholder="Your words appear here as you speak. You can also type or edit.">${esc(run.draft)}</textarea></div>
+      <p class="note fit-note">Interview conditions: no skipping, retrying or help. Feedback comes at the end.</p>
+      ${flowBar({ primary: '<button id="dfFinish" class="primary next">I have finished answering →</button>', hint: run.draft.trim() ? '' : 'Press the microphone to answer, or type. The clock starts when you do.' })}</section>`;
     bindSpeech(p); paint(); bindAnswer();
     $('#dfExit').onclick = endEarly;
     $('#dfFinish').onclick = finish;
