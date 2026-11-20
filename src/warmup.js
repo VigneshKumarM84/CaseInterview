@@ -150,7 +150,7 @@
       <ol class="wu-map">${STEPS.map(s => `<li><b>${esc(s.label)}</b> → <span>${esc(s.maps)}</span>${r.answers[s.id] ? `<details><summary>Your answer</summary><p class="wu-yours">${esc(r.answers[s.id])}</p></details>` : ''}</li>`).join('')}</ol>
       <p class="note">${esc(W.fullCase.adds)}</p>
       <div class="actions">${full ? `<button class="primary" id="wuFull">Try a full case: ${esc(full.title)} · ${full.minutes} min →</button>` : ''}<button id="wuLibrary">Browse all cases</button><button class="wu-link" id="wuAgain">Do the warm-up again</button></div></section>`;
-    if ($('#wuFull')) $('#wuFull').onclick = () => { setHash(false); start(W.fullCase.id); };
+    if ($('#wuFull')) $('#wuFull').onclick = () => { setHash(false); start(W.fullCase.id, false); }; // the warm-up names this case, so it is never a blind attempt
     $('#wuLibrary').onclick = () => { casesPage(); scrollToLibrary(); };
     $('#wuAgain').onclick = () => { run = blank(); persist(); renderStep(); };
   }

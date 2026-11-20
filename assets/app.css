@@ -9,3 +9,23 @@
 .track-filter button span{color:var(--muted);margin-left:4px}
 .track-filter button[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
 .track-filter button[aria-pressed=true] span{color:#cfe0c5}
+/* Blind cases and typed data requests. */
+.blind-bar{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.blind-bar .note{flex:1 1 100%;margin:0}
+.blind-switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;min-height:44px}
+.blind-switch input{position:absolute;opacity:0;width:1px;height:1px}
+.blind-track{position:relative;flex:none;width:42px;height:24px;border-radius:12px;background:#c9d1c6;transition:background .15s}
+.blind-track::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.blind-switch input:checked+.blind-track{background:var(--green)}
+.blind-switch input:checked+.blind-track::after{transform:translateX(18px)}
+.blind-switch input:focus-visible+.blind-track{outline:3px solid #8fb4a6;outline-offset:2px}
+.blind-card .card-top{background:#e6e9e2}
+.blind-reveal{margin:12px 0;padding:12px 14px;border-left:4px solid var(--green);background:#f0f4e9;border-radius:6px}
+.attempt-label{font-weight:600}
+.data-request{margin:16px 0}
+.data-request textarea{display:block;width:100%;min-height:84px;margin:8px 0}
+.data-reply{min-height:1.4em;margin:6px 0}
+.data-reply:not(:empty){border-left:4px solid var(--green);background:#f0f4e9;padding:10px 12px;border-radius:6px}
+.exhibit.matched{border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.match-tag{display:inline-block;margin-bottom:6px;padding:2px 8px;border-radius:10px;background:var(--lime);font-size:12px;font-weight:600}
+@media(max-width:480px){.blind-bar button{width:100%}}
