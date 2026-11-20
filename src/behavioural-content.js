@@ -312,6 +312,34 @@
       fillers: { ...f, level: fillerLevel }, pronouns: { ...p, ...iWe }, delivery: delivery(text, { pauses: opts.voice ? opts.pauses : null }), structure: tagged(text, opts.tags, comp.frame, comp.id), notes };
   }
 
+  /* ---------- Interview conditions: which follow-ups the interviewer asks after an answer ---------- */
+  /* A spoken answer is interrupted once it passes this multiple of the upper target; a typed one is told it ran long. */
+  const CUT_AFTER = 1.25, FOLLOW_UP_MAX_S = 90;
+  const PREPARED_WHY = 'A prepared follow-up for this kind of question. It does not depend on what you said.';
+  /* Returns at most `max` follow-ups, each { id, text, why }. Rules look only at length, "I" versus "we" and whether
+     a number, a result word or a lesson word was found, so `why` says what was counted, never what it "means".
+     The first rule that fires is asked, then one prepared probe; an answer that trips no rule gets one prepared probe.
+     opts: competency, seconds and voice (as for analyse), cut (the interviewer interrupted), hypothetical, max, rand. */
+  function followUps(text, opts = {}) {
+    const comp = competency(opts.competency) || COMPETENCIES[0], frame = comp.frame, star = frame === 'star' && !opts.hypothetical;
+    const r = analyse(text, { competency: comp.id, seconds: opts.seconds, voice: opts.voice }), [lo, hi] = comp.target, p = r.pronouns;
+    const secs = r.timed && opts.voice ? r.timed : r.estSeconds, about = `${opts.voice && r.timed ? 'took' : 'would take'} about ${secs}s to say`;
+    const fired = [], add = (id, text, why) => fired.push({ id, text, why });
+    const point = opts.hypothetical ? 'what would you do?' : { star: 'what was the result?', ppf: 'what is the one thing you want me to remember about you?', fit: 'what is your main reason for wanting this role?' }[frame];
+    const more = opts.hypothetical ? 'Walk me through what you would do, step by step.' : { star: 'Walk me through what you actually did, step by step.', ppf: 'Pick one thing you have done and tell me more about it.', fit: 'What specifically about this role appeals to you?' }[frame];
+    if (opts.cut) add('long', `Let me stop you there. In one or two sentences, ${point}`, `You were still speaking after ${secs}s. This question needs ${lo}–${hi}s, so the interviewer cut in.`);
+    else if (secs > hi * CUT_AFTER) add('long', `That was a long answer. In one or two sentences, ${point}`, `Your answer ${about}. This question needs ${lo}–${hi}s.`);
+    else if (secs < lo * 0.5) add('short', `That was brief. ${more}`, `Your answer ${about}. This question usually needs ${lo}–${hi}s.`);
+    if (star && p.we > p.i) add('we', GENERAL_PROBES[0], `You said “we” ${p.we} time${p.we === 1 ? '' : 's'} and “I” ${p.i} time${p.i === 1 ? '' : 's'}, so it was not clear what you did yourself.`);
+    if (star && !hasNumber(text) && !hasOutcome(text)) add('outcome', GENERAL_PROBES[1], 'No number and no result word (such as “finished”, “increased” or “won”) was found in your answer.');
+    else if (!hasNumber(text) && (star || frame === 'ppf')) add('number', star ? 'Can you put a number on that? How much, how many or how long?' : 'Pick one of those highlights. What was the concrete result?', 'No number or measure was found in your answer.');
+    if (star && comp.lesson && !hasLesson(text)) add('lesson', 'What did you learn from that, and what do you do differently now?', 'No words about what you learned (such as “learned”, “since then” or “next time”) were found.');
+    const rand = opts.rand || Math.random, max = Number.isInteger(opts.max) ? Math.max(0, opts.max) : 2;
+    const prepared = comp.probes.concat(star && !comp.lesson ? [GENERAL_PROBES[2]] : []);
+    const probe = { id: 'prepared', text: prepared[Math.min(prepared.length - 1, Math.floor(rand() * prepared.length))], why: PREPARED_WHY };
+    return fired.slice(0, 1).concat(probe).slice(0, max);
+  }
+
   /* STAR check for a story in the bank, using its four fields directly. */
   const storyStructure = story => structure({ s: story?.s, t: story?.t, a: story?.a, r: story?.r }, 'star', {});
 
@@ -323,6 +351,6 @@
 
   const api = { FRAMES, COMPETENCIES, IDS, STORY_IDS, GENERAL_PROBES, SPEAKING_WPM, competency, findQuestion, pickQuestion, tokens, wordCount, estSeconds,
     FILLER_LABELS, fillers, pronouns, hasNumber, hasOutcome, hasLesson, segments, structure, tagged, timeCheck, analyse, storyStructure, coverage,
-    PAUSE_MS, phrases, notePause, delivery, GOALS, goalOf, cleanGoals, goalChecks, goalTrends };
+    PAUSE_MS, phrases, notePause, delivery, GOALS, goalOf, cleanGoals, goalChecks, goalTrends, CUT_AFTER, FOLLOW_UP_MAX_S, followUps };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.BehaviouralContent = api;
 })(this);
