@@ -16,7 +16,7 @@
   const ROUNDS = [
     { id: 'resume', n: 1, title: 'Résumé shortlisting', text: 'Check every bullet and see which job-description keywords you are missing.', open: () => ResumeTool.open() },
     { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, timed mock tests and spoken English.', open: () => Aptitude.open() },
-    { id: 'gd', n: 3, title: 'Group discussion', text: 'The moves observers note, and practice that builds them. Full GD practice is not here yet.', tag: 'Tips only', open: () => NextRoundTool.open('gd') },
+    { id: 'gd', n: 3, title: 'Group discussion', text: 'A timed discussion for three to six of you, with briefs, an observer’s tally and a printable kit.', open: () => GDTool.open() },
     { id: 'case', n: 4, title: 'Case or guesstimate interview', text: 'A 10-minute warm-up, 12 full cases, case maths and a mock interview with a friend.', open: () => casesPage() },
     { id: 'hr', n: 5, title: 'HR interview', text: 'Timed answers to the common questions, a bank of stories, and a résumé or project defence.', open: () => Behavioural.open() }
   ];
@@ -24,7 +24,7 @@
   /* ---------- Unfinished work, from each tool's saved state ---------- */
   function unfinished() {
     const out = [];
-    if (session) { const c = CASES.find(x => x.id === session.id); if (c) out.push({ id: 'case', label: 'Case', title: c.title, detail: `Stage ${session.step + 1} of ${session.version === 3 ? 8 : 4}`, go: () => renderSession() }); }
+    if (session) { const c = CASES.find(x => x.id === session.id); if (c) out.push({ id: 'case', label: 'Case', title: caseLabel(session), detail: `Stage ${session.step + 1} of ${session.version === 3 ? 8 : 4}`, go: () => renderSession() }); }
     const w = WarmupTool.state().run;
     if (w && w.step < 4 && (w.step > 0 || Object.keys(w.revealed).length || Object.values(w.answers).some(a => a.trim()))) out.push({ id: 'warmup', label: 'Warm-up', title: 'More tickets, less money', detail: `Step ${w.step + 1} of 4`, go: () => WarmupTool.resume() });
     const a = Aptitude.state().run;
@@ -38,6 +38,8 @@
       detail: hs && hs.fixed ? `Question ${hs.index + 1} of ${hs.qids.length}` : 'Not finished yet', go: () => Behavioural.resume() });
     const df = DefenceTool.state().run;
     if (df) out.push({ id: 'defence', label: 'Defence', title: (s => s.length > 60 ? s.slice(0, 59).trimEnd() + '…' : s)(df.kind === 'project' ? df.title : df.line), detail: `Question ${df.index + 1} of ${df.questions.length}`, go: () => DefenceTool.resume() });
+    const gd = GDTool.state().run;
+    if (gd && gd.phase !== 'debrief') out.push({ id: 'gd', label: 'Group discussion', title: GD_CONTENT.BRIEFS.find(b => b.id === gd.briefId).title, detail: { prepare: 'Reading the brief', discuss: 'Discussing now', summary: 'At the summary' }[gd.phase], go: () => GDTool.resume() });
     const p = PeerMock.state().run;
     if (p) out.push({ id: 'peer', label: 'Peer interview', title: 'Mock interview with a friend', detail: 'In progress', go: () => PeerMock.open() });
     const plan = NextRoundTool.state();
@@ -89,7 +91,7 @@
   };
 
   /* ---------- Navigation: in round order, with the current page marked ---------- */
-  const NAV = { homeNav: ['home'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
+  const NAV = { homeNav: ['home', 'gd'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
   function markNav() { for (const [id, views] of Object.entries(NAV)) { const b = document.getElementById(id); if (b) { if (views.includes(view)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); } } }
   $('#planNav').onclick = () => NextRoundTool.open();
   $('#casesNav').onclick = () => casesPage();

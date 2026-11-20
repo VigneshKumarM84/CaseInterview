@@ -101,12 +101,13 @@
     if (o.tool === 'aptitude') return o.test ? Aptitude.quickTest(o.test) : Aptitude.quickPractice(o.practice);
     if (o.tool === 'drill') return CaseDrill.quick({ skills: o.skills, count: 10 });
     if (o.tool === 'warmup') return WarmupTool.open();
-    if (o.tool === 'case') return start(o.caseId);
+    if (o.tool === 'case') return start(o.caseId, false); // the plan names the case, so it is never a blind attempt
     if (o.tool === 'peer') return PeerMock.open();
     if (o.tool === 'behavioural') return Behavioural.ask(o.mode);
     if (o.tool === 'stories') return Behavioural.stories();
     if (o.tool === 'resume') return ResumeTool.open();
     if (o.tool === 'defence') return DefenceTool.open(o.mode);
+    if (o.tool === 'gd') return GDTool.open();
   }
 
   /* ---------- Integration with the rest of Case Room ---------- */

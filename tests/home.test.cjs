@@ -20,12 +20,15 @@ test('the home page is short: a plan button and five rounds in order, with no ca
 
 test('each round tile opens that round in one click', () => {
   const f = fixture(); try {
-    const expect = { resume: ['resume', '#resume'], aptitude: ['aptitude', '#aptitude'], gd: ['next-round', '#next-round'], case: ['cases', '#cases'], hr: ['behavioural', '#behavioural'] };
+    const expect = { resume: ['resume', '#resume'], aptitude: ['aptitude', '#aptitude'], gd: ['gd', '#gd'], case: ['cases', '#cases'], hr: ['behavioural', '#behavioural'] };
     for (const [id, [view, hash]] of Object.entries(expect)) {
       f.$('homeNav').click(); f.$('round-' + id).click();
       assert.equal(f.run('view'), view, id); assert.equal(f.w.location.hash, hash, id);
     }
-    f.$('homeNav').click(); f.$('round-gd').click(); assert(doc(f).querySelector('[name=nrRound][value=gd]').checked, 'the GD tile chooses the GD round');
+    f.$('homeNav').click(); f.$('round-gd').click(); assert.equal(f.run('view'), 'gd'); assert(f.$('gdAlone'), 'the GD tile opens the kit');
+    f.$('gdAlone').click(); assert(doc(f).querySelector('[name=nrRound][value=gd]').checked, 'practising alone goes to the GD round of the planner');
+    f.$('homeNav').click(); const tile = f.$('round-gd');
+    assert.match(tile.textContent, /A timed discussion for three to six of you, with briefs, an observer’s tally and a printable kit\./); assert.equal(tile.querySelector('.round-tag'), null, 'the Tips only tag is gone'); assert.doesNotMatch(tile.textContent, /Tips only|not here yet/);
     f.$('homeNav').click(); f.$('homeTechnical').click(); assert(doc(f).querySelector('[name=nrRound][value=technical]').checked); assert.match(f.$('nrNote').textContent, /does not cover coding/);
     f.$('homeNav').click(); f.$('round-case').click();
     assert.equal(doc(f).querySelectorAll('#library .card').length, 12, 'the case page holds the library'); assert(f.$('caseTool-warmup') && f.$('caseTool-drill') && f.$('caseTool-peer'));
@@ -49,6 +52,20 @@ test('"Continue where you left off" lists unfinished work and goes straight back
   } finally { f.dom.window.close(); }
 });
 
+test('an unfinished group discussion is listed under Continue and goes straight back to it', () => {
+  const f = fixture(); try {
+    f.run('GDTool.open()'); f.run("document.querySelector('[data-gd-pick=library]').click()");
+    ['Asha', 'Ben', 'Chitra'].forEach((n, i) => { const el = f.$('gdName' + i); el.value = n; el.dispatchEvent(new f.w.Event('input')); });
+    f.$('gdStart').click(); assert.equal(f.run('GDTool.state().run.phase'), 'prepare');
+    f.$('homeNav').click();
+    const item = doc(f).querySelector('[data-continue=gd]'); assert(item, 'listed'); assert.match(item.textContent, /Group discussion.*A library open till midnight.*Reading the brief/s);
+    f.run("GDTool.state().run.phase = 'discuss'"); f.$('homeNav').click(); assert.match(doc(f).querySelector('[data-continue=gd]').textContent, /Discussing now/);
+    doc(f).querySelector('[data-continue=gd]').click(); assert.equal(f.run('view'), 'gd'); assert.equal(f.run('GDTool.state().screen'), 'discuss');
+    f.$('gdQuit').click(); f.$('homeNav').click(); assert.equal(doc(f).querySelector('[data-continue=gd]'), null, 'gone once it is quit');
+    assert.deepEqual(f.errors, []);
+  } finally { f.dom.window.close(); }
+});
+
 test('the navigation follows the rounds and marks where you are', () => {
   const f = fixture(); let g; try {
     assert.deepEqual([...doc(f).querySelectorAll('nav button')].map(b => b.id).slice(0, 7), ['homeNav', 'planNav', 'resumeNav', 'aptitudeNav', 'casesNav', 'behaviouralNav', 'historyNav']);
@@ -60,6 +77,7 @@ test('the navigation follows the rounds and marks where you are', () => {
       f.$('caseTool-drill').click(); await settle(); assert.deepEqual(current(f), ['casesNav'], 'the drill belongs to the case round');
       f.$('behaviouralNav').click(); await settle(); assert.deepEqual(current(f), ['behaviouralNav']);
       f.$('historyNav').click(); await settle(); assert.deepEqual(current(f), ['historyNav']);
+      f.run('GDTool.open()'); await settle(); assert.deepEqual(current(f), ['homeNav'], 'the group discussion has no nav button of its own, so Home stays marked');
       doc(f).querySelector('.brand').click(); await settle(); assert.deepEqual(current(f), ['homeNav']); assert.equal(f.run('view'), 'home');
       g = fixture({ url: 'https://case.example/#cases' }); assert.equal(g.run('view'), 'cases'); assert(g.$('library'));
       assert.deepEqual(f.errors, []); assert.deepEqual(g.errors, []);

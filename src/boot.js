@@ -1,7 +1,7 @@
 /* Loaded last, after every tool has registered its views. The hash links straight to a tool:
    #drill (maths drill), #peer (peer interview), #peer-screen (candidate screen), #peer-sheet/<case> (printable sheet),
    #behavioural (HR question practice), #behavioural-stories (story bank), #behavioural-sheet/<competency|all> (printable sheet), #aptitude (placement aptitude practice and timed tests), #aptitude/paper/<code> (open a shared aptitude paper), #aptitude/collect (rank result lines from a shared paper), #english (spoken English practice),
-   #resume (résumé and job-description checker), #defence (résumé and project defence), #warmup (the guided 10-minute first case),
+   #resume (résumé and job-description checker), #defence (résumé and project defence), #gd (group discussion kit: resumes a discussion in progress), #gd-sheet/<brief> (printable kit), #warmup (the guided 10-minute first case),
    #next-round (prepare for my next round: a short plan built from the tools above),
    #cases (the Case interview page: warm-up, maths drill, peer interview and the case library). */
 (() => {
@@ -19,6 +19,8 @@
   else if (h === '#english') EnglishTool.open();
   else if (h === '#resume') ResumeTool.open();
   else if (h === '#defence') DefenceTool.open();
+  else if (h === '#gd') GDTool.state().run ? GDTool.resume() : GDTool.open();
+  else if (h.startsWith('#gd-sheet/')) GDTool.sheet((() => { try { return decodeURIComponent(h.slice(10)); } catch { return ''; } })());
   else if (h === '#warmup') WarmupTool.open();
   else if (h === '#next-round') NextRoundTool.open();
   else if (h === '#cases') casesPage();

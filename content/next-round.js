@@ -6,7 +6,7 @@
     { id: 'aptitude', title: 'Online aptitude test', note: 'Most campus aptitude tests mix quantitative, logical and verbal questions at about a minute each. Practise under time, then work on your weakest topic.' },
     { id: 'case', title: 'Case or guesstimate interview', note: 'A case interview tests how you structure a problem, ask for evidence, use numbers and commit to a recommendation.' },
     { id: 'hr', title: 'HR or behavioural interview', note: 'HR rounds come back to a few questions: who you are, why this role, and stories about teamwork, conflict and mistakes.' },
-    { id: 'gd', title: 'Group discussion', note: 'Case Room has no group-discussion practice yet. This plan builds the skills a GD rewards: a clear opening, evidence, disagreeing well and a short summary. Practising with two or three friends is still the best preparation.' },
+    { id: 'gd', title: 'Group discussion', note: 'The group discussion kit needs a group: three to six of you, one clock and an observer. The other items in this plan build the same skills on your own: a clear opening, evidence, disagreeing well and a short summary.' },
     { id: 'resume', title: 'Résumé shortlisting', note: 'Shortlists are often made from your résumé alone, and interviewers later ask about every line on it.' },
     { id: 'technical', title: 'Technical or coding round', note: 'Case Room does not cover coding or core technical questions. Prepare those with your department’s past papers and a coding practice platform. Campus processes often put an aptitude test and an HR interview around the technical round, and you can practise those here. A project defence is the part of a technical interview you can practise here.', outside: true },
     { id: 'unknown', title: 'I don’t know the round yet', note: 'Rounds vary by company and campus. A common sequence is résumé shortlisting, an online aptitude test, sometimes a group discussion, then technical or case interviews and an HR interview. Check your placement notice or ask your placement cell, then choose the round here. Until then, this plan covers what most processes share.' }
@@ -64,6 +64,8 @@
       why: 'Three prepared stories (a challenge, a team success and a mistake) cover most behavioural questions.' },
     'resume': { tool: 'Résumé check', title: 'Check your résumé against the job', minutes: 10, open: { tool: 'resume' },
       why: 'Interviewers ask about anything on your résumé. Check every bullet, and paste the job description if you have it.' },
+    'gd-kit': { tool: 'Group discussion', title: 'Run a group discussion with friends', minutes: 15, open: { tool: 'gd' },
+      why: 'Three to six of you, a brief with evidence that pulls both ways, a clock and an observer’s tally.' },
     'gd-moves': { tool: 'Read here', title: 'Five moves that count in a group discussion', minutes: 3, open: { tool: 'read' },
       why: 'What observers usually note down, so you can do it on purpose.',
       tips: [
@@ -86,7 +88,7 @@
       case 'case': return short ? (warmupDone ? ['drill-maths', 'bh-motivation'] : ['warmup', 'drill-maths'])
         : [CASE_FOR[role] || CASE_FOR.other, SECOND_CASE[role] || SECOND_CASE.other, 'drill-maths', 'bh-motivation'];
       case 'hr': return ['bh-intro', 'bh-motivation', 'defence-line', 'bh-mixed', 'resume', 'bh-stories'];
-      case 'gd': return [{ id: 'gd-moves' }, 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
+      case 'gd': return ['gd-kit', { id: 'gd-moves' }, 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
       case 'resume': return ['resume', 'defence-line', 'bh-intro', 'bh-stories', 'bh-motivation', 'apt-mixed'];
       case 'technical': return ['defence-project', 'apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock'];
       case 'unknown': return ['apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock-short', warmupDone ? 'drill-maths' : 'warmup'];

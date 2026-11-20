@@ -1,0 +1,107 @@
+/* Group discussion kit. Builds on app.css, flow.css, behavioural.css (.bh-resume, .bh-honest-box) and peer.css
+   (.peer-sheet, .peer-sheet-stage, .peer-tick, .peer-lines for the printable kit). Only what those do not cover. */
+.gd-head{margin-bottom:8px}
+.gd-title{font:600 44px/1.12 Manrope,sans-serif;letter-spacing:-1.5px;margin:12px 0;overflow-wrap:anywhere}
+.gd-briefs-panel,.gd-setup,.gd-past,.gd-resume{margin:18px 0}
+.gd-briefs-panel h2,.gd-setup h2,.gd-past h2,.gd-debrief .panel h2,.gd-counts h2{font:600 20px Manrope,sans-serif;margin:0 0 10px}
+.gd-briefs,.gd-past-list{list-style:none;margin:0;padding:0}
+.gd-briefs li,.gd-past-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
+.gd-briefs li>div:first-child,.gd-past-list li>div:first-child{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.gd-brief-actions,.gd-row-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.gd-briefs button,.gd-past-list button{min-height:44px}
+.gd-briefs button.chosen{border-color:var(--green);background:#eef2e7}
+.gd-setup label{display:block;font-weight:600;font-size:13px;margin:14px 0 6px}
+.gd-setup input[type=text],.gd-setup input:not([type]),.gd-setup select{display:block;width:100%;max-width:420px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.gd-names{border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:0 0 6px;min-width:0}
+.gd-names legend{font-weight:600;padding:0 6px}
+.gd-name-row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.gd-name-row input{flex:1}
+.gd-remove{min-width:44px;min-height:44px;padding:0;font-size:20px}
+.gd-names>button{min-height:44px;margin-top:4px}
+.gd-setup .gd-check{display:flex;align-items:center;gap:10px;min-height:44px;margin:12px 0 0;cursor:pointer}
+.gd-check input{width:22px;height:22px;accent-color:var(--green)}
+.gd-alone{margin:18px 0}
+/* The clock */
+.gd-clockbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:14px 0}
+.gd-clock{font:700 64px/1 Manrope,sans-serif;font-variant-numeric:tabular-nums;color:var(--green);letter-spacing:-2px}
+.gd-signal{flex:1 1 220px;min-width:0;margin:0;font-size:16px;font-weight:600;color:#6a5a1c}
+.gd-signal:empty{display:none}
+.gd-brief{margin:12px 0}
+.gd-task{margin:14px 0;padding:18px 22px}
+.gd-task p{margin:6px 0 0;font-size:17px}
+.gd-h{font:600 18px Manrope,sans-serif;margin:20px 0 8px}
+.gd-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gd-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:0;overflow-wrap:anywhere}
+.gd-card h3,.gd-card summary{font:600 15px Manrope,sans-serif;margin:0 0 4px}
+.gd-card p{margin:6px 0;font-size:14px}
+details.gd-card{margin:8px 0}
+details.gd-card summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.gd-evidence .gd-card{display:block}
+/* The observer's tapping screen */
+.gd-tap{margin:18px 0;padding:20px}
+.gd-tap h3{margin:0 0 4px}
+.gd-last{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0;font-size:14px;font-weight:600}
+.gd-last .wu-link{min-height:44px;padding:0 12px}
+.gd-tap input#gdNote{display:block;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.gd-notelabel{display:block;font-weight:600;font-size:13px;margin:6px 0}
+.gd-speaker{border-top:1px solid var(--line);padding:14px 0 4px;margin-top:14px}
+.gd-speaker h4{font:700 17px Manrope,sans-serif;margin:0 0 8px;overflow-wrap:anywhere}
+.gd-moves{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px}
+.gd-move{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:48px;padding:8px 12px;text-align:left;font-size:14px;line-height:1.25}
+.gd-move.good{background:#f3f8e9;border-color:#c7d9a0}
+.gd-move.watch{background:#fbf3ea;border-color:#e3c19f}
+.gd-n{font-variant-numeric:tabular-nums;min-width:22px;text-align:right}
+.gd-watch{border-top:1px dashed var(--line);padding-top:8px;align-items:stretch}
+.gd-watch-label{grid-column:1/-1;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9c6526}
+.gd-means{margin-top:10px}
+.gd-means summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.gd-silent{margin:16px 0}
+.gd-who label{display:block;font-weight:600;font-size:13px;margin:12px 0 6px}
+.gd-who select{display:block;width:100%;max-width:420px;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.gd-who .actions button{min-height:48px}
+.gd-closing p{font-size:18px}
+/* Debrief */
+.gd-debrief{max-width:960px}
+.gd-honest{margin:14px 0}
+.gd-group,.gd-reveal{margin:18px 0}
+.gd-group ul,.gd-reveal ul{padding-left:20px;line-height:1.6;margin:6px 0}
+.gd-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#fff;max-width:100%}
+.gd-table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+.gd-table th,.gd-table td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;vertical-align:bottom}
+.gd-table th[scope=row],.gd-table thead th:first-child{text-align:left;position:sticky;left:0;background:#fff}
+.gd-table th.watch{color:#9c6526}
+.gd-people{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.gd-person{margin:0;min-width:0;padding:20px}
+.gd-person h3{margin:0 0 8px;overflow-wrap:anywhere}
+.gd-feedback{padding-left:20px;line-height:1.55;margin:6px 0 12px;overflow-wrap:anywhere}
+.gd-person label{display:block;font-weight:600;font-size:13px;margin:10px 0 4px}
+.gd-person textarea{display:block;width:100%;min-height:64px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;resize:vertical;line-height:1.5}
+.gd-person .actions button{min-height:44px}
+/* Printable kit */
+.gd-sheet-actions{align-items:center}
+.gd-sheet-actions select{min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;max-width:100%}
+.gd-inline{display:inline;font-weight:600;font-size:13px}
+.gd-page{padding-bottom:20px;margin-bottom:24px;border-bottom:2px dashed var(--line)}
+.gd-last-page{border-bottom:0;margin-bottom:0}
+.gd-sheet h3{font:700 16px Manrope,sans-serif}
+.gd-sheet-table{border-collapse:collapse;width:100%;table-layout:fixed;margin:10px 0 16px}
+.gd-sheet-table th,.gd-sheet-table td{border:1px solid #9aa596;font-size:10px;padding:4px;text-align:center;vertical-align:bottom;overflow-wrap:anywhere}
+.gd-sheet-table td{height:38px}
+.gd-sheet-table th:first-child{width:18%}
+.gd-name-line{height:28px}
+.gd-short{height:30px}
+@media(max-width:800px){
+  .gd-title{font-size:32px}
+  .gd-cards,.gd-people{grid-template-columns:1fr}
+  .gd-clock{font-size:52px}
+  .gd-moves{grid-template-columns:1fr 1fr}
+  .gd-card,.gd-person,.gd-tap,.gd-setup,.gd-briefs-panel,.gd-past{padding:16px}
+  .gd-sheet-table{table-layout:auto;display:block;overflow-x:auto}
+}
+@media print{
+  .gd-sheet-actions{display:none}
+  .gd-page{break-after:page;border:0;margin:0;padding:0}
+  .gd-last-page{break-after:auto}
+  .gd-sheet-table th,.gd-sheet-table td{font-size:9px}
+  .gd-sheet-table{display:table;overflow:visible}
+}
