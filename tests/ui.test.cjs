@@ -42,3 +42,59 @@ test('the library filters consulting and product cases; product cases use their 
  type(f,'answer','Hold the launch and test a revised streak');f.$('next').click();type(f,'answer','Staged rollout with guardrails');f.$('next').click();
  assert.equal(f.run('view'),'report');assert(f.run('aiPacket(report)').includes('Product metrics and experimentation case'));assert.deepEqual(f.errors,[]);
 }finally{f.dom.window.close()}});
+
+/* ---------- Active practice time on solo cases ---------- */
+const clockAt=(f,ms)=>f.run(`Date.now = () => ${ms}`);
+const spent=f=>f.run('elapsed(session)');
+test('case time accrues only while the session screen is showing',()=>{const f=fixture();try{
+ const T=Date.UTC(2026,0,1);clockAt(f,T);f.run("start('cement')");assert.equal(f.run('view'),'session');
+ clockAt(f,T+60000);assert.equal(spent(f),60);
+ f.run('home()');clockAt(f,T+60000+2*24*3600*1000);assert.equal(f.run('view'),'home');assert.equal(spent(f),60,'two days on the home page add nothing');
+ f.run('casesPage()');f.$('resume').click();assert.equal(f.run('view'),'session');assert.equal(spent(f),60);
+ clockAt(f,T+60000+2*24*3600*1000+30000);assert.equal(spent(f),90);
+ f.run('syncClock()');f.w.dispatchEvent(new f.w.Event('pagehide'));clockAt(f,T+10*24*3600*1000);assert.equal(spent(f),90,'a hidden page adds nothing');
+ f.run('Aptitude.open()');clockAt(f,T+11*24*3600*1000);assert.equal(spent(f),90,'another tool adds nothing');
+ assert.deepEqual(f.errors,[]);
+}finally{f.dom.window.close()}});
+test('a reload after a gap does not count the time away, and the debrief says active practice',()=>{const f=fixture();let g;try{
+ const T=Date.UTC(2026,0,1);clockAt(f,T);f.run("start('cement')");clockAt(f,T+45000);
+ const saved={};for(const k of Object.keys(f.w.localStorage))saved[k]=f.w.localStorage.getItem(k);
+ assert(JSON.parse(saved['cr-session']).runningSince,'the tab was closed mid-case with the clock running');
+ g=fixture({storage:saved});assert.equal(g.run('session.runningSince'),null,'a stored running stretch is dropped at load');
+ clockAt(g,T+3*24*3600*1000);g.run('casesPage()');g.$('resume').click();assert.equal(spent(g),0);
+ clockAt(g,T+3*24*3600*1000+20000);assert.equal(spent(g),20);
+ g.run("session.version=2;session.step=3;session.opened=['economics'];session.answers={structure:'a',number:30,working:'w',recommendation:'r'};renderSession()");g.$('next').click();
+ assert.equal(g.run('view'),'report');assert.match(g.$('app').textContent,/Minutes of active practice/);assert.equal(g.run('history[0].runningSince'),null);assert.equal(g.run('elapsed(history[0])'),20);
+ assert.deepEqual([...f.errors,...g.errors],[]);
+}finally{f.dom.window.close();g?.dom.window.close()}});
+test('a finished session from before active-time tracking keeps its old duration and label',()=>{const old={id:'cement',version:2,step:3,started:1000,finished:1000+7*60000,opened:[],answers:{structure:'s',number:30,working:'w',recommendation:'r'},probes:[],uid:'old'};
+ const f=fixture({storage:{'cr-history':JSON.stringify([old])}});try{
+ assert.equal(f.run('history.length'),1);assert.equal(f.run('elapsed(history[0])'),7*60);
+ clockAt(f,Date.now()+5*24*3600*1000);f.run('showReport(history[0])');assert.match(f.$('app').textContent,/Minutes, including pauses/);assert.equal(f.run('elapsed(history[0])'),7*60);
+ // An unfinished legacy session starts counting from zero when it is first resumed.
+ f.run("session={id:'cement',version:2,step:0,started:1000,opened:[],answers:{},probes:[]};renderSession()");assert.equal(f.run('session.activeMs'),0);assert.equal(spent(f),0);
+ assert.deepEqual(f.errors,[]);
+}finally{f.dom.window.close()}});
+
+/* ---------- Copy that must stay accurate ---------- */
+test('the About text counts the cases from the catalogue, the home page makes no offline promise and the nav counts completed cases',()=>{const f=fixture();try{
+ f.$('privacy').click();const about=f.$('modalContent').textContent;const n=f.run('CASES.length');
+ assert(about.includes(`${n} fictional cases`),'count comes from CASES.length');assert.doesNotMatch(about,/Six fictional|Expanded edition/);
+ assert.equal((about.match(new RegExp(`${n} (original|fictional) cases`,'g'))||[]).length,1,'the count is stated once');
+ assert.doesNotMatch(f.$('app').textContent,/offline/i);assert.match(f.$('app').textContent,/your answers stay in this browser/);
+ assert.equal(f.$('historyNav').textContent.replace(/\s+/g,' ').trim(),'Completed cases 0');assert(f.$('count'));
+ assert.deepEqual(f.errors,[]);
+}finally{f.dom.window.close()}});
+test('case content: the experiment, prioritise, market and operations corrections are in the catalogue',()=>{
+ const data=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../data/cases.json'),'utf8'));const all=JSON.stringify(data);
+ assert.doesNotMatch(all,/halved since week 4|priced to match|The experiment holds up once unexposed/);
+ const ex=data.rich.experiment,dur=ex.branches.find(b=>b.id==='durability'),val=ex.branches.find(b=>b.id==='validity');
+ assert.match(dur.stressCalc.working,/has not fallen steadily \(week 4 was above week 3\)/);assert.equal(dur.stressCalc.answer,5);
+ assert.equal(val.calc.answer,20);assert.match(val.calc.working,/assumes the 4,000 unexposed learners retained at the control rate/);
+ assert.match(val.model,/^The randomised result is 19\.8% against 18\.0%/);assert.match(val.model,/within what chance alone could produce/);
+ assert.match(data.rich.prioritise.branches.find(b=>/priced|0\.1%/.test(b.model||'')).model,/narrows the gap with the rival’s free offer without matching it/);
+ const mk=data.rich.market.branches.map(b=>b.shock||'').join(' ');assert.match(mk,/planned rollout is entirely in dispersed areas/);
+ const op=data.rich.operations.branches.map(b=>(b.stressCalc||{}).working||'').join(' ');assert.match(op,/45,440\/day/);assert.match(op,/2,560\/day goes unmet/);
+ // Retention lifts quoted in the experiment case: 20%, 15%, 8%, 10% (weeks 1 to 4), so the lift is not falling steadily.
+ const rel=[[30,36],[24,27.6],[20,21.6],[18,19.8]].map(([c,s])=>Math.round((s-c)/c*100));assert.deepEqual(rel,[20,15,8,10]);
+});

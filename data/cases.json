@@ -953,7 +953,7 @@
             "hint": "The target profit is additional to fixed costs.",
             "tolerance": 0
           },
-          "shock": "Route test: delivered cost rises by ₹10/meal in dispersed areas; price stays ₹150. The original variable cost was ₹110/meal. Current kitchen and delivery capacity is 5,000 full-year subscribers. Fixed costs stay ₹3 crore.",
+          "shock": "Route test: the planned rollout is entirely in dispersed areas, where delivered cost rises by ₹10/meal; price stays ₹150. The original variable cost was ₹110/meal. Current kitchen and delivery capacity is 5,000 full-year subscribers. Fixed costs stay ₹3 crore.",
           "stressCalc": {
             "question": "Minimum whole subscribers needed for the same ₹1 crore hurdle at the revised contribution?",
             "answer": 5556,
@@ -1027,7 +1027,7 @@
             "question": "What is average output across this mix of days?",
             "answer": 47360,
             "unit": "packs/day",
-            "working": "(0.6×6,400 + 0.4×5,200)×8 = 47,360/day. Difficult-format days produce only 41,600.",
+            "working": "(0.6×6,400 + 0.4×5,200)×8 = 47,360/day. Difficult-format days produce only 41,600. Demand is 48,000/day and spare output is not carried over, so on easy days output is capped by demand at 48,000: demand actually served averages 45,440/day (0.6×48,000 + 0.4×41,600), about 2,560/day goes unmet and full demand is met on 60% of days.",
             "hint": "Calculate the weighted average, then assess each day separately.",
             "tolerance": 1
           },
@@ -1786,7 +1786,7 @@
             "question": "What is the relative lift in week-8 retention? Enter %.",
             "answer": 5,
             "unit": "%",
-            "working": "(14.7% − 14.0%) ÷ 14.0% = 0.7 ÷ 14 = 5%. The lift has halved since week 4 and is still falling.",
+            "working": "(14.7% − 14.0%) ÷ 14.0% = 0.7 ÷ 14 = 5%. The week-8 lift is half the week-4 lift and well below week 1 (20%, 15%, 8% and 10% in weeks 1 to 4). It has not fallen steadily (week 4 was above week 3), so ask what explains the uneven pattern.",
             "hint": "Divide the difference by the control rate.",
             "tolerance": 0.1
           },
@@ -1803,7 +1803,7 @@
             "question": "What is week-4 retention among the 36,000 streak-group learners who actually saw the feature? Enter %.",
             "answer": 20,
             "unit": "%",
-            "working": "Streak group active in week 4: 40,000 × 19.8% = 7,920. Unexposed learners active: 4,000 × 18.0% = 720. Exposed learners active: 7,920 − 720 = 7,200. 7,200 ÷ 36,000 = 20%.",
+            "working": "Streak group active in week 4: 40,000 × 19.8% = 7,920. Unexposed learners active: 4,000 × 18.0% = 720. Exposed learners active: 7,920 − 720 = 7,200. 7,200 ÷ 36,000 = 20%. This assumes the 4,000 unexposed learners retained at the control rate; exposure depended on app version, so it is an estimate, not a randomised comparison.",
             "hint": "Work in numbers of learners, not percentages: remove the unexposed learners from both the top and the bottom.",
             "tolerance": 0.1
           },
@@ -1817,7 +1817,7 @@
             "tolerance": 0.02
           },
           "probe": "Retention went up but paid conversion went down. How would you explain that to leadership, and what would you test next?",
-          "model": "The experiment holds up once unexposed learners are accounted for: learners who saw the streak retained at 20% against 18%. But paid conversion fell from 6.0% to 5.7%, about ₹2.4 lakh less first-year revenue per 40,000 sign-ups, so more retention is not turning into more value. Do not launch to everyone yet. Find out why conversion fell, such as weaker learning or reminder fatigue, and test a revised streak with paid conversion as a guardrail."
+          "model": "The randomised result is 19.8% against 18.0% (+1.8 percentage points). Learners who actually saw the streak retained at about 20%, but that is an estimate that rests on assuming the 4,000 unexposed learners retained at the control rate. Exposure depended on app version, so a fair check would compare learners on app versions that could show the streak in both groups. Observed paid conversion was lower (5.7% against 6.0%), about ₹2.4 lakh less first-year revenue per 40,000 sign-ups as a point estimate. With 40,000 sign-ups in each group, a gap that size is within what chance alone could produce (roughly −0.63 to +0.03 percentage points at 95%), so it is a risk to check rather than an established fall. Do not launch to everyone yet. Find out whether conversion really fell and, if so, why, such as weaker learning or reminder fatigue, and test a revised streak with paid conversion as a guardrail."
         }
       ],
       "strong": [
@@ -1921,7 +1921,7 @@
             "tolerance": 0.5
           },
           "probe": "If a rival gives it away free, is instant settlement still a growth feature, or has it become something every app must have? How does that change your recommendation?",
-          "model": "At a 0.3% fee instant settlement earns about ₹972 lakh in year one, far more than loans (₹30 lakh) and the stock tracker (no direct revenue). After the rival’s move it earns ₹324 lakh at 0.1%, but its main value is now defensive: without it, larger stores, who carry about two-thirds of payment value, may leave at twice the rate. Build instant settlement first, priced to match, and judge it on larger-store churn as well as revenue. Revisit loans once settlement data shows which stores have steady cash flow."
+          "model": "At a 0.3% fee instant settlement earns about ₹972 lakh in year one, far more than loans (₹30 lakh) and the stock tracker (no direct revenue). After the rival’s move it earns ₹324 lakh at 0.1%, but its main value is now defensive: without it, larger stores, who carry about two-thirds of payment value, may leave at twice the rate. Build instant settlement first. A 0.1% fee narrows the gap with the rival’s free offer without matching it, so check whether stores still adopt at a fee, and judge it on larger-store churn as well as revenue. Revisit loans once settlement data shows which stores have steady cash flow."
         }
       ],
       "strong": [

@@ -473,7 +473,7 @@
   B['pnc-handshake'] = (r, m) => {
     const n = int(r, 5, 30), ctx = r() < 0.5, ans = n * (n - 1) / 2;
     return numeric(r, m, ctx ? `At a placement orientation, each of ${n} students shakes hands once with every other student. How many handshakes take place?` : `In a college league, each of ${n} teams plays every other team once. How many matches are played?`, ans, {
-      inputs: { n }, step: Math.max(1, n - 1), wrong: [n * (n - 1), n * n / 2, n - 1],
+      inputs: { n }, step: Math.max(1, n - 1), wrong: [n * (n - 1), n * (n + 1) / 2, n - 1],
       steps: [`Each pair meets once: ${n}C2`, `= ${n} × ${n - 1} ÷ 2 = ${ans}`], tip: 'n(n − 1) counts every pair twice (A–B and B–A); halve it.' });
   };
   B['pnc-circle'] = (r, m) => {
@@ -822,7 +822,8 @@
     else { ans = at(n - q.p); wrong = [at(q.p - 1), at(n - q.p - 1 >= 0 ? n - q.p - 1 : n - q.p + 1)]; question = `Who sits ${ordinal(q.p)} from the right end?`; }
     const words = ['', '', '', '', '', 'Five', 'Six', 'Seven'];
     const prompt = `${words[n]} friends — ${names.join(', ')} — sit in a row facing north.\n${clues.map(c => '• ' + clueText(c, names)).join('\n')}\n${question}`;
-    return textual(r, m, prompt, names[ans], wrong.map(i => names[i]), j => names[order[j % n]], {
+    const subject = q.t === 'right-of' || q.t === 'left-of' ? names[q.b] : null; // the person the question is about is never an option
+    return textual(r, m, prompt, names[ans], wrong.map(i => names[i]).filter(x => x !== subject), j => { const x = names[order[j % n]]; return x === subject ? null : x; }, {
       inputs: { names, clues, ask: q }, steps: [`Start with the most fixed clues and test the rest. Only one order works (left to right): ${order.map(i => names[i]).join(', ')}.`, `So the answer is ${names[ans]}.`],
       tip: 'Facing north, their right is your right as you look at the row from behind. Place exact positions and ends first.' });
   };
@@ -865,7 +866,7 @@
       const prompt = `Statements: ${premises.map(s => sentence(s, T)).join(' ')}\nConclusions:\nI. ${sentence(c1, T)}\nII. ${sentence(c2, T)}\nWhich conclusion(s) follow from the statements?`;
       return make(m, prompt, { options: SYL_OPTIONS.slice(), answer, display: SYL_OPTIONS[answer] }, {
         inputs: { k, terms: T, premises, conclusions: [{ t: c1.t, a: c1.a, b: c1.b }, { t: c2.t, a: c2.a, b: c2.b }] }, steps: [`I: ${why(c1)}`, `II: ${why(c2)}`],
-        tip: '“Some” statements can be reversed; “All” statements cannot. Two “some” premises never give a definite conclusion.' });
+        tip: '“Some A are B” can be reversed to “Some B are A”. “All A are B” cannot be reversed, and neither can “Some A are not B”. Two “some” premises never give a definite conclusion.' });
     }
   };
 
@@ -921,7 +922,7 @@
       const cast = N * (100 - a) / 100, valid = cast * (100 - b) / 100, M = valid * (2 * w - 100) / 100;
       if (![cast, valid, valid * w / 100, M].every(Number.isInteger)) continue;
       return numeric(r, m, `In an election between two candidates, ${a}% of the voters on the list did not vote and ${b}% of the votes cast were invalid. The winner got ${w}% of the valid votes and won by ${fmt(M)} votes. How many voters were on the list?`, N, {
-        inputs: { a, b, w, M }, wrong: [valid, cast, M * 100 / w],
+        inputs: { a, b, w, M }, wrong: [valid, cast, N * (100 - b) / 100],
         steps: [`The margin is ${w}% − ${100 - w}% = ${2 * w - 100}% of the valid votes, so valid votes = ${fmt(M)} ÷ ${fmt((2 * w - 100) / 100)} = ${fmt(valid)}`, `Votes cast = ${fmt(valid)} ÷ ${fmt((100 - b) / 100)} = ${fmt(cast)}`, `Voters on the list = ${fmt(cast)} ÷ ${fmt((100 - a) / 100)} = ${fmt(N)}`],
         tip: 'Work backwards one base at a time: margin → valid votes → votes cast → voters on the list.' });
     }
@@ -1404,7 +1405,7 @@
     const q = asks[0] || { t: 'left-of', x: 0, k: 1 }, ans = seatOf(q.x, q.k), wrong = [seatOf(q.x, -q.k), seatOf(q.x, q.k + 1), seatOf(q.x, q.k - 1), seatOf(q.x, q.k + 2)].filter(y => y !== q.x);
     const question = { 'left-of': `Who sits immediately to the left of ${names[q.x]}?`, 'right-of': `Who sits immediately to the right of ${names[q.x]}?`, 'second-right-of': `Who sits second to the right of ${names[q.x]}?`, 'opposite-of': `Who sits directly opposite ${names[q.x]}?` }[q.t];
     const prompt = `${{ 6: 'Six', 8: 'Eight' }[n]} friends — ${names.join(', ')} — sit around a circular table, evenly spaced and facing the centre.\n${clues.map(c => '• ' + circleText(c, names)).join('\n')}\n${question}`;
-    return textual(r, m, prompt, names[ans], wrong.map(i => names[i]), j => names[at[j % n]], {
+    return textual(r, m, prompt, names[ans], wrong.map(i => names[i]), j => at[j % n] === q.x ? null : names[at[j % n]], { // never offer the person the question is about
       inputs: { names, clues, ask: q, n }, steps: [`Facing the centre, each person’s left is the next seat clockwise (seen from above). Fix ${names[0]} and work round: clockwise from ${names[0]} the order is ${at.map(i => names[i]).join(', ')}.`, `So the answer is ${names[ans]}.`],
       tip: 'Draw the circle and fix one person first. Facing the centre, left is clockwise; if they faced outwards, left and right would swap.' });
   };
@@ -1610,6 +1611,15 @@
     return { correct, wrong, unanswered, attempted: correct + wrong, total: questions.length, negative, score: round(correct - wrong * negative, 2), accuracy: correct + wrong ? correct / (correct + wrong) : null };
   }
 
+  /* How one result item turned out. Practice has no skipped state: showing the solution counts as a miss.
+     In a test an unanswered question is skipped if it was visited and not reached otherwise; older results
+     without a `visited` flag count as visited when any time was spent on them. */
+  function outcome(item, mode) {
+    if (item.choice != null) return item.choice === item.q.answer ? 'right' : 'wrong';
+    if (mode !== 'test') return 'wrong';
+    return (typeof item.visited === 'boolean' ? item.visited : Number(item.seconds) > 0) ? 'skipped' : 'unreached';
+  }
+
   const median = list => { if (!list.length) return null; const s = list.slice().sort((a, b) => a - b), h = Math.floor(s.length / 2); return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
   /* Per-topic accuracy over the most recent `window` answered questions of each topic. */
   function summarise(history, window = 30) {
@@ -1623,6 +1633,6 @@
     return ranked.length && ranked[0].accuracy < 1 ? ranked[0] : null;
   }
 
-  const api = { LEVELS, LEVEL_IDS, MIXES, SECTIONS, TOPICS, TOPIC_IDS, KINDS, topicOf, rng, generate, buildSet, buildTest, score, summarise, weakest, median, fmt, bank, relationOf, holds, perms };
+  const api = { LEVELS, LEVEL_IDS, MIXES, SECTIONS, TOPICS, TOPIC_IDS, KINDS, topicOf, rng, generate, buildSet, buildTest, score, outcome, summarise, weakest, median, fmt, bank, relationOf, holds, perms };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.AptitudeQuestions = api;
 })(this);
