@@ -18,7 +18,7 @@
     { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, timed mock tests and spoken English.', open: () => Aptitude.open() },
     { id: 'gd', n: 3, title: 'Group discussion', text: 'The moves observers note, and practice that builds them. Full GD practice is not here yet.', tag: 'Tips only', open: () => NextRoundTool.open('gd') },
     { id: 'case', n: 4, title: 'Case or guesstimate interview', text: 'A 10-minute warm-up, 12 full cases, case maths and a mock interview with a friend.', open: () => casesPage() },
-    { id: 'hr', n: 5, title: 'HR interview', text: 'Timed answers to the common questions, and a bank of stories to draw on.', open: () => Behavioural.open() }
+    { id: 'hr', n: 5, title: 'HR interview', text: 'Timed answers to the common questions, a bank of stories, and a résumé or project defence.', open: () => Behavioural.open() }
   ];
 
   /* ---------- Unfinished work, from each tool's saved state ---------- */
@@ -36,6 +36,8 @@
     const { draft: b, set: hs } = Behavioural.state();
     if ((hs && hs.fixed) || (b && b.text && b.text.trim()) || (hs && hs.review)) out.push({ id: 'behavioural', label: 'HR interview', title: hs && hs.fixed ? 'Practice interview' : 'An answer you started',
       detail: hs && hs.fixed ? `Question ${hs.index + 1} of ${hs.qids.length}` : 'Not finished yet', go: () => Behavioural.resume() });
+    const df = DefenceTool.state().run;
+    if (df) out.push({ id: 'defence', label: 'Defence', title: (s => s.length > 60 ? s.slice(0, 59).trimEnd() + '…' : s)(df.kind === 'project' ? df.title : df.line), detail: `Question ${df.index + 1} of ${df.questions.length}`, go: () => DefenceTool.resume() });
     const p = PeerMock.state().run;
     if (p) out.push({ id: 'peer', label: 'Peer interview', title: 'Mock interview with a friend', detail: 'In progress', go: () => PeerMock.open() });
     const plan = NextRoundTool.state();
@@ -87,7 +89,7 @@
   };
 
   /* ---------- Navigation: in round order, with the current page marked ---------- */
-  const NAV = { homeNav: ['home'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural'], historyNav: ['history'] };
+  const NAV = { homeNav: ['home'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
   function markNav() { for (const [id, views] of Object.entries(NAV)) { const b = document.getElementById(id); if (b) { if (views.includes(view)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); } } }
   $('#planNav').onclick = () => NextRoundTool.open();
   $('#casesNav').onclick = () => casesPage();

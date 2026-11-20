@@ -193,6 +193,7 @@
       <p class="note bh-honest">Feedback here is a set of heuristics, not a score: word counts, a filler-word list, “I” versus “we”, and the share of words you tag as Situation, Task, Action and Result. They spot habits. They cannot tell whether your story is convincing; use the “listen for” cues, or a friend, for that.</p></section>
     <div class="bh-side"><section class="panel"><h2>Spoken English</h2><p class="note">Clear, steady speech helps every answer. Practise reading aloud, repeating sentences and one-minute talks.</p><button id="bhEnglish">Practise spoken English →</button></section><section class="panel"><h2>Story bank</h2><p class="note">Six to eight prepared stories cover most HR rounds. ${stories.length ? `You have ${stories.length} stor${stories.length === 1 ? 'y' : 'ies'}.` : 'You have not written any yet.'}</p>
       ${gaps.length ? `<p class="bh-gaps">${gaps.map(g => `<span>No ${esc(g.id)} story yet</span>`).join('')}</p>` : stories.length ? '<p class="bh-full">Every competency has at least one story.</p>' : ''}<button id="bhStories">Open story bank →</button></section>
+      <section class="panel"><h2>Defend your résumé or a project</h2><p class="note">An interviewer picks one line or one project and keeps asking until they know what you did.</p><button id="bhDefence">Open résumé and project defence →</button></section>
       <section class="panel"><h2>Practise with a friend</h2><p class="note">Print an interviewer sheet with questions, what to listen for and a scoring line. One of you asks, the other answers, then swap.</p>
       <label for="bhSheetPick">Sheet</label><select id="bhSheetPick"><option value="all">All competencies</option>${B.COMPETENCIES.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('')}</select><button id="bhSheetOpen">Open printable sheet</button></section></div></div>
     ${goalsPanel()}
@@ -211,6 +212,7 @@
     if ($('#bhDiscard')) $('#bhDiscard').onclick = () => { if (draft && draft.text.trim() && !confirm('Discard this unfinished answer? It will not be saved.')) return; draft = null; persist(); set = null; saveSet(); renderHome(); };
     $('#bhStories').onclick = openStories;
     $('#bhEnglish').onclick = () => EnglishTool.open();
+    $('#bhDefence').onclick = () => DefenceTool.open();
     $('#bhSheetOpen').onclick = () => sheet($('#bhSheetPick').value);
     bindGoals();
     document.querySelectorAll('[data-bh-view]').forEach(b => b.onclick = () => feedback(b.dataset.bhView));

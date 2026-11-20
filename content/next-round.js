@@ -8,7 +8,7 @@
     { id: 'hr', title: 'HR or behavioural interview', note: 'HR rounds come back to a few questions: who you are, why this role, and stories about teamwork, conflict and mistakes.' },
     { id: 'gd', title: 'Group discussion', note: 'Case Room has no group-discussion practice yet. This plan builds the skills a GD rewards: a clear opening, evidence, disagreeing well and a short summary. Practising with two or three friends is still the best preparation.' },
     { id: 'resume', title: 'Résumé shortlisting', note: 'Shortlists are often made from your résumé alone, and interviewers later ask about every line on it.' },
-    { id: 'technical', title: 'Technical or coding round', note: 'Case Room does not cover coding or core technical questions. Prepare those with your department’s past papers and a coding practice platform. Campus processes often put an aptitude test and an HR interview around the technical round, and you can practise those here.', outside: true },
+    { id: 'technical', title: 'Technical or coding round', note: 'Case Room does not cover coding or core technical questions. Prepare those with your department’s past papers and a coding practice platform. Campus processes often put an aptitude test and an HR interview around the technical round, and you can practise those here. A project defence is the part of a technical interview you can practise here.', outside: true },
     { id: 'unknown', title: 'I don’t know the round yet', note: 'Rounds vary by company and campus. A common sequence is résumé shortlisting, an online aptitude test, sometimes a group discussion, then technical or case interviews and an HR interview. Check your placement notice or ask your placement cell, then choose the round here. Until then, this plan covers what most processes share.' }
   ];
   const ROLES = [
@@ -46,6 +46,10 @@
       why: 'An operations case: find the real bottleneck before anyone buys equipment.' },
     'peer': { tool: 'Peer interview', title: 'Mock case interview with a friend', minutes: 45, open: { tool: 'peer' },
       why: 'One of you interviews from a guide while the other answers. The closest thing to the real interview.' },
+    'defence-line': { tool: 'Defence', title: 'Defend one line of your résumé', minutes: 8, open: { tool: 'defence', mode: 'line' },
+      why: 'An interviewer picks a line and keeps asking: what was measured, what you did yourself, what else could explain it.' },
+    'defence-project': { tool: 'Defence', title: 'Defend a project: five questions', minutes: 8, open: { tool: 'defence', mode: 'project' },
+      why: 'Technical and HR interviewers both start from your project: why you built it that way, what you did yourself, what failed and how you know it worked.' },
     'bh-intro': { tool: 'Behavioural', title: 'Answer “Tell me about yourself”', minutes: 5, open: { tool: 'behavioural', mode: 'intro' },
       why: 'Almost every interview opens with it. Aim for one to two minutes.' },
     'bh-motivation': { tool: 'Behavioural', title: 'Answer “Why this company or role?”', minutes: 5, open: { tool: 'behavioural', mode: 'motivation' },
@@ -81,10 +85,10 @@
       case 'aptitude': return minutes <= 10 ? ['apt-mixed'] : minutes <= 20 ? ['apt-mock-short', 'apt-weak'] : ['apt-mock', 'apt-weak', 'apt-mixed', 'drill-maths'];
       case 'case': return short ? (warmupDone ? ['drill-maths', 'bh-motivation'] : ['warmup', 'drill-maths'])
         : [CASE_FOR[role] || CASE_FOR.other, SECOND_CASE[role] || SECOND_CASE.other, 'drill-maths', 'bh-motivation'];
-      case 'hr': return ['bh-intro', 'bh-motivation', 'bh-mixed', 'resume', 'bh-stories'];
+      case 'hr': return ['bh-intro', 'bh-motivation', 'defence-line', 'bh-mixed', 'resume', 'bh-stories'];
       case 'gd': return [{ id: 'gd-moves' }, 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
-      case 'resume': return ['resume', 'bh-intro', 'bh-stories', 'bh-motivation', 'apt-mixed'];
-      case 'technical': return ['apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock'];
+      case 'resume': return ['resume', 'defence-line', 'bh-intro', 'bh-stories', 'bh-motivation', 'apt-mixed'];
+      case 'technical': return ['defence-project', 'apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock'];
       case 'unknown': return ['apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock-short', warmupDone ? 'drill-maths' : 'warmup'];
       default: return [];
     }
