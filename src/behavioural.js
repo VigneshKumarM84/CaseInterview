@@ -32,8 +32,9 @@
     return { id: str(a.id, 40) || 'b' + a.at, at: a.at, competency: c.id, mode: a.mode === 'mixed' || B.IDS.includes(a.mode) ? a.mode : c.id, qid: q ? q.id : '',
       question: str(a.question, 600) || (q ? q.text : 'Question'), text: str(a.text), seconds: Number.isFinite(a.seconds) && a.seconds > 0 ? a.seconds : null,
       voice: !!a.voice, storyId: typeof a.storyId === 'string' ? a.storyId.slice(0, 40) : null, tags: cleanTags(a.tags, c.frame),
-      heard: Array.isArray(a.heard) ? [...new Set(a.heard.filter(i => Number.isInteger(i) && i >= 0 && i < c.listenFor.length))] : [], notes: str(a.notes, 5000) };
+      heard: Array.isArray(a.heard) ? [...new Set(a.heard.filter(i => Number.isInteger(i) && i >= 0 && i < c.listenFor.length))] : [], notes: str(a.notes, 5000), pauses: cleanPauses(a.pauses) };
   }
+  const cleanPauses = p => isObj(p) && Number.isInteger(p.count) && p.count >= 0 && p.count < 1000 && Number.isFinite(p.longest) && p.longest >= 0 ? { count: p.count, longest: Math.min(p.longest, 3600) } : null;
   function cleanStory(s) {
     if (!isObj(s)) return null;
     return { id: typeof s.id === 'string' && /^[\w-]{1,40}$/.test(s.id) ? s.id : newId('s'), title: str(s.title, 120), s: str(s.s, 4000), t: str(s.t, 4000), a: str(s.a, 6000), r: str(s.r, 4000),
@@ -44,7 +45,7 @@
     const q = B.findQuestion(d.qid); if (!q) return null;
     const draft = { mode: d.mode === 'mixed' || B.IDS.includes(d.mode) ? d.mode : q.competency, qid: q.id, competency: q.competency, text: str(d.text),
       elapsedMs: Number.isFinite(d.elapsedMs) && d.elapsedMs > 0 ? Math.min(d.elapsedMs, 36e5) : 0, runningSince: null, voice: !!d.voice,
-      storyId: typeof d.storyId === 'string' ? d.storyId.slice(0, 40) : null, spoken: !!d.spoken, at: Number.isFinite(d.at) ? d.at : Date.now() };
+      storyId: typeof d.storyId === 'string' ? d.storyId.slice(0, 40) : null, spoken: !!d.spoken, at: Number.isFinite(d.at) ? d.at : Date.now(), pauses: cleanPauses(d.pauses) };
     // A timer left running when the page closed counts only up to the last saved change.
     if (Number.isFinite(d.runningSince) && d.runningSince <= draft.at) draft.elapsedMs = Math.min(36e5, draft.elapsedMs + (draft.at - d.runningSince));
     return draft;
@@ -57,7 +58,7 @@
   let draft = cleanDraft(read(DRAFT_KEY, null));
   let prefs = read(PREFS_KEY, {}); if (!isObj(prefs)) prefs = {};
   prefs = { mode: prefs.mode === 'mixed' || B.IDS.includes(prefs.mode) ? prefs.mode : 'mixed', lang: LANGS.some(l => l[0] === prefs.lang) ? prefs.lang : 'en-IN', aloud: !!prefs.aloud,
-    count: SET_SIZES.includes(prefs.count) ? prefs.count : 5 };
+    count: SET_SIZES.includes(prefs.count) ? prefs.count : 5, goals: B.cleanGoals(prefs.goals) };
   // Dictation language now lives in the shared Voice settings; carry over a choice made here before.
   if (!settings.lang && prefs.lang !== 'en-IN') { settings.lang = prefs.lang; save('cr-voice', settings); }
 
@@ -83,6 +84,7 @@
   const savePrefs = () => save(PREFS_KEY, prefs);
   const saveSet = () => save(SET_KEY, set);
   const storyOf = id => stories.find(s => s.id === id);
+  const analyseA = a => B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags, pauses: a.pauses });
   const questionOf = d => B.findQuestion(d.qid);
 
   function setHash(h) { try { window.history.replaceState(null, '', location.pathname + location.search + h); } catch { /* file:// or sandboxed frames */ } }
@@ -110,7 +112,7 @@
   /* ---------- Home: choose a competency, story bank and peer sheet links, history ---------- */
   function open() { enter('home', '#behavioural'); renderHome(); }
   function stats(id) {
-    const mine = attempts.filter(a => a.competency === id), analysed = mine.map(a => B.analyse(a.text, { competency: id, tags: a.tags }));
+    const mine = attempts.filter(a => a.competency === id), analysed = mine.map(analyseA);
     return { mine, analysed, words: median(analysed.map(x => x.words)), fillers: analysed.length ? Math.round(analysed.reduce((t, x) => t + x.fillers.per100, 0) / analysed.length * 10) / 10 : null,
       complete: analysed.filter(x => x.structure.tagged && x.structure.parts.every(p => p.words)).length };
   }
@@ -133,10 +135,11 @@
         return `<label class="bh-comp"><input type="radio" name="bhMode" value="${id}" ${prefs.mode === id ? 'checked' : ''}><span><b>${esc(title)}</b><small>${esc(short)}${n ? ` · ${n} answer${n === 1 ? '' : 's'}` : ''}</small></span></label>`; }).join('')}</div></fieldset>
       <label class="selfcheck"><input type="checkbox" id="bhAloud" ${prefs.aloud ? 'checked' : ''}> Read each question aloud, like an interviewer would</label></details>
       <p class="note bh-honest">Feedback here is a set of heuristics, not a score: word counts, a filler-word list, “I” versus “we”, and the share of words you tag as Situation, Task, Action and Result. They spot habits. They cannot tell whether your story is convincing; use the “listen for” cues, or a friend, for that.</p></section>
-    <div class="bh-side"><section class="panel"><h2>Story bank</h2><p class="note">Six to eight prepared stories cover most HR rounds. ${stories.length ? `You have ${stories.length} stor${stories.length === 1 ? 'y' : 'ies'}.` : 'You have not written any yet.'}</p>
+    <div class="bh-side"><section class="panel"><h2>Spoken English</h2><p class="note">Clear, steady speech helps every answer. Practise reading aloud, repeating sentences and one-minute talks.</p><button id="bhEnglish">Practise spoken English →</button></section><section class="panel"><h2>Story bank</h2><p class="note">Six to eight prepared stories cover most HR rounds. ${stories.length ? `You have ${stories.length} stor${stories.length === 1 ? 'y' : 'ies'}.` : 'You have not written any yet.'}</p>
       ${gaps.length ? `<p class="bh-gaps">${gaps.map(g => `<span>No ${esc(g.id)} story yet</span>`).join('')}</p>` : stories.length ? '<p class="bh-full">Every competency has at least one story.</p>' : ''}<button id="bhStories">Open story bank →</button></section>
       <section class="panel"><h2>Practise with a friend</h2><p class="note">Print an interviewer sheet with questions, what to listen for and a scoring line. One of you asks, the other answers, then swap.</p>
       <label for="bhSheetPick">Sheet</label><select id="bhSheetPick"><option value="all">All competencies</option>${B.COMPETENCIES.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('')}</select><button id="bhSheetOpen">Open printable sheet</button></section></div></div>
+    ${goalsPanel()}
     <section class="panel bh-history"><h2>Your answers by competency</h2>${practised.length ? `<p class="note">Medians and averages over every saved answer. Fillers are per 100 words. “STAR complete” counts answers where you tagged all four parts.</p>
       <div class="bh-table-wrap"><table class="drill-table bh-table"><thead><tr><th scope="col">Competency</th><th scope="col">Answers</th><th scope="col">Median words</th><th scope="col">Fillers /100</th><th scope="col">STAR complete</th></tr></thead><tbody>${rows.map(({ c, s }) => `<tr><th scope="row">${esc(c.title)}${s.mine.length ? `<small>Last: ${esc(day(s.mine[0].at))}</small>` : ''}</th><td>${s.mine.length || '<span class="subtle">—</span>'}</td><td>${s.words ?? '—'}</td><td>${s.fillers ?? '—'}</td><td>${c.frame === 'star' && s.mine.length ? `${s.complete}/${s.mine.length}` : '—'}</td></tr>`).join('')}</tbody></table></div>
       ${practised.map(({ c, s }) => `<details class="bh-past" data-bh-comp="${c.id}"><summary>${esc(c.title)} · ${s.mine.length} answer${s.mine.length === 1 ? '' : 's'}</summary><ul>${s.mine.map((a, i) => `<li><div><b>${esc(a.question)}</b><span class="note">${esc(day(a.at))} · ${s.analysed[i].words} words · ${s.analysed[i].fillers.total} fillers${a.storyId && storyOf(a.storyId) ? ` · story: ${esc(storyOf(a.storyId).title || 'Untitled story')}` : ''}</span></div><div class="bh-row-actions"><button data-bh-view="${esc(a.id)}">View</button><button data-bh-delete="${esc(a.id)}" aria-label="Delete this answer">Delete</button></div></li>`).join('')}</ul><button class="drill-link" data-bh-download="${c.id}">Download ${esc(c.title.toLowerCase())} answers (.txt)</button></details>`).join('')}
@@ -150,7 +153,9 @@
     if ($('#bhResume')) $('#bhResume').onclick = () => renderQuestion();
     if ($('#bhDiscard')) $('#bhDiscard').onclick = () => { if (draft && draft.text.trim() && !confirm('Discard this unfinished answer? It will not be saved.')) return; draft = null; persist(); set = null; saveSet(); renderHome(); };
     $('#bhStories').onclick = openStories;
+    $('#bhEnglish').onclick = () => EnglishTool.open();
     $('#bhSheetOpen').onclick = () => sheet($('#bhSheetPick').value);
+    bindGoals();
     document.querySelectorAll('[data-bh-view]').forEach(b => b.onclick = () => feedback(b.dataset.bhView));
     document.querySelectorAll('[data-bh-delete]').forEach(b => b.onclick = () => { if (!confirm('Delete this answer from your history?')) return; attempts = attempts.filter(a => a.id !== b.dataset.bhDelete); saveAttempts(); renderHome(); });
     document.querySelectorAll('[data-bh-download]').forEach(b => b.onclick = () => download(attempts.filter(a => a.competency === b.dataset.bhDownload).map(attemptText).join('\n\n' + '='.repeat(60) + '\n\n'), `case-room-behavioural-${b.dataset.bhDownload}.txt`));
@@ -172,7 +177,7 @@
   }
   function newDraft(storyId = null) {
     const q = B.findQuestion(set.qids[set.index]);
-    draft = { mode: set.mode, qid: q.id, competency: q.competency, text: '', elapsedMs: 0, runningSince: null, voice: false, storyId, spoken: false, at: Date.now() };
+    draft = { mode: set.mode, qid: q.id, competency: q.competency, text: '', elapsedMs: 0, runningSince: null, voice: false, storyId, spoken: false, at: Date.now(), pauses: null };
     persist();
   }
   const replaceDraft = () => !(draft && draft.text.trim()) || confirm('Replace your unfinished answer? It will not be saved.');
@@ -243,7 +248,8 @@
     const owner = draft, area = $('#bhAnswer');
     area.oninput = () => { owner.text = area.value; if (area.value.trim()) { startTimer(); $('#flowHint').textContent = ''; } persist(); };
     attachDictation({ button: $('#bhMic'), target: area, status: $('#bhVoiceStatus'), language: dictationLang, isCurrent: () => draft === owner,
-      onStart: () => { owner.voice = true; startTimer(); $('#flowHint').textContent = ''; persist(); }, onText: v => { owner.text = v; owner.voice = true; persist(); } });
+      onStart: () => { owner.voice = true; owner.pauses = B.notePause(owner.pauses, Date.now(), true); startTimer(); $('#flowHint').textContent = ''; persist(); },
+      onText: v => { owner.text = v; owner.voice = true; owner.pauses = B.notePause(owner.pauses, Date.now()); persist(); } });
     $('#bhTimerBtn').onclick = () => { if (draft.runningSince) pauseTimer(); else startTimer(); paintTimer(); };
     if ($('#bhStory')) $('#bhStory').onchange = e => { draft.storyId = e.target.value || null; persist(); $('#bhLinked').innerHTML = linkedNotes(storyOf(draft.storyId)); };
     $('#bhExit').onclick = () => { pauseTimer(); renderHome(); };
@@ -257,7 +263,8 @@
     if (!draft.text.trim()) return nudge('Speak or type your answer first, so there is something to give feedback on.', '#bhAnswer');
     pauseTimer(); stopMedia();
     const q = questionOf(draft), a = { id: newId('b'), at: Date.now(), competency: draft.competency, mode: draft.mode, qid: q.id, question: q.text, text: draft.text.trim(),
-      seconds: draft.elapsedMs ? Math.max(1, Math.round(draft.elapsedMs / 1000)) : null, voice: draft.voice, storyId: draft.storyId, tags: {}, heard: [], notes: '' };
+      seconds: draft.elapsedMs ? Math.max(1, Math.round(draft.elapsedMs / 1000)) : null, voice: draft.voice, storyId: draft.storyId, tags: {}, heard: [], notes: '',
+      pauses: draft.voice && draft.pauses ? { count: draft.pauses.count, longest: draft.pauses.longest } : null };
     attempts.unshift(a); attempts = attempts.slice(0, MAX_ATTEMPTS); saveAttempts();
     draft = null; persist();
     if (!set || set.qids[set.index] !== a.qid) set = { mode: a.mode, qids: [a.qid], index: 0, answers: [null], fixed: false, review: false };
@@ -268,7 +275,7 @@
   function renderReview() {
     const a = set && attempts.find(x => x.id === set.answers[set.index]); if (!a) { set = null; saveSet(); return renderHome(); }
     enter('review', '#behavioural'); current = a.id;
-    const q = B.findQuestion(a.qid) || { text: a.question }, c = comp(a.competency), r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags });
+    const q = B.findQuestion(a.qid) || { text: a.question }, c = comp(a.competency), r = analyseA(a);
     const last = set.fixed && set.index === set.qids.length - 1, probe = c.probes[0];
     $('#app').innerHTML = `<section class="flow-screen bh-review">${sessionHead(q, c)}
       <details class="bh-yours-wrap"><summary>Your answer · ${r.words} words</summary><p class="transcript">${esc(a.text)}</p></details>
@@ -289,6 +296,30 @@
     $('#bhNext').focus({ preventScroll: true });
   }
 
+  /* ---------- Delivery goals: the student's own targets, and how the last ten answers did against them ---------- */
+  const goalTarget = id => B.goalChecks({ fillers: { per100: 0 }, delivery: { hedges: { per100: 0 }, pauses: null }, pace: null, time: {} }, prefs.goals).find(x => x.id === id)?.target || '';
+  function goalsPanel() {
+    const trends = B.goalTrends(attempts.slice().reverse().map(analyseA), prefs.goals);
+    const met = (t, v) => { const g = B.goalOf(t.id); return v == null ? null : g.range ? v >= g.range[0] && v <= g.range[1] : t.id === 'time' ? v === 1 : v <= t.limit; };
+    const strip = t => `<span class="bh-strip" role="img" aria-label="${t.met} of the last ${t.values.length} answers met this goal">${t.values.map(v => { const ok = met(t, v); return `<i class="${ok == null ? 'na' : ok ? 'met' : 'miss'}" title="${v == null ? 'Not measured' : t.id === 'time' ? (ok ? 'Within time' : 'Outside time') : esc(String(v))}"></i>`; }).join('')}</span>`;
+    const dir = d => d ? `<span class="bh-dir ${d}">${{ better: 'Improving', worse: 'Slipping', steady: 'Steady' }[d]}</span>` : '';
+    const settings = B.GOALS.map(g => `<label class="bh-goal-set">${esc(g.label)}<select data-goal="${g.id}">${g.options ? `<option value="off" ${prefs.goals[g.id] == null ? 'selected' : ''}>Off</option>${g.options.map(o => `<option value="${o}" ${prefs.goals[g.id] === o ? 'selected' : ''}>${o} or fewer ${esc(g.unit)}</option>`).join('')}`
+      : `<option value="on" ${prefs.goals[g.id] ? 'selected' : ''}>On: ${esc(g.unit)}</option><option value="off" ${prefs.goals[g.id] == null ? 'selected' : ''}>Off</option>`}</select></label>`).join('');
+    return `<section class="panel bh-goals" id="bhGoals"><h2>Delivery goals</h2>
+      <p class="note">Set your own targets. Every answer is checked against them${attempts.length ? `, and the strip shows your last ${Math.min(10, attempts.length)} answer${attempts.length === 1 ? '' : 's'}, oldest first: green met, amber missed, grey not measured (pace and pauses need dictation)` : ''}.</p>
+      ${trends.length ? `<ul class="bh-trends">${trends.map(t => `<li><div><b>${esc(t.label)}</b><span class="note">${esc(goalTarget(t.id))}</span></div>${attempts.length ? `${strip(t)}<span class="note">${t.measured ? `Met in ${t.met} of ${t.measured}` : 'Not measured yet'}</span>${dir(t.direction)}` : ''}</li>`).join('')}</ul>` : '<p class="note">All goals are off.</p>'}
+      <details class="bh-goal-settings" id="bhGoalSettings"><summary>Change your goals</summary><div class="bh-goal-grid">${settings}</div></details></section>`;
+  }
+  function bindGoals() {
+    document.querySelectorAll('[data-goal]').forEach(el => el.onchange = () => {
+      const g = B.goalOf(el.dataset.goal); prefs.goals[g.id] = el.value === 'off' ? null : g.options ? Number(el.value) : true;
+      prefs.goals = B.cleanGoals(prefs.goals); savePrefs(); renderHome();
+      const d = $('#bhGoalSettings'); if (d) { d.open = true; d.querySelector(`[data-goal="${g.id}"]`)?.focus({ preventScroll: true }); }
+    });
+  }
+  /* "Change goals" on a feedback screen opens the HR home with the goal settings open. */
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-bh-goals]')) { renderHome(); const d = $('#bhGoalSettings'); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } } });
+
   /* ---------- Summary at the end of a practice interview ---------- */
   function renderSummary() {
     const s = set; if (!s) return renderHome();
@@ -297,8 +328,8 @@
     const tips = [];
     rows.forEach(({ a }, i) => {
       if (!a) return;
-      const r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags });
-      for (const x of [r.time, r.fillers, r.pronouns]) if (x && x.level && x.level !== 'ok' && x.text) tips.push(`Question ${i + 1}: ${x.text}`);
+      const r = analyseA(a);
+      for (const x of [r.time, r.fillers, r.pronouns, ...r.delivery.checks]) if (x && x.level && x.level !== 'ok' && x.text) tips.push(`Question ${i + 1}: ${x.text}`);
     });
     $('#app').innerHTML = `<section class="flow-screen bh-summary"><div class="eyebrow">HR INTERVIEW · PRACTICE DONE</div><h1 class="bh-title">You answered ${answered.length} of ${rows.length} question${rows.length === 1 ? '' : 's'}.</h1>
       ${tips.length ? `<section class="panel"><h2>What to work on next</h2><ul class="bh-worklist">${tips.slice(0, 4).map(t => `<li>${esc(t)}</li>`).join('')}</ul></section>` : answered.length ? '<p class="lead">No timing, filler or “I”/“we” habits stood out. Use the self-check on each answer to judge the content.</p>' : ''}
@@ -324,8 +355,10 @@
       <div><div class="metric">${a.seconds ? secs(a.seconds) : '—'}</div><span class="note">${a.seconds ? (r.pace ? `On the clock · ${r.pace.wpm} words a minute` : 'On the clock · typed, so no pace') : 'Timer not started'}</span></div>
       <div><div class="metric">${r.fillers.total}</div><span class="note">Filler words · ${r.fillers.per100} per 100 words</span></div>
       <div><div class="metric">${r.pronouns.i}<small> / ${r.pronouns.we}</small></div><span class="note">“I” / “we”</span></div></div>
-      ${checkList([r.time, ...(r.pace ? [r.pace] : []), { level: r.fillers.level, text: r.fillers.total ? `Fillers: ${fill}.${r.fillers.level === 'warn' ? ' More than about 3 per 100 words starts to be noticeable.' : ''}${a.voice ? '' : ' Typed answers usually look cleaner than you sound, so try dictating.'}` : a.voice ? 'No filler words found in the transcript. Dictation sometimes drops them, so listen to yourself as well.' : 'No filler words found. Typed answers rarely have them; dictate to check how you sound.' }, { level: r.pronouns.level, text: r.pronouns.text }])}`;
+      ${goalList(B.goalChecks(r, prefs.goals))}
+      ${checkList([r.time, ...(r.pace ? [r.pace] : []), { level: r.fillers.level, text: r.fillers.total ? `Fillers: ${fill}.${r.fillers.level === 'warn' ? ' More than about 3 per 100 words starts to be noticeable.' : ''}${a.voice ? '' : ' Typed answers usually look cleaner than you sound, so try dictating.'}` : a.voice ? 'No filler words found in the transcript. Dictation sometimes drops them, so listen to yourself as well.' : 'No filler words found. Typed answers rarely have them; dictate to check how you sound.' }, { level: r.pronouns.level, text: r.pronouns.text }, ...r.delivery.checks])}`;
   }
+  const goalList = gs => gs.length ? `<div class="bh-goal-line"><b>Your goals</b><ul>${gs.map(g => `<li class="${g.met == null ? 'na' : g.met ? 'met' : 'miss'}"><span aria-hidden="true">${g.met == null ? '–' : g.met ? '✓' : '✗'}</span> ${esc(g.text)}</li>`).join('')}</ul><button class="wu-link" data-bh-goals>Change goals</button></div>` : '';
   function tagger(a, r) {
     const c = comp(a.competency), frame = B.FRAMES[c.frame], st = r.structure;
     return `<p class="note">Tag each sentence with the part of the ${esc(frame.title)} structure it belongs to. Dictation rarely adds full stops, so long stretches are split into chunks; add full stops in “Edit transcript” to control the split.</p>
@@ -340,7 +373,7 @@
     const c = comp(a.competency), linked = storyOf(a.storyId), inSet = !!(set && set.review && set.answers[set.index] === a.id);
     $('#app').innerHTML = `<div class="eyebrow">YOUR ANSWER · ${esc(c.title.toUpperCase())} · ${esc(day(a.at))}</div><h1 class="bh-q">${esc(a.question)}</h1>
       <p class="bh-honest-box"><b>Heuristics, not a score.</b> These numbers come from counting words and matching word lists. They can point out habits such as a long set-up, lots of fillers or “we” where the interviewer wants “I”, but they cannot judge whether your answer is good. Judge that against the “listen for” cues below.</p>
-      <div id="bhMetrics">${metrics(a, B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags }))}</div>
+      <div id="bhMetrics">${metrics(a, analyseA(a))}</div>
       <section class="panel bh-feedback"><h2>Check your structure</h2><div id="bhTagger"></div>
       <h2>What the interviewer listens for</h2><p class="note">Tick what you think your answer actually showed. Be strict: if you only implied it, leave it unticked.</p>
       ${c.listenFor.map((x, i) => `<label class="selfcheck"><input type="checkbox" data-bh-heard="${i}" ${a.heard.includes(i) ? 'checked' : ''}>${esc(x)}</label>`).join('')}
@@ -351,7 +384,7 @@
       ${flowBar({ back: '<button class="wu-link" id="bhBack">HR interview home</button><button class="wu-link" id="bhDownload">Download (.txt)</button>',
         primary: inSet ? '<button class="primary" id="bhBackToSet">Back to the interview →</button>' : '<button class="primary" id="bhAgain">Practise this question again →</button>' })}</section>`;
     const refresh = (all = true) => {
-      const r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags });
+      const r = analyseA(a);
       if (all) $('#bhMetrics').innerHTML = metrics(a, r);
       $('#bhTagger').innerHTML = tagger(a, r);
       document.querySelectorAll('[data-seg]').forEach(b => b.onclick = () => {
@@ -372,10 +405,11 @@
   }
 
   function attemptText(a) {
-    const c = comp(a.competency), r = B.analyse(a.text, { competency: a.competency, seconds: a.seconds, voice: a.voice, tags: a.tags }), st = r.structure, s = storyOf(a.storyId);
+    const c = comp(a.competency), r = analyseA(a), st = r.structure, s = storyOf(a.storyId);
     return `CASE ROOM — BEHAVIOURAL PRACTICE\n${new Date(a.at).toLocaleString()} · ${c.title}${s ? `\nStory: ${s.title || 'Untitled story'}` : ''}\n\nQUESTION\n${a.question}\n\nYOUR ANSWER\n${a.text}\n\n` +
       `HEURISTIC CHECKS (word counts and word lists, not a score)\nWords: ${r.words} (about ${secs(r.estSeconds)} at ${B.SPEAKING_WPM} words a minute)\nTime on the clock: ${a.seconds ? secs(a.seconds) : 'not timed'}${r.pace ? ` · ${r.pace.wpm} words a minute` : ''}\n` +
       `Filler words: ${r.fillers.total} (${r.fillers.per100} per 100 words)${r.fillers.total ? ' — ' + Object.entries(r.fillers.counts).map(([k, n]) => `${k} ×${n}`).join(', ') : ''}\n"I": ${r.pronouns.i} · "we": ${r.pronouns.we}\n- ${r.time.text}\n` +
+      r.delivery.checks.map(x => `- ${x.text}\n`).join('') + B.goalChecks(r, prefs.goals).map(g => `[${g.met == null ? '-' : g.met ? 'x' : ' '}] Goal: ${g.text}\n`).join('') +
       (st.tagged ? `\nSTRUCTURE (${B.FRAMES[st.frame].title}, from your tags)\n${st.parts.map(p => `${p.label}: ${p.share}% (${p.words} words)`).join('\n')}${st.untagged ? `\nUntagged: ${st.untagged} words` : ''}\n${st.checks.map(x => '- ' + x.text).join('\n')}\n` : '\nSTRUCTURE\nNot tagged.\n') +
       `\nLISTEN FOR (self-review)\n${c.listenFor.map((x, i) => `[${a.heard.includes(i) ? 'x' : ' '}] ${x}`).join('\n')}\n\nNOTES\n${a.notes || 'None.'}`;
   }

@@ -202,6 +202,99 @@
     return { level: 'ok', text: `About ${seconds}s is within a sensible range for this question (${lo}–${hi}s).` };
   }
 
+  /* ---------- Delivery: hedging, softeners, repeated openings, sentence length and pauses ---------- */
+  const HEDGES = ['i think', 'i guess', 'i suppose', 'i feel like', 'maybe', 'perhaps', 'probably', 'not sure', 'more or less', 'somewhat', 'i would say', "i'd say", 'to some extent', 'hopefully'].map(p => p.split(' '));
+  const SOFTENERS = ['just', 'really', 'very', 'quite', 'totally', 'a bit', 'a little bit'].map(p => p.split(' '));
+  /* Longest phrase first, so "a little bit" is not also counted as something shorter. */
+  function phrases(text, list) {
+    const w = tokens(text), counts = {}, sorted = list.slice().sort((a, b) => b.length - a.length);
+    for (let i = 0; i < w.length; i++) {
+      const hit = sorted.find(p => p.every((x, k) => w[i + k] === x));
+      if (hit) { const k = hit.join(' '); counts[k] = (counts[k] || 0) + 1; i += hit.length - 1; }
+    }
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    return { total, counts, per100: w.length ? Math.round(total / w.length * 1000) / 10 : 0 };
+  }
+  const listCounts = counts => Object.entries(counts).sort((x, y) => y[1] - x[1]).map(([k, n]) => `“${k}” ×${n}`).join(', ');
+  const PAUSE_MS = 3000;
+  /* Called each time dictation hears something. Gaps of PAUSE_MS or more between results count as long pauses.
+     Call with start: true when dictation (re)starts, so time spent stopped is not counted. */
+  function notePause(p, now, start = false) {
+    const out = { count: p?.count || 0, longest: p?.longest || 0, last: start ? null : p?.last ?? null };
+    if (!start && out.last != null && now - out.last >= PAUSE_MS) { out.count++; out.longest = Math.max(out.longest, Math.round((now - out.last) / 100) / 10); }
+    if (!start) out.last = now;
+    return out;
+  }
+  function delivery(text, opts = {}) {
+    const words = wordCount(text), checks = [], hedges = phrases(text, HEDGES), softeners = phrases(text, SOFTENERS);
+    if (!words) return { hedges, softeners, openers: null, sentences: null, pauses: null, chains: 0, checks };
+    checks.push(hedges.total ? { level: hedges.per100 > 2 ? 'warn' : 'ok', text: `Hedging: ${listCounts(hedges.counts)}.${hedges.per100 > 2 ? ' This much hedging can sound unsure. State the point, then add a reason.' : ''}` }
+      : { level: 'ok', text: 'No hedging phrases such as “I think” or “maybe”.' });
+    if (softeners.per100 > 3) checks.push({ level: 'warn', text: `Softeners and intensifiers: ${listCounts(softeners.counts)}. Cut most of them; a specific detail is stronger than “really” or “very”.` });
+    const segs = segments(text), starts = {};
+    for (const s of segs) { const t = tokens(s); if (!t.length) continue; const k = ['and', 'so', 'then', 'but'].includes(t[0]) && t[1] && ['then', 'so', 'i', 'we'].includes(t[1]) ? t[0] + ' ' + t[1] : t[0]; starts[k] = (starts[k] || 0) + 1; }
+    const top = Object.entries(starts).sort((a, b) => b[1] - a[1])[0], openers = top ? { word: top[0], count: top[1], of: segs.length } : null;
+    if (openers && segs.length >= 4 && openers.count >= 3 && openers.count / segs.length >= 0.4) checks.push({ level: 'warn', text: `${openers.count} of your ${segs.length} sentences start with “${openers.word}”. Vary how you begin, or drop the linking word.` });
+    const w = tokens(text); let chains = 0; for (let i = 0; i < w.length - 1; i++) if (w[i] === 'and' && w[i + 1] === 'then') chains++;
+    if (chains >= 3) checks.push({ level: 'warn', text: `“And then” appears ${chains} times. A list of events hides what mattered; say why each step happened.` });
+    const marks = (String(text).match(/[.!?](\s|$)/g) || []).length;
+    let sentences = null;
+    if (marks >= 2) {
+      const lens = String(text).split(/[.!?]+(?:\s+|$)/).map(wordCount).filter(Boolean);
+      sentences = { count: lens.length, average: Math.round(lens.reduce((a, b) => a + b, 0) / lens.length), longest: Math.max(...lens) };
+      checks.push(sentences.average > 25 || sentences.longest > 40 ? { level: 'warn', text: `Sentences average ${sentences.average} words and the longest has ${sentences.longest}. Long sentences are hard to follow out loud; split them.` }
+        : { level: 'ok', text: `Sentences average ${sentences.average} words, easy to follow.` });
+    }
+    const pauses = opts.pauses && Number.isFinite(opts.pauses.count) ? { count: opts.pauses.count, longest: opts.pauses.longest || 0 } : null;
+    if (pauses) checks.push(pauses.count >= 3 || pauses.longest >= 6 ? { level: 'warn', text: `${pauses.count} long pause${pauses.count === 1 ? '' : 's'} (3 seconds or more) while dictating${pauses.longest ? `; the longest was about ${pauses.longest}s` : ''}. A short pause is fine; long ones suggest you had not planned the next part.` }
+      : { level: 'ok', text: pauses.count ? `${pauses.count} long pause${pauses.count === 1 ? '' : 's'} while dictating, which is fine.` : 'No long pauses while dictating.' });
+    return { hedges, softeners, openers, sentences, pauses, chains, checks };
+  }
+
+  /* ---------- Delivery goals and trends ---------- */
+  const GOALS = [
+    { id: 'fillers', label: 'Filler words', unit: 'per 100 words', options: [1, 2, 3, 5], dflt: 3, value: r => r.fillers.per100 },
+    { id: 'hedges', label: 'Hedging phrases', unit: 'per 100 words', options: [0.5, 1, 2, 3], dflt: 2, value: r => r.delivery.hedges.per100 },
+    { id: 'pauses', label: 'Long pauses', unit: 'pauses of 3 s or more', options: [0, 1, 2, 3], dflt: 2, value: r => r.delivery.pauses ? r.delivery.pauses.count : null },
+    { id: 'pace', label: 'Speaking pace', unit: 'words a minute, 120–160', range: [120, 160], value: r => r.pace ? r.pace.wpm : null },
+    { id: 'time', label: 'Answer length', unit: 'within the target time', value: r => r.time.level === 'ok' ? 1 : 0 }
+  ];
+  const goalOf = id => GOALS.find(g => g.id === id);
+  /* goals maps a goal id to its limit (a number), true for pace and time, or null when switched off. */
+  function cleanGoals(v) {
+    const out = {}, src = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    for (const g of GOALS) {
+      if (g.options) out[g.id] = src[g.id] === null ? null : g.options.includes(src[g.id]) ? src[g.id] : g.dflt;
+      else out[g.id] = src[g.id] === false || src[g.id] === null ? null : true;
+    }
+    return out;
+  }
+  const goalMet = (g, limit, value) => value == null || limit == null ? null : g.range ? value >= g.range[0] && value <= g.range[1] : g.id === 'time' ? value === 1 : value <= limit;
+  function goalChecks(r, goals) {
+    const gs = cleanGoals(goals);
+    return GOALS.filter(g => gs[g.id] != null).map(g => {
+      const value = g.value(r), met = goalMet(g, gs[g.id], value);
+      const target = g.range ? `${g.range[0]}–${g.range[1]} words a minute` : g.id === 'time' ? 'within the target time' : `${gs[g.id]} or fewer ${g.unit}`;
+      const shown = { fillers: v => `${v} per 100 words`, hedges: v => `${v} per 100 words`, pauses: v => `${v} long pause${v === 1 ? '' : 's'}`, pace: v => `${v} words a minute`, time: () => `${met ? 'within' : 'outside'} the target time` }[g.id](value);
+      return { id: g.id, label: g.label, target, value, met, text: met == null ? `${g.label}: not measured here${g.id === 'pace' || g.id === 'pauses' ? ' (dictate your answer to measure it)' : ''}.` : `${g.label}: ${shown}${met ? ' — goal met' : ` (goal: ${target})`}.` };
+    });
+  }
+  /* Per goal, the values over the last n analysed answers (oldest first), how many met the goal, and the direction:
+     the mean of the latest three measured answers against the three before, where lower is better except for pace and time. */
+  function goalTrends(analyses, goals, n = 10) {
+    const gs = cleanGoals(goals), recent = analyses.slice(-n);
+    return GOALS.filter(g => gs[g.id] != null).map(g => {
+      const values = recent.map(r => g.value(r)), measured = values.filter(v => v != null), met = values.filter(v => goalMet(g, gs[g.id], v)).length;
+      let direction = null;
+      if (measured.length >= 4 && g.id !== 'time') {
+        const k = Math.min(3, Math.floor(measured.length / 2)), mean = xs => xs.reduce((a, b) => a + b, 0) / xs.length, now = mean(measured.slice(-k)), before = mean(measured.slice(-2 * k, -k));
+        const better = g.range ? Math.abs(now - (g.range[0] + g.range[1]) / 2) < Math.abs(before - (g.range[0] + g.range[1]) / 2) : now < before;
+        direction = Math.abs(now - before) < (g.range ? 5 : 0.3) ? 'steady' : better ? 'better' : 'worse';
+      }
+      return { id: g.id, label: g.label, limit: gs[g.id], range: g.range || null, values, measured: measured.length, met, direction };
+    });
+  }
+
   /* Everything shown after an answer. seconds is the timed duration; voice says whether dictation was used. */
   function analyse(text, opts = {}) {
     const comp = competency(opts.competency) || COMPETENCIES[0], words = wordCount(text), est = estSeconds(words);
@@ -216,7 +309,7 @@
       : { level: 'ok', text: `"I" ${p.i} times, "we" ${p.we} times.` };
     if (!words) notes.push('No answer yet.');
     return { words, estSeconds: est, target: comp.target, time: timeCheck(timed && opts.voice ? timed : est, comp.target), timed, pace,
-      fillers: { ...f, level: fillerLevel }, pronouns: { ...p, ...iWe }, structure: tagged(text, opts.tags, comp.frame, comp.id), notes };
+      fillers: { ...f, level: fillerLevel }, pronouns: { ...p, ...iWe }, delivery: delivery(text, { pauses: opts.voice ? opts.pauses : null }), structure: tagged(text, opts.tags, comp.frame, comp.id), notes };
   }
 
   /* STAR check for a story in the bank, using its four fields directly. */
@@ -229,6 +322,7 @@
   }
 
   const api = { FRAMES, COMPETENCIES, IDS, STORY_IDS, GENERAL_PROBES, SPEAKING_WPM, competency, findQuestion, pickQuestion, tokens, wordCount, estSeconds,
-    FILLER_LABELS, fillers, pronouns, hasNumber, hasOutcome, hasLesson, segments, structure, tagged, timeCheck, analyse, storyStructure, coverage };
+    FILLER_LABELS, fillers, pronouns, hasNumber, hasOutcome, hasLesson, segments, structure, tagged, timeCheck, analyse, storyStructure, coverage,
+    PAUSE_MS, phrases, notePause, delivery, GOALS, goalOf, cleanGoals, goalChecks, goalTrends };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.BehaviouralContent = api;
 })(this);

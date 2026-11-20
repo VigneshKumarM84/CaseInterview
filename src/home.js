@@ -15,7 +15,7 @@
   /* ---------- The rounds, in the order a campus process usually runs ---------- */
   const ROUNDS = [
     { id: 'resume', n: 1, title: 'Résumé shortlisting', text: 'Check every bullet and see which job-description keywords you are missing.', open: () => ResumeTool.open() },
-    { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, and timed mock tests.', open: () => Aptitude.open() },
+    { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, timed mock tests and spoken English.', open: () => Aptitude.open() },
     { id: 'gd', n: 3, title: 'Group discussion', text: 'The moves observers note, and practice that builds them. Full GD practice is not here yet.', tag: 'Tips only', open: () => NextRoundTool.open('gd') },
     { id: 'case', n: 4, title: 'Case or guesstimate interview', text: 'A 10-minute warm-up, 12 full cases, case maths and a mock interview with a friend.', open: () => casesPage() },
     { id: 'hr', n: 5, title: 'HR interview', text: 'Timed answers to the common questions, and a bank of stories to draw on.', open: () => Behavioural.open() }
@@ -29,6 +29,8 @@
     if (w && w.step < 4 && (w.step > 0 || Object.keys(w.revealed).length || Object.values(w.answers).some(a => a.trim()))) out.push({ id: 'warmup', label: 'Warm-up', title: 'More tickets, less money', detail: `Step ${w.step + 1} of 4`, go: () => WarmupTool.resume() });
     const a = Aptitude.state().run;
     if (a) out.push({ id: 'aptitude', label: 'Aptitude', title: a.mode === 'test' ? 'Timed mock test' : 'Practice set', detail: `Question ${a.index + 1} of ${a.questions.length}`, go: () => Aptitude.open() });
+    const en = EnglishTool.state().run;
+    if (en) out.push({ id: 'english', label: 'Spoken English', title: en.kind === 'full' ? 'Full practice' : EnglishCheck.typeOf(en.kind).title, detail: `Task ${en.index + 1} of ${en.items.length}`, go: () => EnglishTool.resume() });
     const d = CaseDrill.state().run;
     if (d) out.push({ id: 'drill', label: 'Maths drill', title: 'Case maths round', detail: `Question ${d.index + 1} of ${d.questions.length}`, go: () => CaseDrill.open() });
     const { draft: b, set: hs } = Behavioural.state();
@@ -85,7 +87,7 @@
   };
 
   /* ---------- Navigation: in round order, with the current page marked ---------- */
-  const NAV = { homeNav: ['home'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural'], historyNav: ['history'] };
+  const NAV = { homeNav: ['home'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural'], historyNav: ['history'] };
   function markNav() { for (const [id, views] of Object.entries(NAV)) { const b = document.getElementById(id); if (b) { if (views.includes(view)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); } } }
   $('#planNav').onclick = () => NextRoundTool.open();
   $('#casesNav').onclick = () => casesPage();

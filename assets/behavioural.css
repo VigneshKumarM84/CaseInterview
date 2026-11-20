@@ -126,3 +126,15 @@
   .bh-sheet .peer-tick li{break-inside:avoid}
   #bhSheetSwitch{display:none}
 }
+/* Delivery goals: the line under the metrics, and the trend strips on the HR home. */
+.bh-goal-line{margin:4px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.bh-goal-line ul{list-style:none;padding:0;margin:6px 0}.bh-goal-line li{font-size:14px;line-height:1.5;margin:4px 0}
+.bh-goal-line li>span{display:inline-block;width:16px;font-weight:700}.bh-goal-line li.met>span{color:#4f7a36}.bh-goal-line li.miss>span{color:#b0652c}.bh-goal-line li.na{color:var(--muted)}
+.bh-goals{margin:24px 0}.bh-trends{list-style:none;padding:0;margin:12px 0}
+.bh-trends li{display:grid;grid-template-columns:minmax(160px,1.2fr) auto minmax(110px,auto) 90px;gap:14px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.bh-trends li>div b{display:block;font-size:14px}.bh-trends li>div .note{display:block}
+.bh-strip{display:flex;gap:4px}.bh-strip i{width:14px;height:14px;border-radius:3px;background:#e4e7e1}.bh-strip i.met{background:#7fa35c}.bh-strip i.miss{background:#e0a46c}
+.bh-dir{font-size:12px;font-weight:600;padding:3px 8px;border-radius:12px;background:#eef1e8;justify-self:start}.bh-dir.better{color:#3e6b2a}.bh-dir.worse{color:#9c5420;background:#fbf0e4}.bh-dir.steady{color:var(--muted)}
+.bh-goal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.bh-goal-set{font-size:13px}.bh-goal-set select{display:block;width:100%;margin-top:4px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+@media(max-width:700px){.bh-trends li{grid-template-columns:1fr auto;row-gap:6px}.bh-trends li>div{grid-column:1/-1}}
