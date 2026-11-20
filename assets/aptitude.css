@@ -57,6 +57,7 @@
 .apt-submit{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .apt-results .drill-review .apt-options{margin:10px 0}
 .apt-results .drill-review summary small{margin-left:6px}
+.drill-levels.apt-levels{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
 #aptTimer{font-variant-numeric:tabular-nums;min-width:52px;text-align:center}
 #aptTimer.over{background:#f6dcc8}
 @media(max-width:800px){
