@@ -20,15 +20,24 @@ nav button[aria-current=page]{background:#eef2e7;font-weight:700;color:var(--gre
 .home-how li::before{content:counter(how);grid-row:span 2;width:32px;height:32px;border-radius:50%;background:var(--lime);display:grid;place-items:center;font-weight:700}
 .home-how span{color:var(--muted);font-size:14px}
 
-.home-rounds{border-top:1px solid var(--line);padding-top:24px}
-.round-tiles{list-style:none;padding:0;margin:16px 0 0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-.round-tiles li{display:flex}
-.round-tile{position:relative;width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:16px 16px 40px;border-radius:12px;background:#fff}
+/* Below the hero the page splits on intent: assess yourself on a whole round, or train one skill in five minutes. */
+.home-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start;border-top:1px solid var(--line);padding-top:24px}
+.home-half{border:1px solid var(--line);border-radius:14px;padding:20px 22px;background:#fff}
+.home-half.home-moves{background:#fafaf6}
+.home-half .section-title{margin:4px 0 2px}
+.home-half>.note{margin:0 0 4px}
+.home-half .row{align-items:flex-start;gap:12px}
+.home-jump{display:none}
+.home-jump button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:56px;padding:10px 14px;text-align:left}
+.home-jump .note{margin:0}
+.round-tiles{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
+.round-tile{width:100%;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start;text-align:left;padding:12px 14px;border-radius:12px;background:#fff}
+.round-body{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
 .round-tile b{font:600 16px/1.3 Manrope,sans-serif}
 .round-tile .note{margin:0;font-size:13px;line-height:1.5}
 .round-n{width:28px;height:28px;border-radius:50%;border:1px solid var(--green);display:grid;place-items:center;font-size:13px;font-weight:700}
 .round-tag{font-size:11px;background:#fbf0e5;border:1px solid #e3c19f;border-radius:20px;padding:2px 8px}
-.round-tile .home-go{position:absolute;right:16px;bottom:12px}
+.round-tile .home-go{align-self:center}
 .home-go{font-size:18px;color:var(--green)}
 .round-tile:hover,.home-continue-item:hover{border-color:var(--green);background:#f7faef}
 .home-technical{margin:14px 0 0}
@@ -41,6 +50,5 @@ nav button[aria-current=page]{background:#eef2e7;font-weight:700;color:var(--gre
 .case-tool h3{margin:6px 0 2px;font:600 18px Manrope,sans-serif}
 .case-tool p{margin:0 0 12px;flex:1}
 
-@media(max-width:1000px){.round-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:800px){.home-hero{grid-template-columns:1fr;gap:24px}.case-tools{grid-template-columns:1fr}}
-@media(max-width:600px){.home-how{display:none}.home-hero h1{font-size:38px}.round-tiles{grid-template-columns:1fr}.round-tile{padding-bottom:16px;padding-right:40px}.round-tile .home-go{top:16px;bottom:auto}}
+@media(max-width:800px){.home-hero{grid-template-columns:1fr;gap:24px}.case-tools{grid-template-columns:1fr}.home-split{grid-template-columns:1fr}.home-jump{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
+@media(max-width:600px){.home-how{display:none}.home-hero h1{font-size:38px}.home-half{padding:16px 14px}.home-half .row{flex-wrap:wrap}}

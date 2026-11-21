@@ -8,7 +8,7 @@ test('the home page is short: a plan button and five rounds in order, with no ca
     assert.equal(f.run('view'), 'home');
     assert.equal(doc(f).querySelectorAll('#app [data-start]').length, 0, 'cases are not listed on the home page');
     assert.equal(f.$('library'), null);
-    assert.equal(doc(f).querySelectorAll('#app button').length, 17, 'plan, five rounds, the technical-round link, nine moves and the link to all moves');
+    assert.equal(doc(f).querySelectorAll('#app button').length, 19, 'plan, the two phone-only jump buttons, five rounds, the technical-round link, nine moves and the link to all moves');
     assert.equal(f.$('homePlan').textContent, 'Plan my prep →'); assert(f.$('homePlan').classList.contains('primary'));
     assert.deepEqual([...doc(f).querySelectorAll('.round-tile b')].map(b => b.textContent),
       ['Résumé shortlisting', 'Online aptitude test', 'Group discussion', 'Case or guesstimate interview', 'HR interview']);
