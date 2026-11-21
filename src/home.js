@@ -72,7 +72,7 @@
       </section>
       <section class="home-moves" aria-labelledby="homeMovesTitle">
         <div class="row"><div><div class="eyebrow">FIVE MINUTES, ONE SKILL</div><h2 class="section-title" id="homeMovesTitle">Train one move · 5 minutes</h2></div><button class="wu-link" id="homeMovesHub">See all moves</button></div>
-        <ul class="home-move-list">${MovesContent.MOVES.map(m => `<li><button class="home-move" id="homeMove-${m.id}"><b>${esc(m.title)}</b><span class="note">${esc(MovesTool.statusLine(m.id))}</span></button></li>`).join('')}</ul>
+        ${MovesContent.GROUPS.map(g => `<h3 class="home-move-group-title">${esc(g.title)}</h3><ul class="home-move-list">${g.moves.map(id => { const m = MovesContent.MOVES.find(x => x.id === id); return `<li><button class="home-move" id="homeMove-${m.id}"><b>${esc(m.title)}</b><span class="note">${esc(MovesTool.statusLine(m.id))}</span></button></li>`; }).join('')}</ul>`).join('')}
       </section>
       <p class="home-foot note">Free · no account · your answers stay in this browser · dictation may use your browser’s online speech service · optional AI feedback sends your answers to the provider you choose</p>`;
     $('#homePlan').onclick = () => NextRoundTool.open();
@@ -93,7 +93,7 @@
       { id: 'warmup', eyebrow: fresh ? 'NEW TO CASES? START HERE · 10 MIN' : 'WARM-UP · 10 MIN', title: 'Guided warm-up', text: 'One question, one number, one calculation and a 30-second recommendation, with an example after each.', label: seen === 'done' ? 'Redo the warm-up' : 'Start the warm-up →', go: () => WarmupTool.open() },
       { id: 'drill', eyebrow: 'CASE MATHS · 5–10 MIN', title: 'Maths drill', text: 'Percentages, margins, break-evens, growth and estimates, with the working after every answer.', label: 'Start a maths drill →', go: () => CaseDrill.open() },
       { id: 'peer', eyebrow: 'WITH A FRIEND · 45 MIN', title: 'Peer interview', text: 'One of you interviews from a guide with answers and scoring cues; the other answers out loud.', label: 'Set up a peer interview →', go: () => PeerMock.open() },
-      { id: 'moves', eyebrow: 'ONE SKILL · 5 MIN', title: 'Train one move', text: 'Answer first, read a table, catch a wrong number, sort test questions. Five minutes each, with the reason after every pick.', label: 'Choose a move →', go: () => MovesTool.open() }
+      { id: 'moves', eyebrow: 'ONE SKILL · 5 MIN', title: 'Train one move', text: 'Split a problem, ask the one question, read a table, catch a wrong number. Five minutes each, with the reason after every pick.', label: 'Choose a move →', go: () => MovesTool.open() }
     ];
     box.innerHTML = tools.map((t, i) => `<div class="case-tool${i === 0 && fresh ? ' first' : ''}"><div class="eyebrow">${t.eyebrow}</div><h3>${t.title}</h3><p class="note">${t.text}</p><button class="${i === 0 && fresh ? 'primary' : ''}" id="caseTool-${t.id}">${t.label}</button></div>`).join('');
     tools.forEach(t => { $('#caseTool-' + t.id).onclick = t.go; });

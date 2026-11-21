@@ -72,6 +72,16 @@
       why: 'A confident wrong figure is hard to recover from. Practise catching lakh and crore, period and percentage slips before you say them.' },
     'move-triage': { tool: 'Moves', title: 'Train one move: Attempt, leave or guess', minutes: 5, open: { tool: 'moves', move: 'triage' },
       why: 'A test gives about a minute a question. Practise sorting the questions first, so the quick marks are not left for the last minutes.' },
+    'move-split-it': { tool: 'Moves', title: 'Train one move: Split it', minutes: 5, open: { tool: 'moves', move: 'split-it' },
+      why: 'Your structure decides what you look at next. Practise splitting a problem into branches that do not overlap and leave nothing out.' },
+    'move-one-question': { tool: 'Moves', title: 'Train one move: Ask the one question', minutes: 5, open: { tool: 'moves', move: 'one-question' },
+      why: 'One sharp question beats a request for all the data. Practise asking the question whose answer changes your next step.' },
+    'move-hold-or-change': { tool: 'Moves', title: 'Train one move: Hold or change', minutes: 5, open: { tool: 'moves', move: 'hold-or-change' },
+      why: 'Interviewers push back to test you. Practise holding for a reason, and changing only for a new fact.' },
+    'move-put-a-number': { tool: 'Moves', title: 'Train one move: Put a number on it', minutes: 5, open: { tool: 'moves', move: 'put-a-number' },
+      why: 'Interviewers write down numbers, not adjectives. Practise saying what you did and how much changed.' },
+    'move-next-line': { tool: 'Moves', title: 'Train one move: Your next line', minutes: 5, open: { tool: 'moves', move: 'next-line' },
+      why: 'Observers note what each line did for the group. Practise reading what the discussion needs before you speak.' },
     'gd-kit': { tool: 'Group discussion', title: 'Run a group discussion with friends', minutes: 15, open: { tool: 'gd' },
       why: 'Three to six of you, a brief with evidence that pulls both ways, a clock and an observer’s tally.' },
     'gd-moves': { tool: 'Read here', title: 'Five moves that count in a group discussion', minutes: 3, open: { tool: 'read' },
@@ -93,12 +103,12 @@
     const short = minutes < 45;
     switch (round) {
       case 'aptitude': return minutes <= 10 ? ['apt-mixed'] : minutes <= 20 ? ['apt-mock-short', 'apt-weak'] : ['apt-mock', 'apt-weak', 'move-triage', 'apt-mixed', 'drill-maths', ...(minutes >= 45 ? ['move-number-sense'] : [])];
-      case 'case': return short ? (warmupDone ? ['drill-maths', 'bh-motivation', 'move-so-what', 'move-number-sense'] : ['warmup', 'drill-maths', 'move-so-what', 'move-number-sense'])
-        : [CASE_FOR[role] || CASE_FOR.other, SECOND_CASE[role] || SECOND_CASE.other, 'drill-maths', 'bh-motivation', 'move-so-what', 'move-number-sense'];
-      case 'hr': return ['bh-intro', 'move-answer-first', 'defence-line', 'bh-motivation', 'bh-mixed', 'resume', 'bh-stories'];
-      case 'gd': return ['gd-kit', { id: 'gd-moves' }, 'move-answer-first', 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
-      case 'resume': return ['resume', 'defence-line', 'bh-intro', 'bh-stories', 'bh-motivation', 'apt-mixed'];
-      case 'technical': return ['defence-project', 'apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock'];
+      case 'case': return short ? (warmupDone ? ['drill-maths', 'move-split-it', 'move-so-what', 'bh-motivation', 'move-number-sense', 'move-one-question'] : ['warmup', 'drill-maths', 'move-split-it', 'move-so-what', 'move-number-sense', 'move-one-question'])
+        : [CASE_FOR[role] || CASE_FOR.other, SECOND_CASE[role] || SECOND_CASE.other, 'drill-maths', 'move-split-it', 'move-so-what', 'bh-motivation', 'move-one-question', 'move-number-sense'];
+      case 'hr': return ['bh-intro', 'move-answer-first', 'defence-line', 'bh-motivation', 'bh-mixed', 'resume', 'move-put-a-number', 'bh-stories', 'move-hold-or-change'];
+      case 'gd': return ['gd-kit', { id: 'gd-moves' }, 'move-next-line', 'move-answer-first', 'bh-conflict', { id: 'warmup', why: 'Its last step is a 30-second recommendation: the same skill as summarising a group discussion.' }, 'bh-teamwork', 'bh-mixed'];
+      case 'resume': return ['resume', 'defence-line', 'move-put-a-number', 'bh-intro', 'bh-stories', 'bh-motivation', 'apt-mixed'];
+      case 'technical': return ['defence-project', 'apt-mixed', 'move-hold-or-change', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock'];
       case 'unknown': return ['apt-mixed', 'bh-intro', 'resume', 'bh-motivation', 'apt-mock-short', warmupDone ? 'drill-maths' : 'warmup'];
       default: return [];
     }

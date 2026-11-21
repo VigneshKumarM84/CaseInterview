@@ -259,6 +259,7 @@
     $('#dfBack').onclick = () => open();
     $('#dfDownload').onclick = () => download(defenceText(s), `case-room-defence-${new Date(s.finished).toISOString().slice(0, 10)}.txt`);
     $('#dfAgain').onclick = () => open(s.kind);
+    if (window.MovesTool && MovesTool.afterDebrief) MovesTool.afterDebrief('defence', s.id);
   }
   function bindRewrite(s) {
     const area = $('#dfRewrite');

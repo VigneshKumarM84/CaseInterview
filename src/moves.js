@@ -3,23 +3,68 @@
    too short). A set is Spot items (pick the right one; checked in code, with the reason for your pick) then Do items
    (produce it against a clock; the checks look at the shape of the answer, then you compare with three examples).
    Each completed item is saved to the history at once, and a finished round saves its calls when the debrief first shows. Offline, no AI,
-   no network. Also adds a short "moves you have trained" section to the case debrief and a self-check to a timed aptitude test's results. Uses core.js helpers, view/home/showReport/stopMedia/micRow/attachDictation
+   no network. Also adds a short "moves you have trained" section to the case, HR, defence and group discussion debriefs and a self-check to a timed aptitude test's results. Uses core.js helpers, view/home/showReport/stopMedia/micRow/attachDictation
    from cases.js, and MovesContent / MovesLogic. Must load before ai-client.js so its showReport wrap sits outside this one. */
 (() => {
-  const { MOVES, OPENINGS, STATEMENTS, SLIPS, GRADES, TRIAGE: T } = MovesContent, L = MovesLogic, IDS = L.SET_MOVE_IDS, ALL = L.MOVE_IDS, N = T.questions;
+  const { MOVES, OPENINGS, STATEMENTS, SLIPS, GRADES, GROUPS, FLAWS, QUESTIONS, PUSHBACKS, REWRITES, NEXT_LINES, TRIAGE: T } = MovesContent, L = MovesLogic, IDS = L.SET_MOVE_IDS, ALL = L.MOVE_IDS, N = T.questions;
   const RUN_KEY = 'cr-moves-run', HISTORY_KEY = 'cr-moves-history', SEEN_KEY = 'cr-moves-seen', TRANSFER_KEY = 'cr-moves-transfer';
-  const MAX_TEXT = 2000, MAX_TRANSFER = 60, GRADE_IDS = Object.keys(GRADES);
+  const MAX_TEXT = 2000, MAX_TRANSFER = 120, MAX_KEY = 80, GRADE_IDS = Object.keys(GRADES);
+  /* The five authored moves share one screen shape; each names its options with its own table of kinds. */
+  const AUTHORED = ['split-it', 'one-question', 'hold-or-change', 'put-a-number', 'next-line'];
+  const KINDS = { 'answer-first': OPENINGS, 'so-what': STATEMENTS, 'split-it': FLAWS, 'one-question': QUESTIONS, 'hold-or-change': PUSHBACKS, 'put-a-number': REWRITES, 'next-line': NEXT_LINES };
+  /* The self-check question for each trained move, by the debrief it appears in, in the order shown. */
   const TRANSFER_Q = {
-    'answer-first': 'Did your recommendation open with the answer?',
-    'so-what': 'When you opened an exhibit, did you say what it meant before reading the numbers out?',
-    'number-sense': 'Did you sanity-check each figure before you said it?'
+    case: {
+      'split-it': 'Did your structure split the problem into branches that did not overlap?',
+      'one-question': 'Before each request for data, could you say what its answer would change?',
+      'so-what': 'When you opened an exhibit, did you say what it meant before reading the numbers out?',
+      'number-sense': 'Did you sanity-check each figure before you said it?',
+      'hold-or-change': 'When the interviewer pushed back, did you change your answer only for a new fact?',
+      'answer-first': 'Did your recommendation open with the answer?'
+    },
+    hr: {
+      'answer-first': 'Did each answer open with your answer, before the story?',
+      'hold-or-change': 'When a follow-up challenged you, did you hold or change for a reason, not for the pressure?',
+      'put-a-number': 'Did each story have a number, and say what you did with “I”?'
+    },
+    defence: {
+      'answer-first': 'Did you answer each question in your first sentence?',
+      'hold-or-change': 'When the interviewer doubted a claim, did you hold or change for a reason, not for the pressure?',
+      'put-a-number': 'Did you give each result as a number, and say which part was yours?'
+    },
+    gd: { 'next-line': 'Before you spoke, did you ask what the group needed: a build, a name, a steer or a summary?' }
   };
-  const move = id => L.moveOf(id), title = id => move(id).title;
+  /* What the Do checks cannot tell you, said after each text move's checks. */
+  const SHAPE = {
+    'answer-first': 'These checks look at the shape of your answer: the order, the support and the length. They cannot tell you whether it is right.',
+    'so-what': 'These checks look at the shape of your answer: the order, the support and the length. They cannot tell you whether it is right.',
+    'split-it': 'These checks look at the shape of your split: how many branches, and whether one repeats, contains or hides another. They cannot tell you whether the split is right.',
+    'one-question': 'These checks look at the shape of your question: one question, specific, with a reason. They cannot tell you whether it is the right question.',
+    'hold-or-change': 'These checks look at the shape of your reply: a clear call, a reason, a number, the tone and the length. They cannot tell you whether holding or changing was right.',
+    'put-a-number': 'These checks look at the shape of your line: a number with its base, a result, “I”, and no vague words. They cannot tell you whether the figures are right.',
+    'next-line': 'These checks look at the shape of your line: whether it connects to the group, moves it on and stays short. They cannot tell you whether it was what the group needed.'
+  };
+  const move = id => L.moveOf(id), title = id => move(id).title, moveOf = move;
 
   /* ---------- Saved state, read defensively: anything malformed is dropped ---------- */
   const isStr = v => typeof v === 'string', isNum = v => typeof v === 'number' && Number.isFinite(v);
+  const strs = a => Array.isArray(a) && a.every(isStr), own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  /* What each authored move's item must carry. Spot items also hold four options with exactly one right; Do items hold the three examples. */
+  const SITUATION = {
+    'split-it': it => isStr(it.round) && isStr(it.question) && (it.rung === 'do' || (isStr(it.root) && strs(it.branches) && it.branches.length > 0 && isStr(it.flaw) && own(FLAWS, it.flaw))),
+    'one-question': it => isStr(it.round) && isStr(it.brief) && strs(it.known),
+    'hold-or-change': it => isStr(it.round) && isStr(it.said) && isStr(it.push) && (it.call === 'hold' || it.call === 'revise'),
+    'put-a-number': it => isStr(it.round) && isStr(it.line) && strs(it.facts),
+    'next-line': it => isStr(it.topic) && isStr(it.situation) && strs(it.names) && Array.isArray(it.lines) && it.lines.every(l => l && isStr(l.who) && isStr(l.text)) && isStr(it.need) && own(NEXT_LINES, it.need) && (it.rung === 'spot' || strs(it.keywords))
+  };
+  function validAuthored(it) {
+    if (!SITUATION[it.move](it)) return false;
+    if (it.rung === 'do') return isStr(it.weak) && isStr(it.adequate) && isStr(it.strong);
+    return Array.isArray(it.options) && it.options.length === 4 && it.options.every(o => o && typeof o === 'object' && isStr(o.text) && isStr(o.why) && isStr(o.kind) && own(KINDS[it.move], o.kind) && typeof o.right === 'boolean') && it.options.filter(o => o.right).length === 1;
+  }
   function validItem(it) {
     if (!it || typeof it !== 'object') return false;
+    if (AUTHORED.includes(it.move)) return validAuthored(it);
     if (it.move === 'answer-first') return isStr(it.question) && isStr(it.round)
       && (it.rung === 'spot' ? Array.isArray(it.options) && it.options.length === 4 && it.options.every(o => o && isStr(o.text) && OPENINGS[o.kind])
         : Array.isArray(it.facts) && it.facts.every(isStr) && isStr(it.weak) && isStr(it.adequate) && isStr(it.strong));
@@ -52,7 +97,7 @@
   function cleanTransfer(t) {
     const out = {};
     if (!t || typeof t !== 'object' || Array.isArray(t)) return out;
-    for (const [k, v] of Object.entries(t).slice(-MAX_TRANSFER)) if (Array.isArray(v)) out[k] = [...new Set(v.filter(id => IDS.includes(id)))];
+    for (const [k, v] of Object.entries(t).slice(-MAX_TRANSFER)) if (k.length <= MAX_KEY && Array.isArray(v)) out[k] = [...new Set(v.filter(id => IDS.includes(id)))];
     return out;
   }
   function forget(key) { try { localStorage.removeItem(key); } catch { /* storage blocked */ } }
@@ -72,11 +117,12 @@
 
   /* ---------- Status wording ---------- */
   /* What a move calls its two rungs in status wording. */
+  const groupOf = id => (GROUPS.find(g => g.moves.includes(id)) || {}).id;
   const labelsOf = id => move(id).labels || { spot: 'Spot', do: 'Do' };
   function statusLine(id) {
     const s = L.status(history, id), lb = labelsOf(id);
     if (s.state === 'new') return 'Not started';
-    if (s.state === 'ready') return move(id).kind === 'round' ? 'Ready. Now use it in a full timed test.' : 'Ready. Now use it in a full case or interview.';
+    if (s.state === 'ready') return move(id).kind === 'round' ? 'Ready. Now use it in a full timed test.' : groupOf(id) === 'gd' ? 'Ready. Now use it in a group discussion.' : 'Ready. Now use it in a full case or interview.';
     return `${lb.spot}: ${s.spot.of ? `${s.spot.correct} of your last ${s.spot.of} ${move(id).kind === 'round' ? 'good' : 'right'}` : 'not tried yet'} · ${lb.do}: ${s.do.of ? `${s.do.passed} of your last ${s.do.of} passed` : 'not tried yet'}`;
   }
   /** What is still missing for "ready", in plain words. */
@@ -95,12 +141,12 @@
     $('#app').innerHTML = `<section class="mv-head"><div class="eyebrow">TRAIN ONE MOVE · 5 MIN</div>
       <h1 class="drill-title">One skill at a time, <em>until it is a habit.</em></h1>
       <p class="lead">Each set takes about five minutes and is checked as you go. It builds towards a full case or interview.</p></section>
-      <ul class="mv-cards">${MOVES.map(m => {
+      ${GROUPS.map(g => `<h2 class="mv-group-title">${esc(g.title)}</h2><ul class="mv-cards">${g.moves.map(moveOf).map(m => {
         const s = L.status(history, m.id), going = run && run.move === m.id;
         return `<li class="mv-card ${s.state}"><div class="eyebrow">${m.minutes} MIN</div><h2>${esc(m.title)}</h2><p class="mv-tag">${esc(m.tagline)}</p>
           <p class="note">Pays off in: ${esc(m.where)}</p><p class="mv-status ${s.state}"><span aria-hidden="true">${s.state === 'ready' ? '✓ ' : ''}</span>${esc(statusLine(m.id))}</p>
           <button class="${s.state === 'ready' ? '' : 'primary'}" id="move-${m.id}">${going ? 'Continue →' : s.attempts ? (m.kind === 'round' ? 'Another round →' : 'Another set →') : 'Start →'}</button></li>`;
-      }).join('')}</ul>
+      }).join('')}</ul>`).join('')}
       <p class="note mv-note">A set move is ready when 8 of your last 10 Spot picks are right and your last 3 Do reps pass every check. The Do checks look at the shape of your answer, not whether it is right.</p>
       ${MOVES.filter(m => m.kind === 'round').map(m => `<p class="note mv-note">${esc(m.title)} is ready when 8 of your last 10 sorting calls were good and your last 3 rounds passed.</p>`).join('')}`;
     MOVES.forEach(m => { $('#move-' + m.id).onclick = () => run && run.move === m.id ? resume() : openMove(m.id); });
@@ -120,16 +166,31 @@
       <thead><tr>${t.columns.map((c, i) => `<th scope="col"${i ? ' class="num"' : ''}>${esc(c)}</th>`).join('')}</tr></thead>
       <tbody>${t.rows.map(r => `<tr>${r.map((c, i) => i ? `<td class="num">${esc(c)}</td>` : `<th scope="row">${esc(c)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
+  /* The worked example's situation, by move. */
+  function exampleHtml(id, e) {
+    const box = (label, text) => `<div class="interviewer"><div class="eyebrow">${label}</div><p>${esc(text)}</p></div>`;
+    switch (id) {
+      case 'answer-first': return box('THE INTERVIEWER ASKS', e.question);
+      case 'so-what': return tableHtml(e.table, e.question);
+      case 'split-it': return box('THE PROBLEM', e.question);
+      case 'one-question': return box('THE BRIEF', e.question);
+      case 'hold-or-change': return box('THE INTERVIEWER PUSHES BACK', e.question);
+      case 'next-line': return `${box('GROUP DISCUSSION · THE SITUATION', e.question)}${talkHtml(e.lines)}`;
+      default: return `<blockquote class="mv-claim"><p>${esc(e.question)}</p></blockquote>`;
+    }
+  }
+  /* A split is written one branch per line, so it is shown that way. */
+  const answerHtml = (id, text) => id === 'split-it' ? `<ul class="mv-branches">${L.branchesOf(text).map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : esc(text);
+  const talkHtml = lines => `<ol class="mv-talk">${lines.map(l => `<li><b>${esc(l.who)}</b> ${esc(l.text)}</li>`).join('')}</ol>`;
   function renderLearn(id, seed) {
     enter('#moves/' + id); screen = 'learn'; learning = { id, seed };
     const m = move(id), e = m.example, back = run && run.move === id;
-    const ask = id === 'answer-first' ? `<div class="interviewer"><div class="eyebrow">THE INTERVIEWER ASKS</div><p>${esc(e.question)}</p></div>`
-      : id === 'so-what' ? tableHtml(e.table, e.question) : `<blockquote class="mv-claim"><p>${esc(e.question)}</p></blockquote>`;
+    const ask = exampleHtml(id, e);
     $('#app').innerHTML = `<section class="mv-head"><div class="eyebrow">THE RULE · ${m.minutes} MIN ${m.kind === 'round' ? 'ROUND' : 'SET'}</div><h1 class="drill-title">${esc(m.title)}</h1><p class="lead">${esc(m.tagline)}</p></section>
       <section class="panel mv-panel"><h2 class="section-title">The rule</h2><ol class="mv-rule">${m.rule.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
       <h3>Why it matters</h3><p>${esc(m.why)}</p><p class="note">Pays off in: ${esc(m.where)}</p>
       <h3>An example</h3>${ask}
-      <div class="mv-compare"><div class="mv-ex weak"><div class="eyebrow">A weaker answer</div><blockquote>${esc(e.weak)}</blockquote></div><div class="mv-ex strong"><div class="eyebrow">A stronger answer</div><blockquote>${esc(e.strong)}</blockquote></div></div>
+      <div class="mv-compare"><div class="mv-ex weak"><div class="eyebrow">A weaker answer</div><blockquote>${answerHtml(id, e.weak)}</blockquote></div><div class="mv-ex strong"><div class="eyebrow">A stronger answer</div><blockquote>${answerHtml(id, e.strong)}</blockquote></div></div>
       <p class="note">${esc(e.note)}</p>
       <div class="actions"><button class="primary" id="mvStart">${back ? (m.kind === 'round' ? 'Back to your round →' : 'Back to your set →') : (m.kind === 'round' ? 'Start the round →' : 'Start the set →')}</button><button class="wu-link" id="mvHub">All moves</button></div></section>`;
     $('#mvStart').onclick = () => back ? resume() : startMove(id, seed);
@@ -154,7 +215,21 @@
   function nextLabel() { const last = run.index >= run.items.length - 1; return last ? 'See your results →' : run.items[run.index + 1].rung !== cur().rung ? 'On to the Do items →' : 'Next →'; }
   const interviewer = it => `<div class="interviewer"><div class="eyebrow">${esc(it.round.toUpperCase())} · ${it.round === 'Group discussion' ? 'THE SITUATION' : 'THE INTERVIEWER ASKS'}</div><p>${esc(it.question)}</p></div>`;
   const claimHtml = it => `<blockquote class="mv-claim"><p>${esc(it.setup)}</p><p><b>${esc(it.claim)}</b></p></blockquote>`;
-  const kindLabel = (it, o) => it.move === 'answer-first' ? OPENINGS[o.kind].label : STATEMENTS[o.kind].label;
+  const kindLabel = (it, o) => KINDS[it.move][o.kind].label;
+  /* The situation an authored move shows above its prompt, on both rungs. Nothing here may give away the right option. */
+  function situationHtml(it) {
+    const r = it.round ? esc(it.round.toUpperCase()) : '', spot = it.rung === 'spot';
+    const box = (label, body) => `<div class="interviewer"><div class="eyebrow">${label}</div>${body}</div>`;
+    const facts = (head, list) => `<section class="mv-facts"><h3>${head}</h3><ul>${list.map(f => `<li>${esc(f)}</li>`).join('')}</ul></section>`;
+    switch (it.move) {
+      case 'split-it': return box(`${r} · THE PROBLEM`, `<p>${esc(it.question)}</p>`)
+        + (spot ? `<div class="mv-tree"><p class="mv-root">${esc(it.root)}</p><ul>${it.branches.map(b => `<li>${esc(b)}</li>`).join('')}</ul></div>` : '');
+      case 'one-question': return box(`${r} · THE BRIEF`, `<p>${esc(it.brief)}</p>`) + facts('What you already know', it.known);
+      case 'hold-or-change': return `<div class="mv-said"><div class="eyebrow">YOU SAID</div><p>${esc(it.said)}</p></div>${box(`${r} · THE INTERVIEWER PUSHES BACK`, `<p>“${esc(it.push)}”</p>`)}`;
+      case 'put-a-number': return `<blockquote class="mv-claim"><div class="eyebrow">${r} · THE LINE</div><p>${esc(it.line)}</p></blockquote>${facts('Facts you can use', it.facts)}`;
+      default: return `${box('GROUP DISCUSSION · THE TOPIC', `<p>${esc(it.topic)}</p><p class="note">${esc(it.situation)}</p>`)}${talkHtml(it.lines)}`;
+    }
+  }
 
   function renderItem(fresh) {
     if (!run) return open();
@@ -207,13 +282,14 @@
     const cls = st.chosen ? (st.ok ? 'right' : 'wrong') : st.correct ? 'correct' : '', tag = st.chosen ? (st.ok ? 'Your pick · right' : 'Your pick · not this one') : st.correct ? 'The right one' : '';
     return `<li><button class="mv-opt ${st.locked ? 'locked ' : ''}${cls}" id="${id}" ${st.locked ? 'disabled' : ''}>${markHtml(cls, tag)}<span class="mv-text">${esc(text)}</span>${kind ? `<span class="mv-kind">${esc(kind)}</span>` : ''}${st.why ? `<span class="mv-why">${esc(st.why)}</span>` : ''}</button></li>`;
   }
+  const optionsOf = it => it.move === 'so-what' ? it.statements : it.options;
   function spotHtml(it) {
     const r = done(), m = move(it.move), tgt = m.spot.seconds;
     const clock = tgt && !r ? softClock(tgt) : '';
     if (it.move === 'number-sense') return numberSpotHtml(it, r, m, clock);
-    const list = it.move === 'answer-first' ? it.options : it.statements, j = r ? L.judgeSpot(it, r.idx) : null;
-    const lead = it.move === 'answer-first' ? interviewer(it) : tableHtml(it.table, it.title);
-    const opts = list.map((o, i) => optionHtml('mvOpt-' + i, o.text, r ? kindLabel(it, o) : '', { locked: !!r, chosen: r && r.idx === i, ok: r && r.ok, correct: r && j.answer === i && r.idx !== i, why: r && it.move === 'so-what' ? o.why : '' })).join('');
+    const list = optionsOf(it), j = r ? L.judgeSpot(it, r.idx) : null, auth = AUTHORED.includes(it.move);
+    const lead = auth ? situationHtml(it) : it.move === 'answer-first' ? interviewer(it) : tableHtml(it.table, it.title);
+    const opts = list.map((o, i) => optionHtml('mvOpt-' + i, o.text, r ? kindLabel(it, o) : '', { locked: !!r, chosen: r && r.idx === i, ok: r && r.ok, correct: r && j.answer === i && r.idx !== i, why: r && it.move !== 'answer-first' ? o.why : '' })).join('');
     let fb = '';
     if (r) {
       const why = it.move === 'answer-first' ? OPENINGS.answer.why : list[j.answer].why;
@@ -254,8 +330,7 @@
       if (run.verdict === 'off') it.options.forEach(s => { $('#mvSlip-' + s).onclick = () => { const ok = L.judgeSpot(it, { verdict: 'off', slip: s }).ok; complete({ ok, verdict: 'off', slip: s }, { ok, pick: 'off:' + s }); }; });
       return;
     }
-    const list = it.move === 'answer-first' ? it.options : it.statements;
-    list.forEach((_, i) => { $('#mvOpt-' + i).onclick = () => { const j = L.judgeSpot(it, i); complete({ ok: j.ok, idx: i }, { ok: j.ok, pick: j.picked }); }; });
+    optionsOf(it).forEach((_, i) => { $('#mvOpt-' + i).onclick = () => { const j = L.judgeSpot(it, i); complete({ ok: j.ok, idx: i }, { ok: j.ok, pick: j.picked }); }; });
   }
 
   /* ---------- Do ---------- */
@@ -263,7 +338,7 @@
   function checksHtml(res) {
     return `<ul class="bh-checks">${res.checks.map(c => `<li class="${c.level}"><span aria-hidden="true">${markOf(c.level)}</span><span class="sr-only">${c.level === 'ok' ? 'Passed:' : 'To fix:'}</span> ${esc(c.text)}</li>`).join('')}</ul>`;
   }
-  const textChecks = (it, text) => it.move === 'answer-first' ? L.checkAnswerFirst(text) : L.checkSoWhat(text, it);
+  const textChecks = (it, text) => L.checkDo(it, text);
   /* "6 ₹ crore" reads badly: put the symbol where people say it. */
   function figure(n, unit) {
     const v = DrillQuestions.fmt(n, 4);
@@ -272,18 +347,22 @@
   function doHtml(it) {
     const r = done(), m = move(it.move), tgt = m.do.seconds;
     if (it.move === 'number-sense') return numberDoHtml(it, r, m, tgt);
-    const lead = it.move === 'answer-first' ? `${interviewer(it)}<section class="mv-facts"><h3>Facts you can use</h3><ul>${it.facts.map(f => `<li>${esc(f)}</li>`).join('')}</ul></section>` : tableHtml(it.table, it.title);
+    const auth = AUTHORED.includes(it.move);
+    const lead = auth ? situationHtml(it) : it.move === 'answer-first' ? `${interviewer(it)}<section class="mv-facts"><h3>Facts you can use</h3><ul>${it.facts.map(f => `<li>${esc(f)}</li>`).join('')}</ul></section>` : tableHtml(it.table, it.title);
     const head = `<h2 class="mv-prompt" id="mvHead" tabindex="-1">${esc(m.do.prompt)}</h2>`;
     if (!r) {
       return `${lead}${head}<div class="wu-timer"><button id="mvTimer">Start ${tgt}-second timer</button><span id="mvClock" class="wu-clock" role="timer" aria-live="off">${mmss(tgt)}</span></div>
-        ${micRow('mvMic', 'mvVoiceStatus')}<label for="mvAnswer" class="flow-label">Your answer · appears here as you speak, or type</label>
+        ${micRow('mvMic', 'mvVoiceStatus')}<label for="mvAnswer" class="flow-label">${it.move === 'split-it' ? 'Your branches · one per line, or say them' : 'Your answer · appears here as you speak, or type'}</label>
         <div class="dictation-box"><textarea id="mvAnswer" rows="5" maxlength="${MAX_TEXT}" placeholder="${esc(m.do.placeholder || '')}">${esc(run.draft)}</textarea></div>
         ${flowBar({ primary: '<button class="primary next" id="mvCheck">Check my answer →</button>' })}`;
     }
-    const res = textChecks(it, r.text), tip = G => `<div class="mv-grade ${G}"><div class="eyebrow">${esc(GRADES[G].label)}</div><p class="note">${esc((m.do.grades && m.do.grades[G]) || GRADES[G].note)}</p><blockquote>${esc(it[G])}</blockquote></div>`;
-    return `${lead}${head}<div id="mvFeedback" aria-live="polite" tabindex="-1" class="mv-feedback"><h3>Your answer</h3><p class="wu-yours">${esc(r.text)}</p>
+    const res = textChecks(it, r.text), tip = G => `<div class="mv-grade ${G}"><div class="eyebrow">${esc(GRADES[G].label)}</div><p class="note">${esc((m.do.grades && m.do.grades[G]) || GRADES[G].note)}</p><blockquote>${answerHtml(it.move, it[G])}</blockquote></div>`;
+    const yours = it.move === 'split-it' ? `<div class="wu-yours">${answerHtml('split-it', r.text)}</div>` : `<p class="wu-yours">${esc(r.text)}</p>`;
+    const extra = it.move === 'hold-or-change' ? `<p class="mv-extra">${it.call === 'hold' ? 'The strong answer holds: nothing the interviewer said touches the reason.' : 'The strong answer changes: the interviewer gave a fact that touches the reason.'}</p>`
+      : it.move === 'next-line' ? `<p class="mv-extra">What the group needed here: ${esc(NEXT_LINES[it.need].label)}.</p>` : '';
+    return `${lead}${head}<div id="mvFeedback" aria-live="polite" tabindex="-1" class="mv-feedback"><h3>Your answer</h3>${yours}
       <h3>${res.pass ? '✓ Every check passed' : 'What to fix'}</h3>${checksHtml(res)}
-      <p class="note">These checks look at the shape of your answer: the order, the support and the length. They cannot tell you whether it is right.</p>
+      <p class="note">${esc(SHAPE[it.move])}</p>${extra}
       <h3>Three answers to compare with</h3><div class="mv-grades">${['weak', 'adequate', 'strong'].map(tip).join('')}</div>
       <fieldset class="mv-pick"><legend>Which is yours closest to?</legend>${GRADE_IDS.map(g => `<label class="mv-radio"><input type="radio" name="mvGrade" id="mvGrade-${g}" value="${g}" ${r.grade === g ? 'checked' : ''}> ${esc(GRADES[g].label)}</label>`).join('')}</fieldset></div>
       ${flowBar({ primary: `<button class="primary next" id="mvNext">${nextLabel()}</button>` })}`;
@@ -349,27 +428,29 @@
   function reviewReason(it, r) {
     if (it.rung === 'spot') {
       if (it.move === 'number-sense') return it.why + (it.slip ? ' Slip: ' + SLIPS.find(s => s.id === it.slip).label + '.' : '');
-      const j = L.judgeSpot(it, r.idx), list = it.move === 'answer-first' ? it.options : it.statements;
+      const j = L.judgeSpot(it, r.idx), list = optionsOf(it);
       return j.why + (r.ok ? '' : ' Right answer: ' + list[j.answer].text);
     }
     if (it.move === 'number-sense') return `You typed ${r.text}. The correct figure is ${figure(it.correct, it.unit)}. ${it.why}`;
     const res = textChecks(it, r.text), open = res.checks.filter(c => c.level !== 'ok').map(c => c.text);
     return (open.length ? 'To fix: ' + open.join(' ') : 'Every check passed.') + (r.grade ? ` You said yours was closest to the ${GRADES[r.grade].label.toLowerCase()} answer.` : '');
   }
-  const itemName = it => it.move === 'answer-first' ? it.question : it.move === 'so-what' ? it.title : it.claim;
+  const itemName = it => ({ 'answer-first': it.question, 'so-what': it.title, 'split-it': it.question, 'one-question': it.brief, 'hold-or-change': it.push, 'put-a-number': it.line, 'next-line': it.topic })[it.move] || it.claim;
+  /* Where a ready move should be used next, by the round it belongs to. */
+  const USE = { case: ['mvCases', 'Use it in a full case →', () => casesPage()], interview: ['mvHr', 'Use it in an HR interview →', () => Behavioural.open()], gd: ['mvGd', 'Run a group discussion →', () => GDTool.open()] };
   function renderResults(set) {
     enter('#moves/' + set.move); screen = 'results';
     const spot = set.items.map((it, i) => ({ it, r: set.results[i] })).filter(x => x.it.rung === 'spot' && x.r), dos = set.items.map((it, i) => ({ it, r: set.results[i] })).filter(x => x.it.rung === 'do' && x.r);
-    const s = L.status(history, set.move), need = needs(s);
+    const s = L.status(history, set.move), need = needs(s), use = USE[groupOf(set.move)];
     $('#app').innerHTML = `<section class="mv-head"><div class="eyebrow">${esc(title(set.move).toUpperCase())} · SET COMPLETE</div><h1 class="drill-title">Spot: ${spot.filter(x => x.r.ok).length} of ${spot.length} right. <em>Do: ${dos.filter(x => x.r.ok).length} of ${dos.length} passed.</em></h1></section>
       <section class="panel mv-panel"><p class="mv-status ${s.state}" id="mvStatus"><span aria-hidden="true">${s.state === 'ready' ? '✓ ' : ''}</span>${esc(statusLine(set.move))}</p>
       ${s.state === 'ready' ? '<p>You have met the bar for this move. The test now is a full case or interview.</p>' : `<p>To be ready you still need ${need.join(' and ')}.</p>`}
       <h2 class="section-title">Every item</h2>${[...spot, ...dos].map(({ it, r }) => `<details class="drill-review ${r.ok ? 'ok' : 'miss'}"><summary><span>${r.ok ? '✓' : '✗'}</span> ${it.rung === 'spot' ? 'Spot' : 'Do'} · ${esc(itemName(it))}</summary><p>${esc(reviewReason(it, r))}</p></details>`).join('')}
-      <div class="actions"><button class="primary" id="mvAgain">Another set →</button><button id="mvHub">All moves</button>${s.state === 'ready' ? '<button id="mvCases">Use it in a full case →</button>' : ''}<button class="wu-link" id="mvRule">See the rule again</button></div></section>`;
+      <div class="actions"><button class="primary" id="mvAgain">Another set →</button><button id="mvHub">All moves</button>${s.state === 'ready' && use ? `<button id="${use[0]}">${use[1]}</button>` : ''}<button class="wu-link" id="mvRule">See the rule again</button></div></section>`;
     $('#mvAgain').onclick = () => startSet(set.move);
     $('#mvHub').onclick = open;
     $('#mvRule').onclick = () => renderLearn(set.move);
-    if ($('#mvCases')) $('#mvCases').onclick = () => casesPage();
+    if (use && $('#' + use[0])) $('#' + use[0]).onclick = use[2];
   }
 
   /* ---------- A round: Attempt, leave or guess ---------- */
@@ -505,23 +586,38 @@
     const h = $('#tgHead'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
   }
 
-  /* ---------- The case debrief: did the trained moves show up? ---------- */
-  function addTransfer(s) {
-    const old = $('#movesTransfer'); if (old) old.remove();
-    const ready = IDS.filter(id => L.status(history, id).state === 'ready'), key = String(s.finished);
-    const sec = document.createElement('section'); sec.id = 'movesTransfer'; sec.className = 'mv-transfer';
-    if (ready.length) {
-      const ticked = transfer[key] || [];
-      sec.innerHTML = `<h3>Moves you have trained</h3>${ready.map(id => `<label class="selfcheck"><input type="checkbox" data-transfer="${id}" ${ticked.includes(id) ? 'checked' : ''}> ${esc(TRANSFER_Q[id])}</label>`).join('')}
-        <p class="note">This is your own judgement, not a score.</p>`;
-    } else sec.innerHTML = `<h3>Moves</h3><p>Train one move in five minutes before your next case.</p><button id="movesFromReport">Choose a move →</button>`;
-    const last = [...document.querySelectorAll('[data-self]')].pop(), anchor = last && last.closest('label'), panel = $('#app .panel');
-    if (anchor) anchor.after(sec); else if (panel) panel.append(sec); else return;
-    document.querySelectorAll('[data-transfer]').forEach(c => c.onchange = () => {
+  /* ---------- The debriefs: did the trained moves show up? ---------- */
+  const readyIn = place => Object.keys(TRANSFER_Q[place]).filter(id => L.status(history, id).state === 'ready');
+  /* Ticks are kept under one key per debrief. Each checkbox saves as it changes. */
+  function bindTicks(root, key) {
+    root.querySelectorAll('[data-transfer]').forEach(c => c.onchange = () => {
       const set = new Set(transfer[key] || []); if (c.checked) set.add(c.dataset.transfer); else set.delete(c.dataset.transfer);
       transfer[key] = [...set]; transfer = cleanTransfer(transfer); save(TRANSFER_KEY, transfer);
     });
+  }
+  const ticksHtml = (place, ready, key) => ready.map(id => `<label class="selfcheck"><input type="checkbox" data-transfer="${id}" ${(transfer[key] || []).includes(id) ? 'checked' : ''}> ${esc(TRANSFER_Q[place][id])}</label>`).join('');
+  function addTransfer(s) {
+    const old = $('#movesTransfer'); if (old) old.remove();
+    const ready = readyIn('case'), key = String(s.finished);
+    const sec = document.createElement('section'); sec.id = 'movesTransfer'; sec.className = 'mv-transfer';
+    if (ready.length) sec.innerHTML = `<h3>Moves you have trained</h3>${ticksHtml('case', ready, key)}<p class="note">This is your own judgement, not a score.</p>`;
+    else sec.innerHTML = `<h3>Moves</h3><p>Train one move in five minutes before your next case.</p><button id="movesFromReport">Choose a move →</button>`;
+    const last = [...document.querySelectorAll('[data-self]')].pop(), anchor = last && last.closest('label'), panel = $('#app .panel');
+    if (anchor) anchor.after(sec); else if (panel) panel.append(sec); else return;
+    bindTicks(sec, key);
     if ($('#movesFromReport')) $('#movesFromReport').onclick = open;
+  }
+  /* The HR, defence and group discussion debriefs call this once their screen is drawn. `key` names the session, so ticks come back with it. */
+  function afterDebrief(place, key) {
+    const old = $('#movesDebrief'); if (old) old.remove();
+    if (!TRANSFER_Q[place] || place === 'case') return;
+    const ready = readyIn(place); if (!ready.length) return;
+    const k = `${place}:${key}`.slice(0, MAX_KEY);
+    const sec = document.createElement('section'); sec.id = 'movesDebrief'; sec.className = 'mv-transfer';
+    sec.innerHTML = `<h3>Moves you have trained</h3>${ticksHtml(place, ready, k)}<p class="note">This is your own judgement, not a score.</p>`;
+    const bars = document.querySelectorAll('#app .flow-bar'), bar = bars[bars.length - 1], first = $('#app section');
+    if (bar) bar.before(sec); else if (first) first.append(sec); else return;
+    bindTicks(sec, k);
   }
 
   /* ---------- Integration with the rest of Case Room ---------- */
@@ -548,5 +644,5 @@
     if (actions) actions.before(sec); else $('#app').append(sec);
   }
 
-  window.MovesTool = { open, openMove, resume, progress, tick, afterAptitudeResults, statusLine, state: () => ({ run, history, seen, transfer, screen, lastSet, lastRound }) };
+  window.MovesTool = { open, openMove, resume, progress, tick, afterAptitudeResults, afterDebrief, statusLine, state: () => ({ run, history, seen, transfer, screen, lastSet, lastRound }) };
 })();

@@ -263,6 +263,7 @@
     };
     $('#gdBack').onclick = () => leave(false);
     $('#gdAgain').onclick = () => leave(true);
+    if (window.MovesTool && MovesTool.afterDebrief) MovesTool.afterDebrief('gd', s.id);
   }
 
   /* ---------- 5. The printable kit ---------- */

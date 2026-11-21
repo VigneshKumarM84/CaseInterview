@@ -433,6 +433,8 @@
   document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-bh-goals]')) { renderHome(); const d = $('#bhGoalSettings'); if (d) { d.open = true; d.scrollIntoView({ block: 'center' }); } } });
 
   /* ---------- Summary at the end of a practice interview ---------- */
+  /* The Moves self-check goes under the feedback screens, keyed by the first answer given in the set. */
+  const movesCheck = s => { if (window.MovesTool && MovesTool.afterDebrief) MovesTool.afterDebrief('hr', s.answers.find(Boolean)); };
   function renderSummary() {
     const s = set; if (!s) return renderHome();
     if (s.strict) return renderDebrief();
@@ -452,6 +454,7 @@
     $('#bhBack').onclick = renderHome;
     $('#bhStart').onclick = () => startSet(prefs.mode, prefs.count);
     document.querySelectorAll('[data-bh-view]').forEach(b => b.onclick = () => feedback(b.dataset.bhView));
+    movesCheck(s);
   }
 
   /* ---------- After an interview under interview conditions: your own call first, then everything at once ---------- */
@@ -486,6 +489,7 @@
     $('#bhBack').onclick = () => { set = null; saveSet(); renderHome(); };
     $('#bhStart').onclick = () => { set = null; saveSet(); startSet(prefs.mode, prefs.count, { strict: true }); };
     document.querySelectorAll('[data-bh-view]').forEach(b => b.onclick = () => feedback(b.dataset.bhView));
+    movesCheck(s);
   }
 
   /* ---------- Feedback: heuristics, STAR tagging and self-review ---------- */

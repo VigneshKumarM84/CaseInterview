@@ -5,6 +5,7 @@
 .mv-links{display:flex;gap:6px 16px;flex-wrap:wrap}
 .mv-links .wu-link,.mv-panel .wu-link,.mv-transfer button{min-height:44px;padding:8px 4px}
 .mv-cards{list-style:none;padding:0;margin:16px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.mv-group-title{font:600 13px Manrope,sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:28px 0 0}
 .mv-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:flex-start}
 .mv-card.ready{border-left:4px solid var(--green)}
 .mv-card h2{font:600 20px Manrope,sans-serif;margin:6px 0 2px}
@@ -31,6 +32,17 @@
 .mv-facts{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 18px;margin:12px 0}
 .mv-facts h3{font-size:14px;margin:4px 0}
 .mv-facts ul{margin:4px 0;padding-left:20px;line-height:1.6}
+/* Split it: the breakdown, one branch per line. Your next line: the transcript. Hold or change: what you said. */
+.mv-tree{margin:12px 0;padding:10px 18px;background:#fff;border:1px solid var(--line);border-radius:8px}
+.mv-root{font-weight:700;margin:4px 0;overflow-wrap:anywhere}
+.mv-tree ul,.mv-branches{margin:4px 0;padding-left:20px;line-height:1.6;overflow-wrap:anywhere}
+.mv-branches{margin:2px 0}
+.mv-talk{list-style:none;margin:12px 0;padding:0;display:grid;gap:6px}
+.mv-talk li{padding:8px 14px;border-left:3px solid var(--line);background:#fff;border-radius:0 8px 8px 0;line-height:1.55;overflow-wrap:anywhere}
+.mv-said{margin:12px 0;padding:10px 18px;border-left:4px solid var(--line);background:#fafaf6;border-radius:8px}
+.mv-said p{margin:4px 0;font-size:17px;line-height:1.55;overflow-wrap:anywhere}
+.mv-claim .eyebrow,.mv-said .eyebrow{margin-bottom:2px}
+.mv-extra{margin:8px 0;font-weight:600}
 /* The table scrolls inside its own box, so a wide table never widens the page. */
 .mv-table-box{overflow-x:auto;max-width:100%;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:#fff;-webkit-overflow-scrolling:touch}
 .mv-table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
@@ -74,6 +86,7 @@
 .mv-transfer .selfcheck input{margin:3px 0 0;flex-shrink:0}
 /* Home page: a short row of the moves under the round tiles. */
 .home-moves{border-top:1px solid var(--line);padding-top:24px;margin-top:28px}
+.home-move-group-title{font:600 13px Manrope,sans-serif;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:18px 0 0}
 .home-move-list{list-style:none;padding:0;margin:12px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 .home-move{width:100%;min-height:44px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 16px}
 .home-move b{font-size:15px}
