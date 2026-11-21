@@ -3,7 +3,7 @@
    something unfinished, or open one round. Each round tile leads straight to that round's page.
    The case library (12 full cases) now lives on its own Case interview page, with the warm-up, maths drill
    and peer interview in front of it.
-   Also holds a short "Train one move" row for Moves. Loaded after every tool and before ai-client.js, which wraps home() and casesPage() to cancel AI requests.
+   Each round on the home page lists its five-minute Moves beside it. Loaded after every tool and before ai-client.js, which wraps home() and casesPage() to cancel AI requests.
 
    How it hooks in: each tool wraps home() to tidy up when the student leaves it (pause timers, clear its #hash).
    That chain ends in cases.js, which draws the case library. leaveTool() below runs that whole chain, so the
@@ -13,13 +13,19 @@
   function setHash(h) { try { window.history.replaceState(null, '', location.pathname + location.search + (h || '')); } catch { /* file:// or sandboxed frames */ } }
 
   /* ---------- The rounds, in the order a campus process usually runs ---------- */
+  /* The home page splits on intent: "Assess yourself" opens a round as it really runs; "Train one skill" lists the
+     five-minute Moves under the same round names. `moves` puts every move under exactly one round. */
   const ROUNDS = [
-    { id: 'resume', n: 1, title: 'Résumé shortlisting', text: 'Check every bullet and see which job-description keywords you are missing.', open: () => ResumeTool.open() },
-    { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, timed mock tests and spoken English.', open: () => Aptitude.open() },
-    { id: 'gd', n: 3, title: 'Group discussion', text: 'A timed discussion for three to six of you, with briefs, an observer’s tally and a printable kit.', open: () => GDTool.open() },
-    { id: 'case', n: 4, title: 'Case or guesstimate interview', text: 'A 10-minute warm-up, 12 full cases, case maths and a mock interview with a friend.', open: () => casesPage() },
-    { id: 'hr', n: 5, title: 'HR interview', text: 'Timed answers to the common questions, a bank of stories, and a résumé or project defence.', open: () => Behavioural.open() }
+    { id: 'resume', n: 1, title: 'Résumé shortlisting', text: 'Check every bullet and see which job-description keywords you are missing.', moves: ['put-a-number'], open: () => ResumeTool.open() },
+    { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, timed mock tests and spoken English.', moves: ['triage'], open: () => Aptitude.open() },
+    { id: 'gd', n: 3, title: 'Group discussion', text: 'A timed discussion for three to six of you, with briefs, an observer’s tally and a printable kit.', moves: ['next-line'], open: () => GDTool.open() },
+    { id: 'case', n: 4, title: 'Case or guesstimate interview', text: 'A 10-minute warm-up, 12 full cases, case maths and a mock interview with a friend.', moves: ['split-it', 'one-question', 'so-what', 'number-sense'], open: () => casesPage() },
+    { id: 'hr', n: 5, title: 'HR interview', text: 'Timed answers to the common questions, a bank of stories, and a résumé or project defence.', moves: ['answer-first', 'hold-or-change'], open: () => Behavioural.open() }
   ];
+  const moveOf = id => MovesContent.MOVES.find(m => m.id === id);
+  const roundTile = r => `<li><button class="round-tile" data-round="${r.id}" id="round-${r.id}"><span class="round-n" aria-hidden="true">${r.n}</span><span class="round-body"><b>${esc(r.title)}</b>${r.tag ? `<span class="round-tag">${esc(r.tag)}</span>` : ''}<span class="note">${esc(r.text)}</span></span><span class="home-go" aria-hidden="true">→</span></button></li>`;
+  const moveButton = id => { const m = moveOf(id), ready = MovesTool.statusLine(id).startsWith('Ready'); return `<li><button class="home-move${ready ? ' ready' : ''}" id="homeMove-${m.id}"><b>${esc(m.title)}</b><span class="note">${ready ? '<span aria-hidden="true">✓ </span>' : ''}${esc(MovesTool.statusLine(id))}</span></button></li>`; };
+  const moveGroup = r => `<h3 class="home-move-group-title">${esc(r.title)}</h3><ul class="home-move-list">${r.moves.map(moveButton).join('')}</ul>`;
 
   /* ---------- Unfinished work, from each tool's saved state ---------- */
   function unfinished() {
@@ -63,21 +69,30 @@
           <div class="actions"><button class="primary" id="homePlan">Plan my prep →</button></div>
           <p class="note">Tell us your next round and how long you have. You get a short plan to start right away.</p></div>
         ${todo.length ? `<section class="home-continue" aria-labelledby="homeContinueTitle"><h2 id="homeContinueTitle">Continue where you left off</h2><ul>${todo.map(t => `<li><button class="home-continue-item" data-continue="${t.id}"><span class="eyebrow">${esc(t.label)}</span><b>${esc(t.title)}</b><span class="note">${esc(t.detail)}</span><span class="home-go" aria-hidden="true">→</span></button></li>`).join('')}</ul></section>`
-          : `<section class="home-how" aria-label="How it works"><ol><li><b>Tell us your next round</b><span>From your placement notice, or “I don’t know yet”.</span></li><li><b>Practise what is here</b><span>Short sets, timed tests, cases and HR questions.</span></li><li><b>See what to fix</b><span>Worked answers and examples after every attempt.</span></li></ol></section>`}
+          : `<section class="home-how" aria-label="How it works"><ol><li><b>Tell us your next round</b><span>From your placement notice, or “I don’t know yet”.</span></li><li><b>Assess yourself, or train one skill</b><span>Sit a full round, or spend five minutes on one habit.</span></li><li><b>See what to fix</b><span>Worked answers and examples after every attempt.</span></li></ol></section>`}
       </section>
-      <section class="home-rounds" aria-labelledby="homeRoundsTitle">
-        <div class="row"><div><div class="eyebrow">OR GO STRAIGHT TO A ROUND</div><h2 class="section-title" id="homeRoundsTitle">The rounds, in the order they usually come</h2></div></div>
-        <ol class="round-tiles">${ROUNDS.map(r => `<li><button class="round-tile" data-round="${r.id}" id="round-${r.id}"><span class="round-n" aria-hidden="true">${r.n}</span><b>${esc(r.title)}</b>${r.tag ? `<span class="round-tag">${esc(r.tag)}</span>` : ''}<span class="note">${esc(r.text)}</span><span class="home-go" aria-hidden="true">→</span></button></li>`).join('')}</ol>
-        <p class="note home-technical">Technical or coding round? Case Room does not cover it. <button class="wu-link" id="homeTechnical">See what you can still practise here</button></p>
-      </section>
-      <section class="home-moves" aria-labelledby="homeMovesTitle">
-        <div class="row"><div><div class="eyebrow">FIVE MINUTES, ONE SKILL</div><h2 class="section-title" id="homeMovesTitle">Train one move · 5 minutes</h2></div><button class="wu-link" id="homeMovesHub">See all moves</button></div>
-        ${MovesContent.GROUPS.map(g => `<h3 class="home-move-group-title">${esc(g.title)}</h3><ul class="home-move-list">${g.moves.map(id => { const m = MovesContent.MOVES.find(x => x.id === id); return `<li><button class="home-move" id="homeMove-${m.id}"><b>${esc(m.title)}</b><span class="note">${esc(MovesTool.statusLine(m.id))}</span></button></li>`; }).join('')}</ul>`).join('')}
-      </section>
+      <div class="home-split">
+        <div class="home-jump" role="group" aria-label="Choose how to practise"><button id="homeJumpAssess"><b>Assess yourself</b><span class="note">A full round</span></button><button id="homeJumpTrain"><b>Train one skill</b><span class="note">Five minutes</span></button></div>
+        <section class="home-half home-rounds" aria-labelledby="homeRoundsTitle">
+          <div class="eyebrow">ASSESS YOURSELF · 10–45 MIN</div><h2 class="section-title" id="homeRoundsTitle">Sit a round as it really runs</h2>
+          <p class="note">Timed tests, full cases and interviews, in the order campus rounds usually come. See where you stand.</p>
+          <ol class="round-tiles">${ROUNDS.map(roundTile).join('')}</ol>
+          <p class="note home-technical">Technical or coding round? Case Room does not cover it. <button class="wu-link" id="homeTechnical">See what you can still practise here</button></p>
+        </section>
+        <section class="home-half home-moves" aria-labelledby="homeMovesTitle">
+          <div class="row"><div><div class="eyebrow">TRAIN ONE SKILL · 5 MIN</div><h2 class="section-title" id="homeMovesTitle">Fix one habit at a time</h2></div><button class="wu-link" id="homeMovesHub">See all moves</button></div>
+          <p class="note">A rule, quick picks with the reason after each, then you try it against a clock.</p>
+          ${ROUNDS.map(moveGroup).join('')}
+        </section>
+      </div>
       <p class="home-foot note">Free · no account · your answers stay in this browser · dictation may use your browser’s online speech service · optional AI feedback sends your answers to the provider you choose</p>`;
     $('#homePlan').onclick = () => NextRoundTool.open();
     $('#homeTechnical').onclick = () => NextRoundTool.open('technical');
     $('#homeMovesHub').onclick = () => MovesTool.open();
+    // On a phone the two halves stack, so these take you to either one; on wider screens they are hidden.
+    const jump = id => { const h = $('#' + id); h.closest('section').scrollIntoView({ block: 'start' }); h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); };
+    $('#homeJumpAssess').onclick = () => jump('homeRoundsTitle');
+    $('#homeJumpTrain').onclick = () => jump('homeMovesTitle');
     MovesContent.MOVES.forEach(m => { $('#homeMove-' + m.id).onclick = () => MovesTool.openMove(m.id); });
     document.querySelectorAll('[data-round]').forEach(b => b.onclick = () => ROUNDS.find(r => r.id === b.dataset.round).open());
     document.querySelectorAll('[data-continue]').forEach(b => b.onclick = () => todo.find(t => t.id === b.dataset.continue).go());

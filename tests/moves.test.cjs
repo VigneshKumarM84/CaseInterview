@@ -542,14 +542,21 @@ test('malformed saved items for each new move are dropped without an error', () 
   }
 });
 
-test('the hub and the home page group the moves by round, in order', () => {
+test('the hub groups the moves by round, and the home page splits assess yourself from train one skill', () => {
   const f = page();
   try {
-    assert.equal(doc(f).querySelectorAll('.home-move-group-title').length, 4); assert.equal(doc(f).querySelectorAll('.home-move').length, 9); assert(f.$('homeMovesHub'));
-    const homeTitles = [...doc(f).querySelectorAll('.home-move-group-title')]; homeTitles.forEach((h, i) => {
-      assert.equal(h.tagName, 'H3'); assert.equal(h.textContent, C.GROUPS[i].title); const ul = h.nextElementSibling; assert(ul.classList.contains('home-move-list'));
-      assert.deepEqual([...ul.querySelectorAll('button')].map(b => b.id), C.GROUPS[i].moves.map(id => 'homeMove-' + id));
-    });
+    // Home: the page splits into Assess yourself (the five rounds) and Train one skill (the moves, under the same five round names).
+    const halves = [...doc(f).querySelectorAll('.home-split > .home-half')]; assert.equal(halves.length, 2);
+    assert.match(halves[0].textContent, /ASSESS YOURSELF/); assert.equal(halves[0].querySelectorAll('.round-tile').length, 5); assert.equal(halves[0].querySelectorAll('.home-move').length, 0);
+    assert.match(halves[1].textContent, /TRAIN ONE SKILL/); assert.equal(halves[1].querySelectorAll('.round-tile').length, 0); assert(halves[1].contains(f.$('homeMovesHub')));
+    const rounds = [...halves[0].querySelectorAll('.round-tile b')].map(b => b.textContent), homeTitles = [...halves[1].querySelectorAll('.home-move-group-title')];
+    assert.deepEqual(homeTitles.map(h => h.textContent), rounds, 'the moves sit under the same round names, in the same order');
+    const byRound = homeTitles.map(h => { assert.equal(h.tagName, 'H3'); const ul = h.nextElementSibling; assert(ul.classList.contains('home-move-list')); return [...ul.querySelectorAll('button')].map(b => b.id.replace('homeMove-', '')); });
+    assert.deepEqual(byRound, [['put-a-number'], ['triage'], ['next-line'], ['split-it', 'one-question', 'so-what', 'number-sense'], ['answer-first', 'hold-or-change']]);
+    assert.deepEqual(byRound.flat().sort(), C.MOVES.map(m => m.id).sort(), 'every move appears exactly once'); assert.equal(doc(f).querySelectorAll('.home-move').length, 9);
+    // The phone-only jump buttons move focus to each half.
+    f.$('homeJumpTrain').click(); assert.equal(doc(f).activeElement, f.$('homeMovesTitle')); f.$('homeJumpAssess').click(); assert.equal(doc(f).activeElement, f.$('homeRoundsTitle'));
+    const homeCss = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets', 'home.css'), 'utf8'); assert.match(homeCss, /\.home-jump\{display:none\}/); assert.match(homeCss, /max-width:800px\)\{[^@]*\.home-jump\{display:grid/);
     f.$('homeMovesHub').click(); const titles = [...doc(f).querySelectorAll('.mv-group-title')]; assert.deepEqual(titles.map(t => t.textContent), C.GROUPS.map(g => g.title)); assert(titles.every(t => t.tagName === 'H2'));
     titles.forEach((h, i) => { const ul = h.nextElementSibling; assert(ul.classList.contains('mv-cards')); assert.deepEqual([...ul.querySelectorAll('button')].map(b => b.id), C.GROUPS[i].moves.map(id => 'move-' + id)); assert.deepEqual([...ul.querySelectorAll('li')].length, C.GROUPS[i].moves.length); });
     assert.equal(doc(f).querySelectorAll('.mv-card').length, 9); assert.deepEqual(titles.map(t => t.nextElementSibling.children.length), [4, 3, 1, 1]); assert.equal(doc(f).querySelectorAll('.mv-note').length, 2, 'both notes are kept');
