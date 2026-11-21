@@ -18,15 +18,15 @@ test('every plan for every round, time and role is non-empty, has no repeats and
 test('plans follow the round, the time and the role', () => {
   assert.deepEqual(ids(N.plan({ round: 'aptitude', minutes: 20 })), ['apt-mock-short'], '20 minutes before an aptitude test: one timed mock');
   assert.deepEqual(ids(N.plan({ round: 'aptitude', minutes: 10 })), ['apt-mixed']);
-  assert.deepEqual(ids(N.plan({ round: 'aptitude', minutes: 45 })), ['apt-mock', 'apt-weak']);
+  assert.deepEqual(ids(N.plan({ round: 'aptitude', minutes: 45 })), ['apt-mock', 'apt-weak', 'move-triage']);
   assert.equal(N.plan({ round: 'case', role: 'consulting', minutes: 45 })[0].id, 'case-consulting', 'a consulting candidate with time gets a full case first');
   assert.equal(N.plan({ round: 'case', role: 'analyst', minutes: 45 })[0].id, 'case-analyst');
   assert.equal(N.plan({ round: 'case', role: 'operations', minutes: 90 })[0].id, 'case-operations');
   assert.deepEqual(ids(N.plan({ round: 'case', role: 'consulting', minutes: 90 })).slice(0, 2), ['case-consulting', 'case-guesstimate']);
   assert.equal(N.plan({ round: 'case', minutes: 20 })[0].id, 'warmup', 'a short session before a first case starts with the warm-up');
   assert.equal(N.plan({ round: 'case', minutes: 20, warmupDone: true })[0].id, 'drill-maths');
-  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 10 })), ['bh-intro', 'bh-motivation']);
-  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 20 })), ['bh-intro', 'bh-motivation', 'defence-line']);
+  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 10 })), ['bh-intro', 'move-answer-first']);
+  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 20 })), ['bh-intro', 'move-answer-first', 'defence-line']);
   assert.equal(N.plan({ round: 'technical', minutes: 10 })[0].id, 'defence-project', 'a technical round starts from the project defence');
   assert.deepEqual(ids(N.plan({ round: 'resume', minutes: 20 })), ['resume', 'defence-line']);
   assert.equal(N.plan({ round: 'gd', minutes: 20 })[0].id, 'gd-kit', 'the group discussion kit comes first'); assert.deepEqual(ids(N.plan({ round: 'gd', minutes: 20 })), ['gd-kit', 'gd-moves']);
@@ -44,7 +44,7 @@ test('every plan item points at something that exists in the app', () => {
       assert(it.title && it.why && it.tool && Number.isFinite(it.minutes), id);
       if (it.open.tool === 'case') { const c = cases.find(c => c.id === it.open.caseId); assert(c, id); assert(it.title.endsWith(c.title), `${id} title matches the case`); assert.equal(it.minutes, c.minutes, `${id} minutes match the case`); }
     }
-    const views = { aptitude: 'aptitude', drill: 'drill', warmup: 'warmup', case: 'session', peer: 'peer', behavioural: 'behavioural', stories: 'behavioural', resume: 'resume', defence: 'defence', gd: 'gd' };
+    const views = { aptitude: 'aptitude', drill: 'drill', warmup: 'warmup', case: 'session', peer: 'peer', behavioural: 'behavioural', stories: 'behavioural', resume: 'resume', defence: 'defence', gd: 'gd', moves: 'moves' };
     for (const [id, it] of Object.entries(N.ITEMS)) {
       if (it.open.tool === 'read') continue;
       f.run('session = null; home()'); f.run(`NextRoundTool.go(${JSON.stringify(id)})`);
@@ -104,17 +104,17 @@ test('rounds Case Room does not cover say so, and GD tips open in place', () => 
 test('the plan can be edited, ticked off and reset, and it survives reload', () => {
   const f = fixture(); let g, h; try {
     f.$('homePlan').click(); pick(f, 'nrRound', 'hr'); pick(f, 'nrTime', '20');
-    assert.deepEqual(items(f), ['bh-intro', 'bh-motivation', 'defence-line']); assert.equal(f.$('nrReset'), null);
-    f.w.document.querySelector('[data-remove="defence-line"]').click(); assert.deepEqual(items(f), ['bh-intro', 'bh-motivation']); assert(f.$('nrReset'));
-    f.$('nrAdd').value = 'resume'; f.$('nrAddBtn').click(); assert.deepEqual(items(f), ['bh-intro', 'bh-motivation', 'resume']);
+    assert.deepEqual(items(f), ['bh-intro', 'move-answer-first', 'defence-line']); assert.equal(f.$('nrReset'), null);
+    f.w.document.querySelector('[data-remove="defence-line"]').click(); assert.deepEqual(items(f), ['bh-intro', 'move-answer-first']); assert(f.$('nrReset'));
+    f.$('nrAdd').value = 'resume'; f.$('nrAddBtn').click(); assert.deepEqual(items(f), ['bh-intro', 'move-answer-first', 'resume']);
     f.$('nrAdd').value = 'case-consulting'; f.$('nrAddBtn').click(); assert.match(f.$('nrTotal').textContent, /About 60 minutes, more than the 20 you have/);
     const done = f.w.document.querySelector('[data-done="bh-intro"]'); done.checked = true; done.dispatchEvent(new f.w.Event('change'));
     assert(f.w.document.querySelector('[data-item="bh-intro"]').classList.contains('done')); assert.match(f.$('nrTotal').textContent, /1 of 4 done/);
     const storage = {}; for (const k of Object.keys(f.w.localStorage)) storage[k] = f.w.localStorage.getItem(k);
     g = fixture({ storage }); const cont = g.w.document.querySelector('[data-continue="plan"]');
-    assert.match(cont.textContent, /HR or behavioural interview.*1 of 4 done/s, 'home lists the plan under Continue'); cont.click(); assert.deepEqual(items(g), ['bh-intro', 'bh-motivation', 'resume', 'case-consulting']);
+    assert.match(cont.textContent, /HR or behavioural interview.*1 of 4 done/s, 'home lists the plan under Continue'); cont.click(); assert.deepEqual(items(g), ['bh-intro', 'move-answer-first', 'resume', 'case-consulting']);
     assert(g.w.document.querySelector('[data-done="bh-intro"]').checked); assert(g.w.document.querySelector('[name=nrRound][value="hr"]').checked);
-    g.$('nrReset').click(); assert.deepEqual(items(g), ['bh-intro', 'bh-motivation', 'defence-line']); assert.equal(g.$('nrReset'), null);
+    g.$('nrReset').click(); assert.deepEqual(items(g), ['bh-intro', 'move-answer-first', 'defence-line']); assert.equal(g.$('nrReset'), null);
     h = fixture({ url: 'https://case.example/#next-round', storage: { 'cr-next-round': '{"round":"bogus","items":[{"id":"nope"}],"minutes":7,"role":3}' } });
     assert.equal(h.run('view'), 'next-round'); assert(h.$('nrEmpty')); assert(h.w.document.querySelector('[name=nrTime][value="20"]').checked);
     for (const x of [f, g, h]) assert.deepEqual(x.errors, []);

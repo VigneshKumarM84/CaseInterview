@@ -108,6 +108,7 @@
     if (o.tool === 'resume') return ResumeTool.open();
     if (o.tool === 'defence') return DefenceTool.open(o.mode);
     if (o.tool === 'gd') return GDTool.open();
+    if (o.tool === 'moves') return MovesTool.openMove(o.move);
   }
 
   /* ---------- Integration with the rest of Case Room ---------- */
