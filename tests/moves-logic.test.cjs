@@ -9,7 +9,7 @@ const close=(a,b,tol=1e-6)=>Math.abs(a-b)<=tol;
 const sample=(pattern,seed)=>L.generateSoWhat(D.rng(seed),pattern);
 
 test('content: every move has the fields the logic and UI use',()=>{
-  assert.deepEqual(MOVES.map(m=>m.id),L.MOVE_IDS);assert.deepEqual(L.SET_MOVE_IDS,['answer-first','so-what','number-sense']);assert.deepEqual(L.MOVE_IDS,[...L.SET_MOVE_IDS,'triage']);
+  assert.deepEqual(MOVES.map(m=>m.id),L.MOVE_IDS);assert.deepEqual(L.SET_MOVE_IDS,['answer-first','so-what','number-sense','split-it','one-question','hold-or-change','put-a-number','next-line']);assert.deepEqual(L.MOVE_IDS,[...L.SET_MOVE_IDS,'triage']);
   for(const m of MOVES.filter(x=>L.SET_MOVE_IDS.includes(x.id))){
     assert.equal(m.kind,undefined,m.id+' is a set');
     for(const k of ['id','title','tagline','where','why'])assert.equal(typeof m[k],'string',m.id+' '+k);
@@ -398,7 +398,7 @@ test('status: new, training and ready at each threshold',()=>{
 });
 test('summarise gives one status per move in order',()=>{
   const s=L.summarise([E('number-sense','spot',true,1)]);
-  assert.deepEqual(s.map(x=>x.move),['answer-first','so-what','number-sense','triage']);assert.deepEqual(s.map(x=>x.state),['new','new','training','new']);assert.equal(L.summarise(undefined).length,4);
+  assert.deepEqual(s.map(x=>x.move),L.MOVE_IDS);assert.deepEqual(s.map(x=>x.state),L.MOVE_IDS.map(id=>id==='number-sense'?'training':'new'));assert.equal(L.summarise(undefined).length,L.MOVE_IDS.length);
 });
 test('recorded history feeds status end to end',()=>{
   let history=[];const set=L.buildSet('number-sense',{seed:11});
@@ -610,4 +610,291 @@ test('triage: validTriageRun accepts good saved rounds and rejects the rest',()=
     sit({answers:(()=>{const x=blank();for(const i of order.slice(0,2))x[i]=a('right',12);return x;})()}),sit({answers:(()=>{const x=blank();for(const i of order.slice(0,4))x[i]=a('right',12);return x;})()}),
     sit({answers:sit().answers.map((x,i)=>i===order[0]?{...x,state:'maybe'}:x)}),sit({answers:sit().answers.map((x,i)=>i===order[0]?{...x,pick:4}:x)}),sit({answers:sit().answers.map((x,i)=>i===order[0]?{...x,guess:'yes'}:x)}),sit({answers:sit().answers.map((x,i)=>i===order[0]?{...x,seconds:-1}:x)}),sit({answers:sit().answers.map((x,i)=>i===order[0]?{...x,seconds:'4'}:x)}),sit({answers:sit().answers.map((x,i)=>i===order[0]?5:x)})];
   bad.forEach((b,i)=>assert.equal(L.validTriageRun(b),false,'bad case '+i));
+});
+
+/* ---------- The five authored moves: split it, one question, hold or change, put a number, next line ---------- */
+const BC=require('../src/behavioural-content.js'),GD=require('../content/gd.js');
+const NEW=['split-it','one-question','hold-or-change','put-a-number','next-line'];
+const BANK={'split-it':C.SPLIT_IT,'one-question':C.ONE_QUESTION,'hold-or-change':C.HOLD_OR_CHANGE,'put-a-number':C.PUT_A_NUMBER,'next-line':C.NEXT_LINE};
+const KINDS={'split-it':C.FLAWS,'one-question':C.QUESTIONS,'hold-or-change':C.PUSHBACKS,'put-a-number':C.REWRITES,'next-line':C.NEXT_LINES};
+const rightOf=x=>x.options.find(o=>o.right),kindsOf=x=>x.options.map(o=>o.kind);
+const bad=(r)=>r.checks.filter(c=>c.level!=='ok').map(c=>c.id+': '+c.text).join(' | ');
+const lvl=(r,id)=>r.checks.find(c=>c.id===id);
+const count=(xs,k)=>xs.filter(x=>x===k).length;
+
+test('authored moves: each definition has the fields the UI uses',()=>{
+  for(const id of NEW){
+    const m=L.moveOf(id);assert.ok(m,id);assert.equal(m.id,id);assert.equal(m.kind,undefined);
+    for(const k of ['title','tagline','where','why'])assert.ok(m[k]&&typeof m[k]==='string',id+' '+k);
+    assert.equal(m.rule.length,3);assert.ok(m.rule.every(x=>x&&typeof x==='string'));
+    for(const k of ['weak','strong','note','question'])assert.ok(m.example[k]&&typeof m.example[k]==='string',id+' example.'+k);
+    assert.ok(m.spot.prompt&&typeof m.spot.prompt==='string');assert.ok(m.do.prompt&&typeof m.do.prompt==='string');assert.ok(m.do.seconds>0);assert.ok(m.do.placeholder&&typeof m.do.placeholder==='string');
+    for(const k of ['weak','adequate','strong'])assert.ok(m.do.grades[k]&&typeof m.do.grades[k]==='string',id+' grades.'+k);
+    assert.ok(!/!/.test(JSON.stringify(m)),id+' has an exclamation mark');
+    assert.ok(!/!/.test(JSON.stringify(BANK[id])),id+' items have an exclamation mark');
+  }
+});
+test('authored moves: GROUPS hold every move once and no unknown id',()=>{
+  const listed=C.GROUPS.flatMap(g=>g.moves);
+  for(const id of L.MOVE_IDS)assert.equal(count(listed,id),1,id);
+  for(const id of listed)assert.ok(L.MOVE_IDS.includes(id),'unknown '+id);
+});
+test('authored moves: 12 items each, ids unique everywhere, options complete, sums agree',()=>{
+  const all=[...ANSWER_FIRST,...NEW.flatMap(id=>BANK[id])].map(x=>x.id);assert.equal(new Set(all).size,all.length);
+  for(const id of NEW){
+    assert.equal(BANK[id].length,12,id);
+    for(const x of BANK[id]){
+      assert.equal(x.options.length,4,x.id);assert.equal(x.options.filter(o=>o.right===true).length,1,x.id);
+      for(const o of x.options){assert.ok(o.text&&o.text.trim(),x.id);assert.ok(o.why&&o.why.trim(),x.id);assert.ok(Object.hasOwn(KINDS[id],o.kind),`${x.id}: kind ${o.kind}`);}
+      for(const k of ['weak','adequate','strong'])assert.ok(x[k]&&typeof x[k]==='string',x.id+' '+k);
+      for(const [label,computed,stated] of x.sums||[])assert.ok(close(computed,stated,0.001),`${x.id}: ${label} ${computed} vs ${stated}`);
+    }
+  }
+});
+test('split it: the right option names the flaw, four of each flaw, at least two branches, mixed kinds',()=>{
+  for(const x of C.SPLIT_IT){assert.equal(rightOf(x).kind,x.flaw,x.id);assert.ok(x.branches.length>=2,x.id);assert.ok(new Set(kindsOf(x)).size>=2,x.id);assert.ok(['overlap','gap','level'].includes(x.flaw));}
+  for(const f of ['overlap','gap','level'])assert.equal(C.SPLIT_IT.filter(x=>x.flaw===f).length,4,f);
+});
+test('one question: the right option is the key question, the rest are the four traps',()=>{
+  for(const x of C.ONE_QUESTION){assert.equal(rightOf(x).kind,'key',x.id);assert.ok(x.options.filter(o=>!o.right).every(o=>['nice','broad','answered','solution'].includes(o.kind)),x.id);assert.ok(x.known.length>=2,x.id);}
+});
+test('hold or change: the right option matches the call, and each call has its own trap kinds',()=>{
+  for(const x of C.HOLD_OR_CHANGE){
+    assert.equal(rightOf(x).kind,x.call,x.id);const allowed=x.call==='hold'?['hold','cave','bluster','hedge']:['revise','dig','abandon','hedge'];
+    assert.ok(kindsOf(x).every(k=>allowed.includes(k)),x.id+' '+kindsOf(x));
+      }
+  assert.equal(C.HOLD_OR_CHANGE.filter(x=>x.call==='hold').length,6);assert.equal(C.HOLD_OR_CHANGE.filter(x=>x.call==='revise').length,6);
+});
+test('put a number: the right option is strong, the rest are the four weak rewrites',()=>{
+  for(const x of C.PUT_A_NUMBER){assert.equal(rightOf(x).kind,'strong',x.id);assert.ok(x.options.filter(o=>!o.right).every(o=>['team','activity','vague','nobase'].includes(o.kind)),x.id);assert.ok(x.facts.length>=3,x.id);}
+});
+test('next line: one option of each kind, the right one is the need, lines are by named speakers, kinds are good GD moves',()=>{
+  for(const x of C.NEXT_LINE){
+    assert.deepEqual(kindsOf(x).sort(),['build','invite','steer','summarise'],x.id);assert.equal(rightOf(x).kind,x.need,x.id);
+    assert.equal(x.lines.length,3,x.id);assert.ok(x.lines.every(l=>x.names.includes(l.who)&&l.text),x.id);assert.ok(x.keywords.length>0,x.id);
+  }
+  for(const n of ['build','invite','steer','summarise'])assert.equal(C.NEXT_LINE.filter(x=>x.need===n).length,3,n);
+  for(const k of Object.keys(C.NEXT_LINES)){const g=GD.MOVES.find(m=>m.id===k);assert.ok(g&&g.kind==='good',k);}
+});
+test('authored moves: every strong answer passes every check and every weak answer fails one',()=>{
+  for(const id of NEW)for(const x of BANK[id]){
+    const item={...x,move:id},s=L.checkDo(item,x.strong),w=L.checkDo(item,x.weak);
+    assert.ok(s.pass,`${id} ${x.id} strong fails: ${bad(s)}`);assert.ok(!w.pass,`${id} ${x.id} weak passes: ${x.weak}`);
+  }
+});
+test('authored moves: the right option cannot be picked by length or by its first word',()=>{
+  const wc=o=>BC.wordCount(o.text),first=o=>o.text.toLowerCase().replace(/[“”‘’,:;.]/g,'').split(/\s+/)[0];
+  for(const id of NEW){
+    let longest=0,shortest=0;
+    for(const x of BANK[id]){
+      const r=rightOf(x),others=x.options.filter(o=>!o.right);
+      if(others.every(o=>wc(r)>wc(o)))longest++;if(others.every(o=>wc(r)<wc(o)))shortest++;
+    }
+    console.log(id,'right option strictly longest in',longest+'/12, strictly shortest in',shortest+'/12');
+    assert.ok(longest<=4,id+' longest '+longest);assert.ok(shortest<=4,id+' shortest '+shortest);
+    const rightFirst={},wrongFirst=new Set();
+    for(const x of BANK[id])for(const o of x.options){if(o.right)rightFirst[first(o)]=(rightFirst[first(o)]||0)+1;else wrongFirst.add(first(o));}
+    for(const [w,n] of Object.entries(rightFirst))assert.ok(n<2||wrongFirst.has(w),`${id}: "${w}" starts ${n} right options and no wrong one`);
+  }
+});
+
+/* checkers */
+test('checkers: empty input, shape and exports',()=>{
+  for(const f of ['checkSplit','checkQuestion','checkHold','checkNumber','checkNextLine'])for(const v of ['',' \n ',null,undefined])assert.deepEqual(L[f](v,{names:[],keywords:[]}),{empty:true,words:0,checks:[],pass:false},f);
+  assert.deepEqual(L.checkSplit('A\nB\nC').checks.map(c=>c.id),['count','short','nested','other','fix']);
+  assert.deepEqual(L.checkQuestion('Why did it fall? Because I want to see where.').checks.map(c=>c.id),['one','broad','solution','reason','length']);
+  assert.deepEqual(L.checkHold('I would still stay.').checks.map(c=>c.id),['call','reason','number','tone','length']);
+  assert.deepEqual(L.checkNumber('I did it.').checks.map(c=>c.id),['number','outcome','mine','vague','base','length']);
+  assert.deepEqual(L.checkNextLine('Meera?',{names:['Meera'],keywords:[]}).checks.map(c=>c.id),['link','forward','agree','length']);
+  assert.equal(L.checkSplit('A\nB').empty,false);assert.equal(L.checkSplit('A\nB').words,2);
+});
+test('check split: branchesOf splits on lines, falls back to separators, strips bullets and numbers',()=>{
+  assert.deepEqual(L.branchesOf('Fees\n\nStaff\n  Rent  '),['Fees','Staff','Rent']);
+  assert.deepEqual(L.branchesOf('Fees; Staff; Rent'),['Fees','Staff','Rent']);
+  assert.deepEqual(L.branchesOf('Fees · Staff · Rent'),['Fees','Staff','Rent']);
+  assert.deepEqual(L.branchesOf('Fees • Staff • Rent'),['Fees','Staff','Rent']);
+  assert.deepEqual(L.branchesOf('Fees, Staff, Rent'),['Fees','Staff','Rent']);
+  assert.deepEqual(L.branchesOf('Fees; Staff\nRent'),['Fees; Staff','Rent']);
+  assert.deepEqual(L.branchesOf('- Fees\n* Staff\n1. Rent\n2) Power\n(3) Gas\na) Tax'),['Fees','Staff','Rent','Power','Gas','Tax']);
+  assert.deepEqual(L.branchesOf('Fees.\nStaff;\n---'),['Fees','Staff']);assert.deepEqual(L.branchesOf(''),[]);assert.deepEqual(L.branchesOf(null),[]);
+});
+test('check split: each rule, ok and warn',()=>{
+  const ok3=L.checkSplit('Fewer students buying\nLess spent by each student\nHigher food costs');assert.ok(ok3.pass,bad(ok3));
+  assert.equal(lvl(ok3,'count').text,'3 branches.');assert.equal(lvl(L.checkSplit('A\nB\nC\nD'),'count').text,'4 branches.');
+  assert.deepEqual([lvl(L.checkSplit('Fees\nStaff'),'count').level,lvl(L.checkSplit('Fees\nStaff'),'count').text],['warn','Only 2 branches. Split it into three or four.']);
+  assert.equal(lvl(L.checkSplit('Fees'),'count').text,'Only 1 branch. Split it into three or four.');
+  const five=L.checkSplit('Fees\nStaff\nRent\nPower\nGas');assert.deepEqual([lvl(five,'count').level,lvl(five,'count').text],['warn','5 branches is a list. Group them into three or four.']);
+  const sent=L.checkSplit('Fees\nStaff\nThe number of students who come to the canteen each day');assert.equal(lvl(sent,'short').level,'warn');assert.equal(lvl(sent,'short').text,'“The number of students who come…” is a sentence. Name each branch in a few words.');
+  assert.equal(lvl(L.checkSplit('Fees\nStaff\nOne two three four five six seven eight'),'short').level,'ok');
+  const nest=L.checkSplit('Costs\nStaff costs\nRevenue');assert.equal(lvl(nest,'nested').level,'warn');assert.equal(lvl(nest,'nested').text,'“Costs” sits inside “Staff costs”. Keep the branches at one level.');
+  const same=L.checkSplit('Fewer buyers\nFewer buyers\nPrice');assert.equal(lvl(same,'nested').text,'“Fewer buyers” and “Fewer buyers” say the same thing. Keep one.');
+  assert.equal(lvl(L.checkSplit('Staff costs\nFood costs\nRevenue'),'nested').level,'ok');
+  for(const o of ['Other','Everything else','Rent etc.','Others','The rest','Miscellaneous'])assert.equal(lvl(L.checkSplit('Fees\nStaff\n'+o),'other').level,'warn',o);
+  assert.equal(lvl(L.checkSplit('Fees\nStaff\nOther'),'other').text,'“Other” hides what you have not thought of yet. Name it.');
+  assert.equal(lvl(L.checkSplit('Fees\nStaff\nRestaurant fees'),'other').level,'ok');
+  const fix=L.checkSplit('Fees\nStaff\nRaise prices');assert.equal(lvl(fix,'fix').level,'warn');assert.equal(lvl(fix,'fix').text,'“Raise prices” is a fix, not a part of the problem. Split the problem first.');
+  assert.equal(lvl(L.checkSplit('Fees\nStaff\nLower fee per student'),'fix').level,'ok');assert.equal(lvl(L.checkSplit('Fees\nStaff\nHigher costs'),'fix').level,'ok');
+  assert.equal(lvl(L.checkSplit('Fees; Staff; Rent'),'count').text,'3 branches.');assert.equal(lvl(L.checkSplit('1. Fees\n2. Staff\n3. Rent'),'count').text,'3 branches.');
+});
+test('check question: one question',()=>{
+  const two=L.checkQuestion('Why did it fall? Was it the fee? Because I want to know.');assert.deepEqual([lvl(two,'one').level,lvl(two,'one').text],['warn','You asked 2 questions. Ask the one that matters most.']);
+  const noMark=L.checkQuestion('What changed in Pune in March because I need to know where to look');assert.deepEqual([lvl(noMark,'one').level,lvl(noMark,'one').text],['ok','You asked one question.']);
+  const stmt=L.checkQuestion('Pune orders fell in March because of the rival.');assert.deepEqual([lvl(stmt,'one').level,lvl(stmt,'one').text],['warn','Put it as a question.']);
+  assert.equal(lvl(L.checkQuestion('Did anything change in Pune alone in March? That tells me whether to look at rivals.'),'one').level,'ok');
+});
+test('check question: broad, solution, reason and length',()=>{
+  const all=L.checkQuestion('Could you share all the data? I want to look at it because it helps.');assert.equal(lvl(all,'broad').level,'warn');assert.match(lvl(all,'broad').text,/catch-all/);
+  const short=L.checkQuestion('Why fall? Because I want to know more.');assert.equal(lvl(short,'broad').level,'warn');assert.match(lvl(short,'broad').text,/Under six words/);
+  const fine=L.checkQuestion('Did anything change in Pune alone in March? That tells me whether to look at rivals.');assert.deepEqual([lvl(fine,'broad').level,lvl(fine,'broad').text],['ok','Your question names what you want to know.']);
+  for(const q of ['Should we cut the delivery fee in Pune?','What about cutting the fee in Pune alone?','How about a discount for all the Pune customers?','Could we raise the delivery fee in Pune?'])assert.equal(lvl(L.checkQuestion(q+' That tells me whether to look at rivals.'),'solution').level,'warn',q);
+  assert.equal(lvl(L.checkQuestion('Should we cut the delivery fee in Pune?'),'solution').text,'This proposes a fix. Ask for the fact that would decide between fixes.');
+  for(const q of ['Should I explain the structure before the numbers?','Do you mean revenue or profit for the Pune orders?'])assert.equal(lvl(L.checkQuestion(q+' That tells me whether to look at rivals.'),'solution').level,'ok',q);
+  const q='Did anything change in Pune alone in March?';
+  assert.equal(lvl(L.checkQuestion(q+' That tells me whether to look at rivals.'),'reason').level,'ok');assert.equal(lvl(L.checkQuestion(q+' That tells me.'),'reason').level,'warn');
+  assert.equal(lvl(L.checkQuestion(q+' Pune is a large and busy city in the west.'),'reason').level,'warn');assert.equal(lvl(L.checkQuestion(q),'reason').text,'Add why you are asking: what would you do with the answer?');
+  assert.equal(lvl(L.checkQuestion(q),'length').text,'8 words: about 5 seconds to say.');
+  const long=L.checkQuestion(q+' That tells me whether to look at rivals. '+'word '.repeat(50));assert.equal(lvl(long,'length').level,'warn');assert.match(lvl(long,'length').text,/^\d+ words\. Cut it to a question and one sentence of reason\.$/);
+  assert.equal(lvl(L.checkQuestion(q+' '+'word '.repeat(46)),'length').level,'ok');
+});
+test('check hold: call, reason, number, tone and length',()=>{
+  const hold=L.checkHold('I would still stay at 1,650 cups because one in four students buys tea.');assert.ok(hold.pass,bad(hold));assert.equal(lvl(hold,'call').text,'Your first sentence says you are holding.');
+  const chg=L.checkHold('That changes my estimate to 1,200 cups because a fifth of students are away.');assert.ok(chg.pass,bad(chg));assert.equal(lvl(chg,'call').text,'Your first sentence says what changes.');
+  for(const t of ['I stand by 1,650 cups because of the share.','I will stick with 1,650 cups given the working.','In that case I would lower it to 1,200 because staff are fewer.','I was wrong about the 30 staff, so I would drop them.'])assert.equal(lvl(L.checkHold(t),'call').level,'ok',t);
+  const none=L.checkHold('Hmm, that is a fair point about the 1,650. I would still stay at 1,650 because of the share.');assert.deepEqual([lvl(none,'call').level,lvl(none,'call').text],['warn','Say first whether you are holding or changing your answer.']);
+  assert.equal(lvl(L.checkHold('Okay, so the number is 1,650 cups.'),'call').level,'warn');
+  assert.deepEqual([lvl(L.checkHold('I still say 1,650.'),'reason').level,lvl(L.checkHold('I still say 1,650.'),'reason').text],['warn','Give the reason in one line: the fact your call rests on.']);
+  assert.equal(lvl(L.checkHold('I still say 1,650. One in four students buys tea at 1.5 cups each.'),'reason').level,'ok');
+  assert.equal(lvl(L.checkHold('I would still stay with the estimate because the share is sound for this campus.'),'reason').level,'ok');
+  assert.deepEqual([lvl(L.checkHold('I would still stay because the share is sound.'),'number').level,lvl(L.checkHold('I would still stay because the share is sound.'),'number').text],['warn','No number found. Use the figure your call rests on.']);
+  assert.equal(lvl(hold,'number').text,'You used a number.');
+  const sorry=L.checkHold('Sorry, I would still stay at 1,650 because of the share.');assert.equal(lvl(sorry,'tone').level,'warn');assert.equal(lvl(sorry,'tone').text,'“Sorry” gives ground before you have said why. Change your answer for a fact, without apologising.');
+  const wrong=L.checkHold('I would still stay at 1,650 because you are wrong about the share.');assert.equal(lvl(wrong,'tone').text,'“you are wrong” turns it into a contest. Say your call and the fact behind it.');
+  assert.equal(lvl(L.checkHold('I would still stay at 1,650 because that is not true here.'),'tone').level,'warn');assert.equal(lvl(L.checkHold('I would still stay at 1,650 because obviously it holds.'),'tone').level,'warn');
+  assert.equal(lvl(hold,'tone').text,'Calm: no apology and no “you are wrong”.');
+  assert.equal(lvl(hold,'length').text,'15 words: about 5 seconds.');
+  const long=L.checkHold('I would still stay at 1,650 because '+'word '.repeat(60));assert.equal(lvl(long,'length').level,'warn');assert.match(lvl(long,'length').text,/words runs past 25 seconds\. Say the call and one reason\.$/);
+  assert.equal(lvl(L.checkHold('I would still stay at 1,650 because '+'word '.repeat(23)),'length').level,'ok');
+});
+test('check number: number, outcome, I vs we, vague words, base and length',()=>{
+  const good=L.checkNumber('I ran the fest’s Instagram and grew it from 1,200 followers to 5,400.');assert.ok(good.pass,bad(good));
+  assert.deepEqual([lvl(L.checkNumber('I ran the page and it grew.'),'number').level,lvl(L.checkNumber('I ran the page and it grew.'),'number').text],['warn','Add the measure: how many, or from what to what.']);
+  assert.equal(lvl(good,'number').text,'You gave a number.');
+  assert.deepEqual([lvl(L.checkNumber('I ran 3 stalls at the fest.'),'outcome').level,lvl(L.checkNumber('I ran 3 stalls at the fest.'),'outcome').text],['warn','Say what changed as a result, not only what you did.']);
+  assert.equal(BC.hasOutcome('I ran 3 stalls and sales fell'),false);assert.equal(lvl(L.checkNumber('I ran 3 stalls and sales fell.'),'outcome').level,'ok');
+  assert.equal(BC.hasOutcome('I took the page from 12 to 35 posts'),false);assert.equal(lvl(L.checkNumber('I took the page from 12 to 35 posts.'),'outcome').level,'ok');
+  assert.equal(lvl(L.checkNumber('I ran 40 stalls and signed 9 sponsors.'),'outcome').level,'ok');
+  assert.equal(lvl(L.checkNumber('I wrote 3 reports.'),'outcome').level,'warn');
+  assert.equal(lvl(L.checkNumber('We did 3 things and grew it.'),'mine').text,'Say what you did yourself, with “I”.');
+  const more=L.checkNumber('We grew it from 12 to 35. We agreed. I posted 3 reels.');assert.deepEqual([lvl(more,'mine').level,lvl(more,'mine').text],['warn','More “we” (2) than “I” (1). Say which part was yours.']);
+  assert.equal(lvl(L.checkNumber('We split the work, and I grew it from 12 to 35.'),'mine').level,'ok');assert.equal(lvl(good,'mine').text,'You said what you did yourself.');
+  const vague=L.checkNumber('I really grew it from 12 to 35.');assert.equal(lvl(vague,'vague').level,'warn');assert.equal(lvl(vague,'vague').text,'“really” stands in for a number. Replace it with the number.');
+  for(const w of ['significantly','a lot','several','many','very','huge'])assert.equal(lvl(L.checkNumber(`I grew it ${w} from 12 to 35.`),'vague').level,'warn',w);
+  assert.equal(lvl(good,'vague').text,'No vague words in place of numbers.');
+  assert.equal(lvl(L.checkNumber('I raised sales 40%.'),'base').level,'warn');assert.equal(lvl(L.checkNumber('I raised sales 40%.'),'base').text,'A percentage needs its base: from what, to what, or of how many?');
+  assert.equal(lvl(L.checkNumber('I raised sales by 40 percent.'),'base').level,'warn');assert.equal(lvl(L.checkNumber('I cut the rejects from 9% to 2%.'),'base').level,'ok');
+  assert.equal(lvl(L.checkNumber('I cut the rejects by 20 per cent, from 50 to 40.'),'base').level,'ok');assert.equal(lvl(good,'base').text,'Every figure has its base.');
+  assert.equal(lvl(good,'length').text,'15 words: one or two sentences.');
+  const long=L.checkNumber('I grew it from 12 to 35 '+'word '.repeat(45));assert.equal(lvl(long,'length').level,'warn');assert.match(lvl(long,'length').text,/^\d+ words\. Keep it to one or two sentences\.$/);
+});
+test('check next line: link, forward, agree and length',()=>{
+  const it={names:['Meera','Arjun'],keywords:['recorded','labs']},f=t=>L.checkNextLine(t,it);
+  const good=f('Meera’s point on recordings is the real difference. Can we ask what a missed lab costs?');assert.ok(good.pass,bad(good));assert.equal(lvl(good,'link').text,'You connected to what was said.');
+  assert.equal(lvl(f('Meera has a point. Shall we test it?'),'link').level,'ok');
+  assert.equal(lvl(f('Meera’s recordings point matters.  What next?'),'link').level,'ok');assert.equal(lvl(f('MEERA’S recordings matter. What next?'),'link').level,'ok');
+  assert.equal(lvl(f('Recorded lectures change this. What next?'),'link').level,'ok');
+  const none=f('What about the cost to students?');assert.deepEqual([lvl(none,'link').level,lvl(none,'link').text],['warn','Connect to the group: use a name, or the point you are building on.']);
+  assert.equal(lvl(f('Meerasomething is odd. What next?'),'link').level,'warn');assert.equal(L.checkNextLine('Meera is right. What next?').checks[0].level,'warn');
+  assert.equal(lvl(f('Meera is right about recordings.'),'forward').level,'warn');assert.equal(lvl(f('Meera is right about recordings.'),'forward').text,'Move it on: end with a question, a proposal or a figure.');
+  for(const t of ['Meera is right. Shall we vote?','Meera is right. Let’s vote.','Meera is right, and 75% is the figure.','Meera is right. I suggest we vote.','Meera is right. To sum up, labs differ.'])assert.equal(lvl(f(t),'forward').level,'ok',t);
+  assert.equal(lvl(good,'forward').text,'You gave the group something to do next.');
+  for(const t of ['I agree with Meera. Can we move on?','Exactly, Meera said it. Can we move on?','Yes, Meera is right. Can we move on?','Same here, Meera. Can we move on?','“I also agree with Meera. Can we move on?'])assert.equal(lvl(f(t),'agree').level,'warn',t);
+  assert.equal(lvl(f('I agree with Meera. Can we move on?'),'agree').text,'You open by agreeing. Open with what you add.');assert.equal(lvl(good,'agree').text,'You open with your own point.');
+  assert.equal(lvl(f('Meera is right about labs, yes. Can we move on?'),'agree').level,'ok');
+  assert.equal(lvl(good,'length').text,'Two sentences, 16 words.');assert.equal(lvl(f('Meera is right, shall we vote?'),'length').text,'One sentence, 6 words.');
+  const three=f('Meera is right. Labs differ. What next?');assert.deepEqual([lvl(three,'length').level,lvl(three,'length').text],['warn','3 sentences. Say it in two.']);
+  const wordy=f('Meera is right about the recordings, '+'and the labs '.repeat(15)+', shall we vote on it now?');assert.equal(lvl(wordy,'length').level,'warn');assert.match(lvl(wordy,'length').text,/^\d+ words is a speech\. Say it in two short sentences\.$/);
+});
+test('checkDo: dispatches to each text move and returns null for number sense',()=>{
+  const af=ANSWER_FIRST[0],sw=L.buildSet('so-what',{seed:4}).items[6];
+  assert.deepEqual(L.checkDo({move:'answer-first'},af.strong),L.checkAnswerFirst(af.strong));
+  assert.deepEqual(L.checkDo(sw,sw.strong),L.checkSoWhat(sw.strong,sw));
+  const sp=C.SPLIT_IT[0],oq=C.ONE_QUESTION[0],hc=C.HOLD_OR_CHANGE[0],pn=C.PUT_A_NUMBER[0],nl=C.NEXT_LINE[0];
+  assert.deepEqual(L.checkDo({move:'split-it'},sp.strong),L.checkSplit(sp.strong));assert.deepEqual(L.checkDo({move:'one-question'},oq.strong),L.checkQuestion(oq.strong));
+  assert.deepEqual(L.checkDo({move:'hold-or-change'},hc.strong),L.checkHold(hc.strong));assert.deepEqual(L.checkDo({move:'put-a-number'},pn.strong),L.checkNumber(pn.strong));
+  assert.deepEqual(L.checkDo({move:'next-line',names:nl.names,keywords:nl.keywords},nl.strong),L.checkNextLine(nl.strong,nl));
+  assert.notDeepEqual(L.checkDo({move:'next-line',names:[],keywords:[]},'What about labs?'),L.checkDo({move:'next-line',names:['Meera'],keywords:['labs']},'What about labs?'));
+  assert.equal(L.checkDo({move:'number-sense'},'12'),null);assert.equal(L.checkDo({move:'triage'},'x'),null);
+  assert.deepEqual(L.checkDo({move:'split-it'},''),{empty:true,words:0,checks:[],pass:false});
+});
+
+/* sets and judging */
+test('authored sets: 4 Spot then 2 Do on six distinct items, shaped per move',()=>{
+  for(const id of NEW)for(const seed of SEEDS.slice(0,40)){
+    const s=L.buildSet(id,{seed}),again=L.buildSet(id,{seed});
+    assert.deepEqual(s,again);assert.deepEqual(JSON.parse(JSON.stringify(s)),s);assert.equal(s.move,id);assert.equal(s.seed,seed);
+    assert.deepEqual(s.items.map(i=>i.rung),['spot','spot','spot','spot','do','do'],id);assert.equal(new Set(s.items.map(i=>i.id)).size,6);
+    assert.ok(L.validRun({move:id,seed,items:s.items,index:0,results:[]}));
+    for(const i of s.items){
+      const src=BANK[id].find(x=>x.id===i.id);assert.ok(src,i.id);assert.equal(i.move,id);
+      if(i.rung==='spot'){
+        assert.equal(i.options.length,4);assert.equal(i.options.filter(o=>o.right===true).length,1);assert.equal(i.options.filter(o=>typeof o.right!=='boolean').length,0);
+        assert.deepEqual(i.options.map(o=>o.kind).sort(),kindsOf(src).sort());for(const o of i.options)assert.deepEqual(Object.keys(o).sort(),['kind','right','text','why']);
+        assert.ok(i.options.every(o=>src.options.some(s2=>s2.text===o.text&&s2.why===o.why&&s2.kind===o.kind&&!!s2.right===o.right)));
+        assert.equal(i.weak,undefined);assert.equal(i.strong,undefined);
+      }else{
+        assert.equal(i.options,undefined);assert.deepEqual([i.weak,i.adequate,i.strong],[src.weak,src.adequate,src.strong]);
+      }
+    }
+    for(const i of s.items.slice(4))if(id==='split-it'){assert.equal(i.branches,undefined);assert.equal(i.flaw,undefined);assert.ok(i.question&&i.round);}
+    else if(id==='next-line'){const src=BANK[id].find(x=>x.id===i.id);assert.deepEqual([i.names,i.keywords,i.lines],[src.names,src.keywords,src.lines]);assert.ok(i.keywords.length>0);}
+    else if(id==='one-question')assert.ok(i.brief&&i.known.length>=2);
+    else if(id==='hold-or-change')assert.ok(i.said&&i.push&&i.call);
+    else assert.ok(i.line&&i.facts.length>=3);
+    for(const i of s.items.slice(0,4)){
+      if(id==='split-it')assert.ok(i.root&&i.branches.length>=2&&i.flaw&&i.question);
+      if(id==='next-line')assert.ok(i.lines.length===3&&i.need&&i.topic&&i.situation);
+      if(id==='hold-or-change')assert.ok(i.call);
+    }
+    assert.notDeepEqual(s,L.buildSet(id,{seed:seed+1000}));
+  }
+});
+test('authored sets: items do not share references with the content',()=>{
+  const s=L.buildSet('next-line',{seed:1});for(const i of s.items){const src=C.NEXT_LINE.find(x=>x.id===i.id);assert.notEqual(i.names,src.names);assert.notEqual(i.lines,src.lines);assert.notEqual(i.lines[0],src.lines[0]);}
+  const k=L.buildSet('one-question',{seed:1});for(const i of k.items){assert.notEqual(i.known,C.ONE_QUESTION.find(x=>x.id===i.id).known);}
+  const before=JSON.stringify(C.SPLIT_IT);L.buildSet('split-it',{seed:2});assert.equal(JSON.stringify(C.SPLIT_IT),before);
+});
+test('authored sets: unseen items first, then seen ones oldest first',()=>{
+  for(const id of NEW){
+    const ids=BANK[id].map(x=>x.id);
+    for(const seed of SEEDS.slice(0,40)){
+      const recent=ids.slice(0,6),r=L.buildSet(id,{seed,recent});assert.ok(r.items.every(i=>!recent.includes(i.id)),id);
+      const ten=ids.slice(0,10).reverse(),r2=L.buildSet(id,{seed,recent:ten});assert.equal(new Set(r2.items.map(i=>i.id)).size,6);assert.ok(r2.items.slice(0,2).every(i=>!ten.includes(i.id)));
+      // the four seen ones that fill the rest are the oldest of the ten: recent is newest first, so the end of the list
+      assert.deepEqual(r2.items.slice(2).map(i=>i.id),ten.slice().sort((a,b)=>ten.indexOf(b)-ten.indexOf(a)).slice(0,4));
+    }
+  }
+});
+test('authored sets: the right option lands in every position',()=>{
+  for(const id of NEW){const seen=new Set();for(const seed of SEEDS.slice(0,40))for(const i of L.buildSet(id,{seed}).items.slice(0,4))seen.add(i.options.findIndex(o=>o.right));assert.deepEqual([...seen].sort(),[0,1,2,3],id);}
+});
+test('authored sets: judgeSpot returns the pick, the right answer and the reason, and handles invalid picks',()=>{
+  for(const id of NEW)for(const seed of SEEDS.slice(0,10))for(const i of L.buildSet(id,{seed}).items.slice(0,4)){
+    const answer=i.options.findIndex(o=>o.right);
+    for(let p=0;p<4;p++)assert.deepEqual(L.judgeSpot(i,p),{ok:p===answer,picked:i.options[p].kind,answer,why:i.options[p].why});
+    for(const bad of [-1,4,1.5,'1',null,undefined,NaN,{},[]])assert.deepEqual(L.judgeSpot(i,bad),{ok:false,picked:null,answer,why:''},String(bad));
+  }
+  const hc=L.buildSet('hold-or-change',{seed:5}).items[0];assert.equal(L.judgeSpot(hc,hc.options.findIndex(o=>o.right)).picked,C.HOLD_OR_CHANGE.find(x=>x.id===hc.id).call);
+});
+test('authored moves: history, status, validRun and recentIds work for the new ids',()=>{
+  const E=(move,rung,ok,i)=>({move,rung,id:move+i,ok,seconds:5,at:i});
+  for(const id of NEW){
+    const h=[...Array.from({length:10},(_,i)=>E(id,'spot',i<8,i)),...Array.from({length:3},(_,i)=>E(id,'do',true,20+i))];
+    assert.deepEqual(L.cleanHistory(JSON.parse(JSON.stringify(h))),h);
+    assert.deepEqual(L.status(h,id),{move:id,attempts:13,spot:{of:10,correct:8},do:{of:3,passed:3},ready:true,state:'ready'});
+    assert.equal(L.status(h.slice(1),id).ready,false);assert.equal(L.status(h,'so-what').state,'new');
+    assert.deepEqual(L.recentIds(h,id,2),[id+22,id+21]);
+    assert.ok(L.summarise(h).find(s=>s.move===id).ready);
+    const run={move:id,seed:3,items:L.buildSet(id,{seed:3}).items,index:2,results:[{ok:true},{ok:false}]};assert.equal(L.validRun(run),true);assert.equal(L.validRun({...run,move:'triage'}),false);
+  }
+  assert.deepEqual(L.summarise([]).map(s=>s.move),L.MOVE_IDS);
 });

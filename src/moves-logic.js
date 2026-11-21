@@ -1,9 +1,10 @@
 /* Moves: sets, generators, checks and readiness for the trained interview behaviours, with no DOM access so Node
-   tests load this file directly. Three moves are sets of items; the fourth (Attempt, leave or guess) is a round of eight
+   tests load this file directly. Eight moves are sets of items; the ninth (Attempt, leave or guess) is a round of eight
    aptitude questions: buildTriage makes it, triageVerdict and triageDebrief judge it. A set is a list of Spot items (machine-checked recognition) followed by Do items
    (produce it, then compare with weak, adequate and strong examples). Everything returned is JSON-serialisable.
    Same seed and same `recent` always give the same set. Depends on content/moves.js (the wording and authored items),
-   src/drill-questions.js (rng, fmt, parseAnswer), src/behavioural-content.js (wordCount, hasNumber) and src/aptitude-questions.js. */
+   src/drill-questions.js (rng, fmt, parseAnswer), src/behavioural-content.js (wordCount, hasNumber, hasOutcome, pronouns),
+   src/case-requests.js (assess, for the broad-request check) and src/aptitude-questions.js. */
 (function (root) {
   'use strict';
   const node = typeof module !== 'undefined' && module.exports;
@@ -11,15 +12,15 @@
   const D = node ? require('./drill-questions.js') : root.DrillQuestions;
   const B = node ? require('./behavioural-content.js') : root.BehaviouralContent;
   const A = node ? require('./aptitude-questions.js') : root.AptitudeQuestions;
-  const { MOVES, OPENINGS, STATEMENTS, SLIPS, ANSWER_FIRST, TRIAGE } = C;
+  const CR = node ? require('./case-requests.js') : root.CaseRequests;
+  const { MOVES, OPENINGS, STATEMENTS, SLIPS, ANSWER_FIRST, TRIAGE, SPLIT_IT, ONE_QUESTION, HOLD_OR_CHANGE, PUT_A_NUMBER, NEXT_LINE } = C;
   const { rng, fmt, parseAnswer } = D;
-  const { wordCount, hasNumber } = B;
+  const { wordCount, hasNumber, hasOutcome, pronouns } = B;
 
-  const SET_MOVE_IDS = ['answer-first', 'so-what', 'number-sense'];
+  const SET_MOVE_IDS = ['answer-first', 'so-what', 'number-sense', 'split-it', 'one-question', 'hold-or-change', 'put-a-number', 'next-line'];
   const MOVE_IDS = SET_MOVE_IDS.concat('triage');
   const SO_WHAT_PATTERNS = ['one-segment', 'rate-vs-volume', 'percent-vs-absolute', 'hidden-groups', 'turning-point', 'small-sample'];
   const SLIP_IDS = SLIPS.map(s => s.id);
-  const SHAPE = { 'answer-first': [4, 2], 'so-what': [5, 2], 'number-sense': [6, 2] };
   const CALL_IDS = TRIAGE.calls.map(c => c.id), LEVEL_MIX = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard'];
   const TRIAGE_TOPICS = A.TOPICS.filter(t => (t.section === 'quant' || t.section === 'logical') && t.id !== 'di').map(t => t.id);
   const HISTORY_MAX = 600;
@@ -461,7 +462,146 @@
     return { value, valid, ok: valid && Math.abs(value - item.correct) <= Math.max(0.01 * Math.abs(item.correct), 0.01) + 1e-9 };
   }
 
+  /* ---------- Checks for the five authored moves ---------- */
+  const norm_ = t => String(t || '').replace(/[’‘]/g, "'").replace(/[“”]/g, '"');
+  /* Like hasWord, but a leading ₹ also counts as part of the word's left edge. */
+  const hasTerm = (text, term) => new RegExp('(^|[^a-z0-9₹])' + escape(term.toLowerCase()) + '($|[^a-z0-9])').test(norm_(text).toLowerCase());
+  const ok = (id, text) => ({ id, level: 'ok', text }), warn = (id, text) => ({ id, level: 'warn', text });
+  const done = (t, checks) => ({ empty: false, words: wordCount(t), checks, pass: checks.every(c => c.level === 'ok') });
+
+  /* ---------- Split it ---------- */
+  const STOP = new Set('the and of for from to in on at by with per a an or its it their our your each every than that this these those who which what how much many more less is are be been as into out over under all any'.split(' '));
+  function branchesOf(text) {
+    let parts = String(text || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
+    if (parts.length === 1) parts = parts[0].split(/\s*[;·•]\s*|,\s+(?=[A-Za-z])/).filter(Boolean);
+    return parts.map(p => p.replace(/^(?:[-*•·–—]+|\(?\d+[.)]|\(?[a-z][.)])\s*/i, '').replace(/[.;,]+$/, '').trim()).filter(p => /[a-z0-9]/i.test(p));
+  }
+  const stem = w => w.length > 4 && w.endsWith('ies') ? w.slice(0, -3) + 'y' : w.length > 3 && w.endsWith('s') && !/ss$/.test(w) ? w.slice(0, -1) : w;
+  const keysOf = b => new Set(norm_(b).toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/[\s-]+/).filter(w => w.length >= 3 && !STOP.has(w)).map(stem));
+  const CATCH = /^(?:other|others|misc|miscellaneous|etc|the rest|rest|everything else|anything else|remaining)\b/i;
+  const FIX = /^(?:increase|raise|reduce|cut|add|hire|launch|improve|offer|introduce|stop|start|build|buy|sell|switch to|bring in|set up)\b/i;
+  function checkSplit(text) {
+    const t = String(text || '').trim(); if (!t) return { empty: true, words: 0, checks: [], pass: false };
+    const bs = branchesOf(t), n = bs.length, checks = [];
+    checks.push(n >= 3 && n <= 4 ? ok('count', `${n} branches.`) : n < 3 ? warn('count', `Only ${n} ${n === 1 ? 'branch' : 'branches'}. Split it into three or four.`) : warn('count', `${n} branches is a list. Group them into three or four.`));
+    const long = bs.find(b => wordCount(b) > 8);
+    checks.push(long ? warn('short', `“${long.split(/\s+/).slice(0, 6).join(' ')}…” is a sentence. Name each branch in a few words.`) : ok('short', 'Each branch is a short name.'));
+    let nest = null; const ks = bs.map(keysOf);
+    for (let i = 0; i < n && !nest; i++) for (let j = 0; j < n && !nest; j++) if (i !== j && ks[i].size && [...ks[i]].every(k => ks[j].has(k)) && (ks[i].size < ks[j].size || i < j)) nest = [bs[i], bs[j]];
+    checks.push(nest ? warn('nested', ks[bs.indexOf(nest[0])].size === ks[bs.indexOf(nest[1])].size ? `“${nest[0]}” and “${nest[1]}” say the same thing. Keep one.` : `“${nest[0]}” sits inside “${nest[1]}”. Keep the branches at one level.`) : ok('nested', 'No branch sits inside another.'));
+    const other = bs.find(b => CATCH.test(b.trim()) || /\betc\.?$/i.test(b));
+    checks.push(other ? warn('other', `“${other}” hides what you have not thought of yet. Name it.`) : ok('other', 'No catch-all branch.'));
+    const fix = bs.find(b => FIX.test(b.trim()));
+    checks.push(fix ? warn('fix', `“${fix}” is a fix, not a part of the problem. Split the problem first.`) : ok('fix', 'The branches are parts of the problem, not fixes.'));
+    return done(t, checks);
+  }
+
+  /* ---------- Ask the one question ---------- */
+  const QWORD = /^(?:what|which|who|whom|whose|when|where|why|how|is|are|was|were|do|does|did|has|have|had|can|could|will|would|shall|should|may)\b/i;
+  const SOLUTION = /^(?:(?:should|shall) (?:we|they|the|it|our)\b|what about\b|how about\b|what if (?:we|they)\b|why (?:don't|not)\b|have (?:you|they) (?:considered|tried|thought)\b|would it (?:help|make sense|be better)\b|(?:can|could) (?:we|they) (?:raise|cut|increase|reduce|lower|launch|add|stop|start|offer|introduce|switch|move|hire|close|open|build|change)\b)/i;
+  const REASON = /\b(?:because|since|if|whether|so (?:i|that|we|the|it)|which (?:tells|decides|shows|means)|that (?:tells|decides|shows|means)|tells? me|would (?:tell|decide|change|mean|point|show)|decides?|depends)\b/i;
+  function checkQuestion(text) {
+    const t = String(text || '').trim(); if (!t) return { empty: true, words: 0, checks: [], pass: false };
+    const marks = (t.match(/\?/g) || []).length, parts = sentences(t), checks = [];
+    const q = marks ? t.slice(0, t.indexOf('?') + 1).split(/(?<=[.!])\s+/).pop() : parts[0];
+    const rest = marks ? t.slice(t.indexOf('?') + 1).trim() : parts.slice(1).join(' ');
+    const isQ = marks === 1 || (marks === 0 && QWORD.test(q.trim()));
+    checks.push(marks > 1 ? warn('one', `You asked ${marks} questions. Ask the one that matters most.`) : isQ ? ok('one', 'You asked one question.') : warn('one', 'Put it as a question.'));
+    const a = CR.assess(q, []);
+    checks.push(a.broad ? warn('broad', a.reason) : ok('broad', 'Your question names what you want to know.'));
+    checks.push(SOLUTION.test(norm_(q).trim()) ? warn('solution', 'This proposes a fix. Ask for the fact that would decide between fixes.') : ok('solution', 'It asks for a fact, not a fix.'));
+    checks.push(wordCount(rest) >= 6 && REASON.test(norm_(rest)) ? ok('reason', 'You said what the answer would decide.') : warn('reason', 'Add why you are asking: what would you do with the answer?'));
+    const w = wordCount(t);
+    checks.push(w <= 55 ? ok('length', `${w} words: about ${Math.max(5, Math.round(w / 2.5 / 5) * 5)} seconds to say.`) : warn('length', `${w} words. Cut it to a question and one sentence of reason.`));
+    return done(t, checks);
+  }
+
+  /* ---------- Hold or change ---------- */
+  const HOLD = /\b(?:i(?: would|'d| will|'ll)? still|still (?:recommend|think|say|stand|start|go|back|put|want)|stand by|stick (?:with|to)|(?:i would|i'd|i will|i'll) (?:stay|keep|stand)|i hold|nothing (?:here )?changes|my (?:answer|view|estimate|recommendation) (?:stays|holds|is the same))\b/i;
+  const CHANGE = /\b(?:(?:that|this|it) changes|changes (?:my|the|it|what|where|how)|(?:i would|i'd|i will|i'll) (?:now|change|revise|switch|lower|raise|cut|drop|re-check|recheck)|in that case|i was wrong|i had the wrong|that (?:lowers|raises|brings)|i have not fixed)\b/i;
+  const TONE = [[/\byou(?:'re| are) wrong\b/i, 'you are wrong'], [/\bthat(?:'s| is) (?:not true|wrong|incorrect)\b/i, 'that is not true'], [/\bobviously\b/i, 'obviously'], [/\bsorry\b/i, 'sorry']];
+  const SUPPORT = /\b(?:because|since|given|so|which|as|the reason)\b/i;
+  function checkHold(text) {
+    const t = String(text || '').trim(); if (!t) return { empty: true, words: 0, checks: [], pass: false };
+    const parts = sentences(t), first = norm_(parts[0]), checks = [];
+    const call = HOLD.test(first) ? 'hold' : CHANGE.test(first) ? 'change' : null;
+    checks.push(call ? ok('call', call === 'hold' ? 'Your first sentence says you are holding.' : 'Your first sentence says what changes.') : warn('call', 'Say first whether you are holding or changing your answer.'));
+    const words = wordCount(t), firstWords = wordCount(parts[0]);
+    checks.push(words - firstWords >= 8 || (SUPPORT.test(norm_(t)) && words >= 15) ? ok('reason', 'You gave the reason behind your call.') : warn('reason', 'Give the reason in one line: the fact your call rests on.'));
+    checks.push(hasNumber(t) ? ok('number', 'You used a number.') : warn('number', 'No number found. Use the figure your call rests on.'));
+    const hit = TONE.find(([re]) => re.test(norm_(t)));
+    checks.push(!hit ? ok('tone', 'Calm: no apology and no “you are wrong”.') : hit[1] === 'sorry' ? warn('tone', '“Sorry” gives ground before you have said why. Change your answer for a fact, without apologising.') : warn('tone', `“${hit[1]}” turns it into a contest. Say your call and the fact behind it.`));
+    checks.push(words <= 60 ? ok('length', `${words} words: about ${Math.max(5, Math.round(words / 2.5 / 5) * 5)} seconds.`) : warn('length', `${words} words runs past 25 seconds. Say the call and one reason.`));
+    return done(t, checks);
+  }
+
+  /* ---------- Put a number on it ---------- */
+  const MORE_OUTCOME = /\b(?:rose|risen|fell|fallen|dropped|went (?:up|down|from)|doubled|halved|tripled|came down|signed|presented|from [^.]{1,30}? to)\b/i;
+  const VAGUE = ['significantly', 'significant', 'greatly', 'hugely', 'massively', 'drastically', 'considerably', 'substantially', 'tremendously', 'immensely', 'a lot', 'lots of', 'various', 'several', 'many', 'very', 'really', 'huge', 'key role'];
+  function checkNumber(text) {
+    const t = String(text || '').trim(); if (!t) return { empty: true, words: 0, checks: [], pass: false };
+    const checks = [], p = pronouns(t), nums = (t.match(/\d[\d,]*(?:\.\d+)?/g) || []).length;
+    checks.push(hasNumber(t) ? ok('number', 'You gave a number.') : warn('number', 'Add the measure: how many, or from what to what.'));
+    checks.push(hasOutcome(t) || MORE_OUTCOME.test(norm_(t)) ? ok('outcome', 'You said what changed.') : warn('outcome', 'Say what changed as a result, not only what you did.'));
+    checks.push(p.i === 0 ? warn('mine', 'Say what you did yourself, with “I”.') : p.we > p.i ? warn('mine', `More “we” (${p.we}) than “I” (${p.i}). Say which part was yours.`) : ok('mine', 'You said what you did yourself.'));
+    const v = VAGUE.find(w => hasTerm(t, w));
+    checks.push(v ? warn('vague', `“${v}” stands in for a number. Replace it with the number.`) : ok('vague', 'No vague words in place of numbers.'));
+    checks.push(/\d\s?%|per ?cent/i.test(t) && nums < 2 ? warn('base', 'A percentage needs its base: from what, to what, or of how many?') : ok('base', 'Every figure has its base.'));
+    const w = wordCount(t);
+    checks.push(w <= 45 ? ok('length', `${w} words: one or two sentences.`) : warn('length', `${w} words. Keep it to one or two sentences.`));
+    return done(t, checks);
+  }
+
+  /* ---------- Your next line ---------- */
+  const FORWARD = /\?|\b(?:let's|let us|shall we|can we|could we|should we|i suggest|i propose|how about|what if|to sum up|back to)\b/i;
+  const AGREE = /^(?:i (?:also )?agree|i also think|same (?:as|here)|exactly|true|correct|i second|yes)\b/i;
+  function checkNextLine(text, item) {
+    const t = String(text || '').trim(); if (!t) return { empty: true, words: 0, checks: [], pass: false };
+    const checks = [], names = (item && item.names) || [], keys = (item && item.keywords) || [];
+    const link = names.find(n => hasTerm(t, n) || hasTerm(t, n + "'s")) || keys.find(k => hasTerm(t, k));
+    checks.push(link ? ok('link', 'You connected to what was said.') : warn('link', 'Connect to the group: use a name, or the point you are building on.'));
+    checks.push(FORWARD.test(norm_(t)) || hasNumber(t) ? ok('forward', 'You gave the group something to do next.') : warn('forward', 'Move it on: end with a question, a proposal or a figure.'));
+    checks.push(AGREE.test(norm_(t).replace(/^[^a-z]+/i, '')) ? warn('agree', 'You open by agreeing. Open with what you add.') : ok('agree', 'You open with your own point.'));
+    const s = sentences(t).length, w = wordCount(t);
+    checks.push(s <= 2 && w <= 45 ? ok('length', `${s === 1 ? 'One sentence' : 'Two sentences'}, ${w} words.`) : warn('length', s > 2 ? `${s} sentences. Say it in two.` : `${w} words is a speech. Say it in two short sentences.`));
+    return done(t, checks);
+  }
+
+  /* Checks a text Do answer for any move that has one; number sense is typed as a figure, so it has no text check. */
+  function checkDo(item, text) {
+    switch (item && item.move) {
+      case 'answer-first': return checkAnswerFirst(text);
+      case 'so-what': return checkSoWhat(text, item);
+      case 'split-it': return checkSplit(text);
+      case 'one-question': return checkQuestion(text);
+      case 'hold-or-change': return checkHold(text);
+      case 'put-a-number': return checkNumber(text);
+      case 'next-line': return checkNextLine(text, item);
+      default: return null;
+    }
+  }
+
   /* ---------- Sets ---------- */
+  /* The five authored moves: their banks, and the situation fields each rung shows. Spot items also carry their shuffled options;
+     Do items carry weak, adequate and strong (and, for next-line, the keywords its checker needs). */
+  const AUTHORED = {
+    'split-it': { bank: SPLIT_IT, spot: x => ({ round: x.round, question: x.question, root: x.root, branches: x.branches.slice(), flaw: x.flaw }), do: x => ({ round: x.round, question: x.question }) },
+    'one-question': { bank: ONE_QUESTION, spot: x => ({ round: x.round, brief: x.brief, known: x.known.slice() }), do: x => ({ round: x.round, brief: x.brief, known: x.known.slice() }) },
+    'hold-or-change': { bank: HOLD_OR_CHANGE, spot: x => ({ round: x.round, said: x.said, push: x.push, call: x.call }), do: x => ({ round: x.round, said: x.said, push: x.push, call: x.call }) },
+    'put-a-number': { bank: PUT_A_NUMBER, spot: x => ({ round: x.round, line: x.line, facts: x.facts.slice() }), do: x => ({ round: x.round, line: x.line, facts: x.facts.slice() }) },
+    'next-line': { bank: NEXT_LINE, spot: x => ({ topic: x.topic, situation: x.situation, names: x.names.slice(), lines: x.lines.map(l => ({ ...l })), need: x.need }),
+      do: x => ({ topic: x.topic, situation: x.situation, names: x.names.slice(), lines: x.lines.map(l => ({ ...l })), need: x.need, keywords: x.keywords.slice() }) }
+  };
+  /* Builds a set for an authored move: four Spot items then two Do items, six different items, unseen ones first. */
+  function authoredSet(moveId, r, recent) {
+    const { bank, spot, do: doShape } = AUTHORED[moveId];
+    const unseen = shuffle(r, bank.filter(x => !recent.includes(x.id)));
+    const seen = bank.filter(x => recent.includes(x.id)).sort((a, b) => recent.indexOf(b.id) - recent.indexOf(a.id));
+    return unseen.concat(seen).slice(0, 6).map((x, i) => i < 4
+      ? { rung: 'spot', move: moveId, id: x.id, ...spot(x), options: shuffle(r, x.options).map(o => ({ kind: o.kind, text: o.text, why: o.why, right: !!o.right })) }
+      : { rung: 'do', move: moveId, id: x.id, ...doShape(x), weak: x.weak, adequate: x.adequate, strong: x.strong });
+  }
+
   /* Calls `make` until it returns an item whose id is not already in the set or in `recent`, then records the id. */
   function fresh(make, used, recent) {
     let item;
@@ -488,13 +628,17 @@
     if (!move) throw new Error('Unknown move: ' + moveId);
     if (move.kind === 'round') throw new Error(moveId + ' is a round: use buildTriage');
     const r = rng(seed), rec = Array.isArray(recent) ? recent : [];
-    const items = moveId === 'answer-first' ? answerFirstSet(r, rec) : moveId === 'so-what' ? soWhatSet(r, rec) : numberSenseSet(r, rec);
+    const items = AUTHORED[moveId] ? authoredSet(moveId, r, rec) : moveId === 'answer-first' ? answerFirstSet(r, rec) : moveId === 'so-what' ? soWhatSet(r, rec) : numberSenseSet(r, rec);
     return { move: moveId, seed, items };
   }
 
-  /* Judges a Spot answer: for the two choice moves `pick` is an option index, for number sense it is { verdict, slip }. */
+  /* Judges a Spot answer: for the choice moves `pick` is an option index, for number sense it is { verdict, slip }. */
   function judgeSpot(item, pick) {
     if (item.move === 'number-sense') return judgeNumberSense(item, pick);
+    if (AUTHORED[item.move]) {
+      const answer = item.options.findIndex(o => o.right), o = Number.isInteger(pick) ? item.options[pick] : null;
+      return { ok: !!o && !!o.right, picked: o ? o.kind : null, answer, why: o ? o.why : '' };
+    }
     if (item.move === 'answer-first') {
       const answer = item.options.findIndex(o => o.kind === 'answer'), o = Number.isInteger(pick) ? item.options[pick] : null;
       return { ok: !!o && o.kind === 'answer', picked: o ? o.kind : null, answer, why: o ? OPENINGS[o.kind].why : '' };
@@ -647,6 +791,7 @@
   const summarise = history => MOVE_IDS.map(id => status(history, id));
 
   const api = { MOVE_IDS, SET_MOVE_IDS, SO_WHAT_PATTERNS, moveOf, buildSet, generateSoWhat, generateNumberSense, judgeSpot, checkAnswerFirst, checkSoWhat, checkFigure,
+    checkSplit, checkQuestion, checkHold, checkNumber, checkNextLine, branchesOf, checkDo,
     record, cleanHistory, validRun, recentIds, status, summarise, buildTriage, triageOrder, triageVerdict, triageDebrief, validTriageRun };
   if (node) module.exports = api; else root.MovesLogic = api;
 })(this);

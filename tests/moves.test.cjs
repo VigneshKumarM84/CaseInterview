@@ -39,7 +39,7 @@ test('the hub opens from the home page and the Case interview page, and the deep
   } finally { end(f, g, h, k); }
 });
 
-test('the home page lists the four moves with their status', () => {
+test('the home page lists the nine moves with their status', () => {
   const f = page({ storage: { 'cr-moves-history': JSON.stringify(readyHistory('so-what')) } });
   try {
     for (const m of C.MOVES) assert(f.$('homeMove-' + m.id), m.id);
@@ -187,7 +187,7 @@ test('a move with enough good history is ready: the hub, the results and the cas
     assert.match(f.$('move-so-what').closest('.mv-card').textContent, /Not started/);
     // Finishing a perfect set keeps it ready and offers the full case.
     const set = setOf('answer-first', 21); f.run("MovesTool.openMove('answer-first', { seed: 21 })"); for (const it of set.items) { playRight(f, it); f.$('mvNext').click(); }
-    assert.equal(tool(f).screen, 'results'); assert.match(text(f), /You have met the bar/); f.$('mvCases').click(); assert.equal(view(f), 'cases');
+    assert.equal(tool(f).screen, 'results'); assert.match(text(f), /You have met the bar/); assert.equal(f.$('mvCases'), null, 'answer first belongs to the interview group'); assert.equal(f.$('mvHr').textContent, 'Use it in an HR interview →'); f.$('mvHr').click(); assert.equal(view(f), 'behavioural');
     // The debrief.
     f.$('aiSettings').click(); f.$('aiModel').value = 'test-model'; f.$('aiKey').value = 'test-key-not-a-real-key'; f.$('aiConsent').checked = true; f.$('aiSave').click();
     showReport(f, 777); const sec = f.$('movesTransfer'); assert(sec); assert.match(sec.textContent, /Moves you have trained/); assert.match(sec.textContent, /Did your recommendation open with the answer\?/); assert.doesNotMatch(sec.textContent, /sanity-check/);
@@ -213,7 +213,7 @@ test('with no ready move the debrief points to the hub', () => {
 
 test('plan items open the move, and the plan offers them for the right rounds', () => {
   const N = require('../content/next-round.js'), ids = list => list.map(e => e.id);
-  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 20 })).slice(0, 2), ['bh-intro', 'move-answer-first']); assert.equal(ids(N.plan({ round: 'gd', minutes: 45 }))[2], 'move-answer-first');
+  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 20 })).slice(0, 2), ['bh-intro', 'move-answer-first']); assert.equal(ids(N.plan({ round: 'gd', minutes: 45 }))[2], 'move-next-line'); assert.equal(ids(N.plan({ round: 'gd', minutes: 45 }))[3], 'move-answer-first');
   assert(ids(N.plan({ round: 'case', role: 'operations', minutes: 90 })).includes('move-so-what')); assert(ids(N.plan({ round: 'aptitude', minutes: 90 })).includes('move-number-sense')); assert(!ids(N.plan({ round: 'aptitude', minutes: 20 })).includes('move-number-sense'));
   const f = page();
   try {
@@ -401,13 +401,279 @@ test('Attempt, leave or guess: the plan opens it, and it stays out of the case d
   } finally { end(g); }
 });
 
-test('Attempt, leave or guess: the home page row and the hub lay out four moves', () => {
+test('Attempt, leave or guess: the home page row and the hub lay out nine moves', () => {
   const f = page();
   try {
-    assert.equal(doc(f).querySelectorAll('.home-move-list li').length, 4); assert.match(f.$('homeMove-triage').textContent, /Attempt, leave or guess.*Not started/s);
+    assert.equal(doc(f).querySelectorAll('.home-move-list li').length, 9); assert.match(f.$('homeMove-triage').textContent, /Attempt, leave or guess.*Not started/s);
     f.$('homeMove-triage').click(); assert.equal(tool(f).screen, 'learn'); assert.equal(doc(f).querySelectorAll('.mv-rule li').length, 3);
-    f.$('mvHub').click(); assert.equal(doc(f).querySelectorAll('.mv-card').length, 4); assert.match(f.$('move-triage').closest('.mv-card').textContent, /Attempt, leave or guess.*Pick up the quick marks first.*Pays off in: Online aptitude test.*Not started/s);
+    f.$('mvHub').click(); assert.equal(doc(f).querySelectorAll('.mv-card').length, 9); assert.match(f.$('move-triage').closest('.mv-card').textContent, /Attempt, leave or guess.*Pick up the quick marks first.*Pays off in: Online aptitude test.*Not started/s);
     const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets', 'moves.css'), 'utf8'); assert.match(css, /\.mv-cards\{[^}]*auto-fit/); assert.match(css, /\.home-move-list\{[^}]*auto-fit/);
-    f.$('homeNav').click(); f.$('round-case').click(); assert.match(f.$('caseTool-moves').closest('.case-tool').textContent, /sort test questions/);
+    f.$('homeNav').click(); f.$('round-case').click(); assert.match(f.$('caseTool-moves').closest('.case-tool').textContent, /Split a problem, ask the one question, read a table, catch a wrong number\. Five minutes each, with the reason after every pick\./);
+  } finally { end(f); }
+});
+
+/* ---------- The five authored moves: split it, ask the one question, hold or change, put a number on it, your next line ---------- */
+const AUTH = ['split-it', 'one-question', 'hold-or-change', 'put-a-number', 'next-line'];
+const SEED = { 'split-it': 5, 'one-question': 6, 'hold-or-change': 7, 'put-a-number': 8, 'next-line': 9 };
+const KIND_TABLE = { 'split-it': C.FLAWS, 'one-question': C.QUESTIONS, 'hold-or-change': C.PUSHBACKS, 'put-a-number': C.REWRITES, 'next-line': C.NEXT_LINES };
+const SHAPE_NOTE = {
+  'split-it': 'These checks look at the shape of your split: how many branches, and whether one repeats, contains or hides another. They cannot tell you whether the split is right.',
+  'one-question': 'These checks look at the shape of your question: one question, specific, with a reason. They cannot tell you whether it is the right question.',
+  'hold-or-change': 'These checks look at the shape of your reply: a clear call, a reason, a number, the tone and the length. They cannot tell you whether holding or changing was right.',
+  'put-a-number': 'These checks look at the shape of your line: a number with its base, a result, “I”, and no vague words. They cannot tell you whether the figures are right.',
+  'next-line': 'These checks look at the shape of your line: whether it connects to the group, moves it on and stays short. They cannot tell you whether it was what the group needed.'
+};
+const R = it => (it.round || '').toUpperCase();
+/* What the situation block must show, by move. The breakdown tree is Spot only. */
+const SITUATION = {
+  'split-it': it => [R(it) + ' · THE PROBLEM', it.question],
+  'one-question': it => [R(it) + ' · THE BRIEF', it.brief, 'What you already know', ...it.known],
+  'hold-or-change': it => ['YOU SAID', it.said, R(it) + ' · THE INTERVIEWER PUSHES BACK', '“' + it.push + '”'],
+  'put-a-number': it => [R(it) + ' · THE LINE', it.line, 'Facts you can use', ...it.facts],
+  'next-line': it => ['GROUP DISCUSSION · THE TOPIC', it.topic, it.situation, ...it.lines.flatMap(l => [l.who, l.text])]
+};
+const sig = el => JSON.stringify([el.tagName, el.className, [...el.attributes].filter(a => a.name !== 'id').map(a => [a.name, a.value]).sort(), [...el.children].map(c => c.tagName + '.' + c.className)]);
+const noMarks = f => assert.equal(f.$('app').querySelectorAll('.right, .correct, .wrong, .locked, [disabled]').length, 0, 'nothing marks the right option before a pick');
+const strongPlay = (f, it) => {
+  if (it.rung === 'spot') f.$('mvOpt-' + it.options.findIndex(o => o.right)).click();
+  else { type(f, 'mvAnswer', it.strong); f.$('mvCheck').click(); f.$('mvGrade-strong').click(); }
+};
+
+for (const id of AUTH) test(`${C.MOVES.find(m => m.id === id).title}: the rule, four Spot items, two Do items, results and history`, () => {
+  const f = page(), set = setOf(id, SEED[id]), m = C.MOVES.find(x => x.id === id), table = KIND_TABLE[id];
+  try {
+    // The rule shows the first time, with an example that fits the move.
+    f.run(`MovesTool.openMove('${id}', { seed: ${SEED[id]} })`); assert.equal(tool(f).screen, 'learn'); assert.equal(f.$('app').querySelector('h1').textContent, m.title);
+    assert.equal(f.$('app').querySelectorAll('.mv-rule li').length, 3); assert(text(f).includes(m.rule[0])); assert(text(f).includes('Why it matters'));
+    if (id === 'split-it') { assert.equal(f.$('app').querySelectorAll('.mv-ex.weak .mv-branches li').length, 4); assert.equal(f.$('app').querySelectorAll('.mv-ex.strong .mv-branches li').length, 4, 'one branch per line'); }
+    if (id === 'next-line') assert.equal(f.$('app').querySelectorAll('.mv-talk li').length, 3, 'the example transcript');
+    if (id === 'put-a-number') assert(f.$('app').querySelector('.mv-claim'));
+    f.$('mvStart').click(); assert.equal(tool(f).run.items.length, 6); assert.deepEqual(tool(f).run.items.map(i => i.rung), ['spot', 'spot', 'spot', 'spot', 'do', 'do']);
+    // Spot 1: the situation, four options, and nothing that shows which one is right.
+    const it = set.items[0], wrong = it.options.findIndex(o => !o.right), right = it.options.findIndex(o => o.right);
+    assert.match(text(f), new RegExp(m.title.toUpperCase().replace(/[?]/g, '\\?') + ' · SPOT · 1 OF 4')); for (const t of SITUATION[id](it)) assert(text(f).includes(t), t);
+    assert(text(f).includes(m.spot.prompt)); assert.equal(f.$('app').querySelectorAll('.mv-options button').length, 4); assert.equal(f.$('mvNext'), null);
+    if (id === 'split-it') { assert.equal(f.$('app').querySelector('.mv-tree .mv-root').textContent, it.root); assert.equal(f.$('app').querySelectorAll('.mv-tree li').length, it.branches.length); }
+    else assert.equal(f.$('app').querySelector('.mv-tree'), null);
+    noMarks(f); assert.doesNotMatch(f.$('app').querySelector('.mv-options').innerHTML, /data-|right|correct/i, 'no attribute or class names the right option');
+    for (let i = 0; i < 4; i++) if (i !== right) assert.equal(sig(f.$('mvOpt-' + i)), sig(f.$('mvOpt-' + right)), 'option ' + i + ' looks the same as the right one');
+    // A wrong pick.
+    f.$('mvOpt-' + wrong).click();
+    assert(f.$('mvOpt-' + wrong).classList.contains('wrong')); assert(f.$('mvOpt-' + right).classList.contains('correct')); assert.equal(f.$('app').querySelectorAll('.mv-options button:not([disabled])').length, 0, 'options are locked');
+    assert.match(f.$('mvOpt-' + wrong).textContent, /✗.*Your pick/s); assert.match(f.$('mvOpt-' + right).textContent, /✓.*The right one/s);
+    for (const [i, o] of it.options.entries()) { const t = f.$('mvOpt-' + i).textContent; assert(t.includes(table[o.kind].label), 'labelled ' + o.kind); assert(t.includes(o.why), 'its own reason'); }
+    const fb = f.$('mvFeedback'); assert.equal(fb.getAttribute('aria-live'), 'polite'); assert.equal(doc(f).activeElement, fb, 'focus moves to the feedback');
+    assert(fb.textContent.includes('✗ Not quite')); assert(fb.textContent.includes(it.options[wrong].why)); assert(fb.textContent.includes('Why the right one works: ' + it.options[right].why));
+    f.$('mvNext').click();
+    // The other three Spot items, picked right.
+    for (let i = 1; i < 4; i++) {
+      const x = set.items[i]; for (const t of SITUATION[id](x)) assert(text(f).includes(t), t); noMarks(f);
+      f.$('mvOpt-' + x.options.findIndex(o => o.right)).click(); assert(f.$('mvFeedback').textContent.includes('✓ Right')); assert(!f.$('mvFeedback').textContent.includes('Why the right one works')); assert.equal(f.$('app').querySelectorAll('.mv-opt.wrong').length, 0);
+      assert(f.$('mvOpt-' + x.options.findIndex(o => o.right)).classList.contains('right')); f.$('mvNext').click();
+    }
+    // Do 1: the weak example fails a check.
+    const d1 = set.items[4]; assert.match(text(f), /DO · 1 OF 2/); for (const t of SITUATION[id](d1)) assert(text(f).includes(t), t); assert.equal(f.$('app').querySelector('.mv-tree'), null, 'no breakdown on Do');
+    assert.equal(f.$('mvNext'), null); assert.equal(f.$('mvTimer').textContent, `Start ${m.do.seconds}-second timer`); assert(f.$('mvMic'), 'dictation row'); assert.equal(f.$('mvAnswer').placeholder, m.do.placeholder); assert.equal(f.$('mvAnswer').getAttribute('rows'), '5');
+    if (id === 'split-it') assert.match(text(f), /Your branches · one per line, or say them/);
+    f.$('mvCheck').click(); assert.equal(tool(f).run.results.length, 4, 'an empty answer does not submit');
+    type(f, 'mvAnswer', d1.weak); f.$('mvCheck').click();
+    assert(doc(f).querySelector('.bh-checks li.warn'), 'a warn check'); assert(f.$('mvFeedback').textContent.includes('What to fix')); assert(text(f).includes(SHAPE_NOTE[id])); assert.equal(doc(f).querySelectorAll('.mv-grade').length, 3);
+    for (const g of ['weak', 'adequate', 'strong']) assert(text(f).includes(m.do.grades[g]), 'the ' + g + ' note');
+    assert.match(text(f), /Which is yours closest to\?/); assert(text(f).includes('Three answers to compare with'));
+    if (id === 'split-it') { assert.equal(doc(f).querySelectorAll('.wu-yours li').length, L.branchesOf(d1.weak).length); assert.equal(doc(f).querySelectorAll('.mv-grade.weak li').length, L.branchesOf(d1.weak).length, 'examples one branch per line'); }
+    else assert.equal(f.$('app').querySelector('.wu-yours').textContent, d1.weak);
+    if (id === 'hold-or-change') assert(text(f).includes(d1.call === 'hold' ? 'The strong answer holds: nothing the interviewer said touches the reason.' : 'The strong answer changes: the interviewer gave a fact that touches the reason.'));
+    else assert.doesNotMatch(text(f), /The strong answer (holds|changes)/);
+    if (id === 'next-line') assert(text(f).includes('What the group needed here: ' + C.NEXT_LINES[d1.need].label + '.')); else assert.doesNotMatch(text(f), /What the group needed here/);
+    f.$('mvNext').click(); assert.equal(tool(f).run.index, 4, 'cannot continue without a grade'); assert.match(f.$('flowHint').textContent, /Choose which answer/);
+    f.$('mvGrade-weak').click(); assert.equal(tool(f).history.at(-1).grade, 'weak'); f.$('mvNext').click();
+    // Do 2: the strong example passes every check.
+    const d2 = set.items[5]; assert.match(text(f), /DO · 2 OF 2/); type(f, 'mvAnswer', d2.strong); f.$('mvCheck').click();
+    assert.equal(doc(f).querySelectorAll('.bh-checks li.warn').length, 0, 'strong passes every check'); assert(f.$('mvFeedback').textContent.includes('✓ Every check passed')); f.$('mvGrade-strong').click();
+    assert.equal(f.$('mvNext').textContent, 'See your results →'); f.$('mvNext').click();
+    // Results and history.
+    assert.equal(tool(f).screen, 'results'); assert.equal(tool(f).run, null); assert.match(text(f), /Spot: 3 of 4 right\./); assert.match(text(f), /Do: 1 of 2 passed\./); assert.equal(doc(f).querySelectorAll('.drill-review').length, 6);
+    const name = { 'split-it': 'question', 'one-question': 'brief', 'hold-or-change': 'push', 'put-a-number': 'line', 'next-line': 'topic' }[id], rows = [...doc(f).querySelectorAll('.drill-review')];
+    set.items.forEach((x, i) => assert(rows[i].querySelector('summary').textContent.includes(x[name]), 'the item is named by its ' + name));
+    assert(rows[0].textContent.includes('Right answer: ' + it.options[right].text), 'a wrong Spot says what was right'); assert(rows[0].textContent.includes(it.options[wrong].why));
+    assert(rows[4].textContent.includes('To fix:') && rows[4].textContent.includes(C.GRADES.weak.label.toLowerCase())); assert(rows[5].textContent.includes('Every check passed'));
+    const h = JSON.parse(f.w.localStorage.getItem('cr-moves-history')); assert.equal(h.length, 6); assert.deepEqual(h.map(e => e.rung), ['spot', 'spot', 'spot', 'spot', 'do', 'do']); assert.deepEqual(h.map(e => e.ok), [false, true, true, true, false, true]);
+    assert.equal(h[0].pick, it.options[wrong].kind); for (let i = 1; i < 4; i++) assert.equal(h[i].pick, set.items[i].options.find(o => o.right).kind);
+    assert.equal(h[4].grade, 'weak'); assert.equal(h[5].grade, 'strong'); assert(h.every(e => e.move === id && Number.isFinite(e.seconds)));
+    assert.equal(f.w.localStorage.getItem('cr-moves-run'), null); assert.equal(f.$('mvCases') || f.$('mvHr') || f.$('mvGd'), null, 'not ready yet, so no way on');
+  } finally { end(f); }
+});
+
+test('a reload mid-set resumes Split it at the same item with the typed branches, and Home lists it', () => {
+  const f = page(), set = setOf('split-it', 11); let g, h;
+  try {
+    open(f, 'split-it', 11); for (let i = 0; i < 4; i++) { strongPlay(f, set.items[i]); f.$('mvNext').click(); }
+    type(f, 'mvAnswer', 'Fewer students\nHigher costs');
+    g = page({ storage: kept(f) }); assert.equal(view(g), 'home');
+    const item = doc(g).querySelector('[data-continue=moves]'); assert(item); assert.match(item.textContent, /Move.*Split it.*Item 5 of 6/s);
+    item.click(); assert.equal(view(g), 'moves'); assert.equal(g.$('mvAnswer').value, 'Fewer students\nHigher costs'); assert.match(text(g), /SPLIT IT · DO · 1 OF 2/); assert.equal(tool(g).run.index, 4);
+    for (const t of SITUATION['split-it'](set.items[4])) assert(text(g).includes(t));
+    h = page({ storage: kept(f), url: 'https://case.example/#moves' }); assert.equal(h.$('move-split-it').textContent, 'Continue →');
+    // After checking, the feedback comes back too.
+    f.$('mvCheck').click(); f.$('mvGrade-adequate').click(); const m = page({ storage: kept(f), url: 'https://case.example/#moves/split-it' });
+    try { assert(m.$('mvFeedback')); assert(m.$('mvGrade-adequate').checked); assert.equal(doc(m).querySelectorAll('.wu-yours li').length, 2); assert.equal(tool(m).history.length, 5); end(m); } catch (e) { m.dom.window.close(); throw e; }
+  } finally { end(f, g, h); }
+});
+
+test('malformed saved items for each new move are dropped without an error', () => {
+  const clone = x => JSON.parse(JSON.stringify(x));
+  for (const id of AUTH) {
+    const good = { ...clone(setOf(id, 3)), index: 0, results: [], draft: '', verdict: null };
+    const withItem = (i, change) => { const r = clone(good); change(r.items[i]); return r; };
+    const noField = { 'split-it': 'question', 'one-question': 'known', 'hold-or-change': 'push', 'put-a-number': 'facts', 'next-line': 'lines' }[id];
+    const variants = [
+      withItem(0, x => x.options.pop()), withItem(0, x => { x.options.forEach(o => { o.right = true; }); }), withItem(0, x => { x.options.forEach(o => { o.right = false; }); }),
+      withItem(0, x => { x.options[0].kind = 'nonsense'; }), withItem(0, x => { x.options[1].kind = 'constructor'; }), withItem(0, x => { x.options[0].right = 'yes'; }),
+      withItem(0, x => { x.options[2].why = 5; }), withItem(0, x => { delete x.options; }),
+      withItem(0, x => { delete x[noField]; }), withItem(4, x => { delete x[noField]; }), withItem(4, x => { x.weak = 5; }), withItem(5, x => { x.adequate = null; }),
+      ...({ 'split-it': [withItem(0, x => { x.branches = 'a'; }), withItem(0, x => { x.flaw = 'zzz'; }), withItem(0, x => { delete x.root; })],
+        'one-question': [withItem(0, x => { x.known = [1]; }), withItem(4, x => { x.brief = 3; })],
+        'hold-or-change': [withItem(0, x => { x.call = 'maybe'; }), withItem(0, x => { delete x.said; })],
+        'put-a-number': [withItem(0, x => { x.facts = 'x'; }), withItem(4, x => { x.line = {}; })],
+        'next-line': [withItem(0, x => { x.names = 'Ria'; }), withItem(0, x => { x.lines = [{ who: 'A' }]; }), withItem(0, x => { x.need = 'nope'; }), withItem(4, x => { delete x.keywords; }), withItem(4, x => { x.keywords = [1]; })] })[id]
+    ];
+    const ok = page({ storage: { 'cr-moves-run': JSON.stringify(good) } }); try { assert(tool(ok).run, id + ': an intact saved set loads'); assert.equal(tool(ok).run.move, id); } finally { end(ok); }
+    variants.forEach((v, n) => { const f = page({ storage: { 'cr-moves-run': JSON.stringify(v) } }); try { assert.equal(tool(f).run, null, id + ' variant ' + n); assert.equal(f.w.localStorage.getItem('cr-moves-run'), null, 'the bad run is removed'); assert.equal(doc(f).querySelector('[data-continue=moves]'), null); } finally { end(f); } });
+  }
+});
+
+test('the hub and the home page group the moves by round, in order', () => {
+  const f = page();
+  try {
+    assert.equal(doc(f).querySelectorAll('.home-move-group-title').length, 4); assert.equal(doc(f).querySelectorAll('.home-move').length, 9); assert(f.$('homeMovesHub'));
+    const homeTitles = [...doc(f).querySelectorAll('.home-move-group-title')]; homeTitles.forEach((h, i) => {
+      assert.equal(h.tagName, 'H3'); assert.equal(h.textContent, C.GROUPS[i].title); const ul = h.nextElementSibling; assert(ul.classList.contains('home-move-list'));
+      assert.deepEqual([...ul.querySelectorAll('button')].map(b => b.id), C.GROUPS[i].moves.map(id => 'homeMove-' + id));
+    });
+    f.$('homeMovesHub').click(); const titles = [...doc(f).querySelectorAll('.mv-group-title')]; assert.deepEqual(titles.map(t => t.textContent), C.GROUPS.map(g => g.title)); assert(titles.every(t => t.tagName === 'H2'));
+    titles.forEach((h, i) => { const ul = h.nextElementSibling; assert(ul.classList.contains('mv-cards')); assert.deepEqual([...ul.querySelectorAll('button')].map(b => b.id), C.GROUPS[i].moves.map(id => 'move-' + id)); assert.deepEqual([...ul.querySelectorAll('li')].length, C.GROUPS[i].moves.length); });
+    assert.equal(doc(f).querySelectorAll('.mv-card').length, 9); assert.deepEqual(titles.map(t => t.nextElementSibling.children.length), [4, 3, 1, 1]); assert.equal(doc(f).querySelectorAll('.mv-note').length, 2, 'both notes are kept');
+    assert.equal(f.$('move-next-line').closest('.mv-card').querySelector('h2').textContent, 'Your next line');
+    f.$('homeNav').click(); f.$('homeMove-hold-or-change').click(); assert.equal(tool(f).screen, 'learn'); assert.equal(f.w.location.hash, '#moves/hold-or-change');
+    const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets', 'moves.css'), 'utf8'); for (const sel of ['mv-group-title', 'home-move-group-title', 'mv-tree', 'mv-talk', 'mv-said', 'mv-branches']) assert(css.includes('.' + sel), sel);
+  } finally { end(f); }
+});
+
+test('a ready move says where to use it next: a case, an HR interview or a group discussion', () => {
+  const f = page({ storage: { 'cr-moves-history': JSON.stringify([...readyHistory('split-it'), ...readyHistory('put-a-number', 5000), ...readyHistory('next-line', 9000)]), 'cr-moves-seen': '["split-it","put-a-number","next-line"]' } });
+  try {
+    assert.equal(f.$('homeMove-next-line').textContent.includes('Ready. Now use it in a group discussion.'), true); assert(f.$('homeMove-split-it').textContent.includes('Ready. Now use it in a full case or interview.'));
+    f.$('homeMovesHub').click(); assert(f.$('move-next-line').closest('.mv-card').textContent.includes('Ready. Now use it in a group discussion.')); assert(f.$('move-put-a-number').closest('.mv-card').textContent.includes('Ready. Now use it in a full case or interview.'));
+    const want = { 'split-it': ['mvCases', 'Use it in a full case →', 'cases'], 'put-a-number': ['mvHr', 'Use it in an HR interview →', 'behavioural'], 'next-line': ['mvGd', 'Run a group discussion →', 'gd'] };
+    for (const [id, [btn, label, where]] of Object.entries(want)) {
+      f.run(`MovesTool.openMove('${id}', { seed: 4 })`); for (const it of setOf(id, 4).items) { strongPlay(f, it); f.$('mvNext').click(); }
+      assert.equal(tool(f).screen, 'results'); assert.match(text(f), /You have met the bar/); assert.equal(f.$(btn).textContent, label); assert.equal(doc(f).querySelectorAll('#mvCases, #mvHr, #mvGd').length, 1);
+      f.$(btn).click(); assert.equal(view(f), where, id);
+    }
+  } finally { end(f); }
+});
+
+/* ---------- Self-checks in the matching debriefs ---------- */
+const allReady = ids => JSON.stringify(ids.flatMap((id, i) => readyHistory(id, 1000 + i * 100)));
+const store = f => Object.fromEntries(Object.keys(f.w.localStorage).map(k => [k, f.w.localStorage.getItem(k)]));
+const Q = {
+  case: { 'split-it': 'Did your structure split the problem into branches that did not overlap?', 'one-question': 'Before each request for data, could you say what its answer would change?', 'so-what': 'When you opened an exhibit, did you say what it meant before reading the numbers out?', 'number-sense': 'Did you sanity-check each figure before you said it?',
+    'hold-or-change': 'When the interviewer pushed back, did you change your answer only for a new fact?', 'answer-first': 'Did your recommendation open with the answer?' },
+  hr: { 'answer-first': 'Did each answer open with your answer, before the story?', 'hold-or-change': 'When a follow-up challenged you, did you hold or change for a reason, not for the pressure?', 'put-a-number': 'Did each story have a number, and say what you did with “I”?' },
+  defence: { 'answer-first': 'Did you answer each question in your first sentence?', 'hold-or-change': 'When the interviewer doubted a claim, did you hold or change for a reason, not for the pressure?', 'put-a-number': 'Did you give each result as a number, and say which part was yours?' },
+  gd: { 'next-line': 'Before you spoke, did you ask what the group needed: a build, a name, a steer or a summary?' }
+};
+const tickBoxes = f => [...doc(f).querySelectorAll('#movesDebrief [data-transfer]')];
+const tick = (f, box) => { box.checked = true; box.dispatchEvent(new f.w.Event('change', { bubbles: true })); };
+
+test('the case debrief shows the self-check for Split it, Ask the one question and Hold or change, never Put a number on it or Your next line', () => {
+  const f = page({ storage: { 'cr-moves-history': allReady(['put-a-number', 'next-line']) } });
+  try {
+    showReport(f, 5); assert.equal(f.$('movesTransfer').querySelector('[data-transfer]'), null, 'put a number and your next line do not belong in a case'); assert.match(f.$('movesTransfer').textContent, /Train one move in five minutes before your next case/);
+    f.run(`MovesTool.state().history.push(...${JSON.stringify(readyHistory('hold-or-change', 3000))}, ...${JSON.stringify(readyHistory('split-it', 4000))}, ...${JSON.stringify(readyHistory('one-question', 5000))})`);
+    showReport(f, 5); const boxes = [...doc(f).querySelectorAll('#movesTransfer [data-transfer]')]; assert.deepEqual(boxes.map(b => b.dataset.transfer), ['split-it', 'one-question', 'hold-or-change']);
+    for (const b of boxes) assert(b.closest('label').textContent.includes(Q.case[b.dataset.transfer]), b.dataset.transfer); assert.doesNotMatch(f.$('movesTransfer').textContent, /number, and say what you did|what the group needed/);
+    f.run(`MovesTool.state().history.push(...${JSON.stringify([].concat(...['so-what', 'number-sense', 'answer-first'].map((id, i) => readyHistory(id, 9000 + i * 50))))})`);
+    showReport(f, 5); assert.deepEqual([...doc(f).querySelectorAll('#movesTransfer [data-transfer]')].map(b => b.dataset.transfer), ['split-it', 'one-question', 'so-what', 'number-sense', 'hold-or-change', 'answer-first'], 'only these six, in this order');
+    assert.equal(doc(f).querySelectorAll('#movesTransfer label').length, 6); assert(doc(f).querySelector('#movesTransfer [data-transfer=hold-or-change]').closest('label').textContent.includes(Q.case['hold-or-change']));
+  } finally { end(f); }
+});
+
+/* A finished HR practice, one answer long: the practice summary is what the student sees, the strict debrief after their own call. */
+const QID = require('../src/behavioural-content.js').pickQuestion('mixed', []).id;
+const hrStorage = (strict, extra = {}) => ({
+  'cr-behavioural-attempts': JSON.stringify([{ id: 'hr-a1', at: 1000, competency: 'leadership', qid: QID, text: 'I organised the fest and sales rose by 20%.', ...(strict ? { strict: true, followUps: [] } : {}) }]),
+  'cr-behavioural-set': JSON.stringify({ mode: 'mixed', qids: [QID], index: 0, answers: ['hr-a1'], fixed: true, ...(strict ? { strict: true, plan: [], over: true, guessed: false, guess: null, left: 0 } : { review: true }) }), ...extra
+});
+
+test('the HR practice summary and the strict HR debrief show the self-check for ready moves, once, and keep the ticks', () => {
+  const ready = { 'cr-moves-history': allReady(['answer-first', 'hold-or-change', 'put-a-number', 'split-it', 'next-line']) };
+  const f = page({ storage: hrStorage(false, ready) }); let g, h, k, n;
+  try {
+    f.run('Behavioural.resume()'); assert.equal(f.$('movesDebrief'), null, 'not on the review screen'); f.$('bhNext').click(); assert(text(f).includes('PRACTICE DONE'));
+    let sec = f.$('movesDebrief'); assert(sec); assert.equal(sec.id, 'movesDebrief'); assert(sec.classList.contains('mv-transfer')); assert.equal(sec.querySelector('h3').textContent, 'Moves you have trained'); assert.match(sec.textContent, /This is your own judgement, not a score\./);
+    assert.deepEqual(tickBoxes(f).map(b => b.dataset.transfer), ['answer-first', 'hold-or-change', 'put-a-number'], 'only the moves that belong to an HR interview');
+    for (const b of tickBoxes(f)) assert(b.closest('label').classList.contains('selfcheck') && b.closest('label').textContent.includes(Q.hr[b.dataset.transfer]));
+    const bar = doc(f).querySelectorAll('#app .flow-bar'); assert.equal(sec.nextElementSibling, bar[bar.length - 1], 'just before the last flow bar'); assert.equal(doc(f).querySelectorAll('#movesDebrief').length, 1);
+    tick(f, tickBoxes(f)[2]); assert.deepEqual(JSON.parse(f.w.localStorage.getItem('cr-moves-transfer')), { 'hr:hr-a1': ['put-a-number'] });
+    // Strict: nothing on the guess screen, the questions on the feedback screen, ticks after a reload.
+    g = page({ storage: hrStorage(true, ready) }); g.run('Behavioural.resume()'); assert(g.$('bhReveal')); assert.equal(g.$('movesDebrief'), null, 'not on the which-was-weakest screen');
+    g.$('bhReveal').click(); assert(text(g).includes('INTERVIEW OVER')); assert.deepEqual([...doc(g).querySelectorAll('#movesDebrief [data-transfer]')].map(b => b.dataset.transfer), ['answer-first', 'hold-or-change', 'put-a-number']);
+    for (const b of doc(g).querySelectorAll('#movesDebrief [data-transfer]')) assert(b.closest('label').textContent.includes(Q.hr[b.dataset.transfer]));
+    tick(g, doc(g).querySelector('#movesDebrief [data-transfer=hold-or-change]')); assert.deepEqual(JSON.parse(g.w.localStorage.getItem('cr-moves-transfer')), { 'hr:hr-a1': ['hold-or-change'] });
+    h = page({ storage: store(g) }); h.run('Behavioural.resume()'); assert.equal(h.$('bhReveal'), null, 'the guess was already made'); assert.deepEqual([...doc(h).querySelectorAll('#movesDebrief [data-transfer]')].filter(b => b.checked).map(b => b.dataset.transfer), ['hold-or-change'], 'the tick survives a reload');
+    assert.equal(doc(h).querySelectorAll('#movesDebrief').length, 1, 'never duplicated');
+    // None ready: nothing is drawn.
+    k = page({ storage: hrStorage(true, { 'cr-moves-history': allReady(['split-it', 'next-line']) }) }); k.run('Behavioural.resume()'); k.$('bhReveal').click(); assert.equal(k.$('movesDebrief'), null, 'split it and your next line are not HR self-checks');
+    n = page({ storage: hrStorage(false) }); n.run('Behavioural.resume()'); n.$('bhNext').click(); assert(text(n).includes('PRACTICE DONE')); assert.equal(n.$('movesDebrief'), null);
+  } finally { end(f, g, h, k, n); }
+});
+
+test('the defence debrief shows the self-check for ready moves, keeps the ticks and shows nothing when none is ready', () => {
+  const q1 = { id: 'choice', text: 'Why did you build it that way?', why: 'Because.', listenFor: ['a', 'b', 'c'] };
+  const past = JSON.stringify([{ id: 'ok1', kind: 'project', title: 'Robot', projectKind: 'other', questions: [q1], answers: [{ id: 'choice', text: 'An answer', seconds: 20, voice: false, follow: null, reply: '' }], heard: {}, rewrite: '', finished: 1700000000000 }]);
+  const f = page({ storage: { 'cr-defence-past': past, 'cr-moves-history': allReady(['answer-first', 'hold-or-change', 'put-a-number', 'so-what', 'next-line']) } }); let g, h;
+  try {
+    f.run('DefenceTool.open()'); assert.equal(f.$('movesDebrief'), null); doc(f).querySelector('[data-df-view=ok1]').click(); assert(text(f).includes('DEFENCE OVER'));
+    assert.deepEqual(tickBoxes(f).map(b => b.dataset.transfer), ['answer-first', 'hold-or-change', 'put-a-number']);
+    for (const b of tickBoxes(f)) assert(b.closest('label').textContent.includes(Q.defence[b.dataset.transfer]));
+    const bar = doc(f).querySelectorAll('#app .flow-bar'); assert.equal(f.$('movesDebrief').nextElementSibling, bar[bar.length - 1]); assert.match(f.$('movesDebrief').textContent, /your own judgement, not a score/);
+    tick(f, tickBoxes(f)[1]); assert.deepEqual(JSON.parse(f.w.localStorage.getItem('cr-moves-transfer')), { 'defence:ok1': ['hold-or-change'] });
+    f.$('dfBack').click(); doc(f).querySelector('[data-df-view=ok1]').click(); assert.equal(doc(f).querySelectorAll('#movesDebrief').length, 1); assert.deepEqual(tickBoxes(f).filter(b => b.checked).map(b => b.dataset.transfer), ['hold-or-change']);
+    g = page({ storage: store(f) }); g.run('DefenceTool.open()'); doc(g).querySelector('[data-df-view=ok1]').click(); assert.deepEqual([...doc(g).querySelectorAll('#movesDebrief [data-transfer]')].filter(b => b.checked).map(b => b.dataset.transfer), ['hold-or-change'], 'after a reload');
+    h = page({ storage: { 'cr-defence-past': past, 'cr-moves-history': allReady(['next-line', 'split-it']) } }); h.run('DefenceTool.open()'); doc(h).querySelector('[data-df-view=ok1]').click(); assert(text(h).includes('DEFENCE OVER')); assert.equal(h.$('movesDebrief'), null);
+  } finally { end(f, g, h); }
+});
+
+test('the group discussion debrief shows the Your next line self-check when it is ready, keeps the tick and shows nothing otherwise', () => {
+  const GL = require('../src/gd-logic.js');
+  const session = { ...GL.newSession({ briefId: 'library', names: ['Asha', 'Ben', 'Chitra'], observer: true, observerName: 'Dev', discussSeconds: 480, now: Date.now() - 600000 }), phase: 'debrief', phaseStarted: null, finished: Date.now() };
+  const run = JSON.stringify([session]), id = session.id, viewBtn = g => doc(g).querySelector(`[data-gd-view="${id}"]`);
+  const f = page({ storage: { 'cr-gd-past': run, 'cr-moves-history': allReady(['next-line', 'answer-first', 'put-a-number']) } }); let g, h;
+  try {
+    f.run('GDTool.open()'); assert.equal(f.$('movesDebrief'), null); viewBtn(f).click(); assert(text(f).includes('GROUP DISCUSSION · DEBRIEF')); assert.deepEqual(tickBoxes(f).map(b => b.dataset.transfer), ['next-line']); assert(tickBoxes(f)[0].closest('label').textContent.includes(Q.gd['next-line']));
+    const bar = doc(f).querySelectorAll('#app .flow-bar'); assert.equal(f.$('movesDebrief').nextElementSibling, bar[bar.length - 1]); assert.equal(doc(f).querySelectorAll('#movesDebrief').length, 1);
+    tick(f, tickBoxes(f)[0]); assert.deepEqual(JSON.parse(f.w.localStorage.getItem('cr-moves-transfer')), { ['gd:' + id]: ['next-line'] });
+    g = page({ storage: store(f) }); g.run('GDTool.open()'); viewBtn(g).click(); assert.equal(tickBoxes(g)[0].checked, true, 'the tick comes back'); assert.equal(doc(g).querySelectorAll('#movesDebrief').length, 1);
+    h = page({ storage: { 'cr-gd-past': run, 'cr-moves-history': allReady(['answer-first', 'hold-or-change', 'put-a-number', 'split-it']) } }); h.run('GDTool.open()'); viewBtn(h).click(); assert(text(h).includes('GROUP DISCUSSION · DEBRIEF')); assert.equal(h.$('movesDebrief'), null);
+  } finally { end(f, g, h); }
+});
+
+test('plan items open each new move, and the plan offers them for the right rounds', () => {
+  const N = require('../content/next-round.js'), ids = list => list.map(e => e.id), f = page();
+  const where = { 'move-split-it': ['case', 'resume'], 'move-one-question': ['case'], 'move-hold-or-change': ['hr', 'technical'], 'move-put-a-number': ['hr', 'resume'], 'move-next-line': ['gd'] };
+  const whys = { 'move-split-it': 'Your structure decides what you look at next. Practise splitting a problem into branches that do not overlap and leave nothing out.', 'move-one-question': 'One sharp question beats a request for all the data. Practise asking the question whose answer changes your next step.',
+    'move-hold-or-change': 'Interviewers push back to test you. Practise holding for a reason, and changing only for a new fact.', 'move-put-a-number': 'Interviewers write down numbers, not adjectives. Practise saying what you did and how much changed.', 'move-next-line': 'Observers note what each line did for the group. Practise reading what the discussion needs before you speak.' };
+  for (const [key, why] of Object.entries(whys)) assert.equal(N.ITEMS[key].why, why);
+  assert.deepEqual(ids(N.plan({ round: 'hr', minutes: 90 })).filter(x => x.startsWith('move-')), ['move-answer-first', 'move-put-a-number', 'move-hold-or-change']);
+  assert.deepEqual(ids(N.plan({ round: 'gd', minutes: 45 })).slice(0, 4), ['gd-kit', 'gd-moves', 'move-next-line', 'move-answer-first']); assert.equal(ids(N.plan({ round: 'resume', minutes: 45 }))[2], 'move-put-a-number');
+  assert(ids(N.plan({ round: 'case', role: 'operations', minutes: 90 })).includes('move-one-question')); assert(ids(N.plan({ round: 'technical', minutes: 45 })).includes('move-hold-or-change'));
+  for (const r of ['aptitude', 'unknown']) for (const m of [10, 20, 45, 90]) assert(!ids(N.plan({ round: r, minutes: m })).some(x => Object.keys(where).includes(x)), r + ' plans are unchanged');
+  try {
+    for (const id of AUTH) {
+      const it = N.ITEMS['move-' + id], m = C.MOVES.find(x => x.id === id); assert.deepEqual(it.open, { tool: 'moves', move: id }); assert.equal(it.title, 'Train one move: ' + m.title); assert.equal(it.minutes, 5); assert.equal(it.tool, 'Moves');
+      f.run(`NextRoundTool.go('move-${id}')`); assert.equal(view(f), 'moves'); assert.equal(tool(f).screen, 'learn'); assert.equal(f.w.location.hash, '#moves/' + id); f.$('mvStart').click(); assert.equal(tool(f).run.move, id); f.$('mvExit').click();
+      f.run("MovesTool.state().run = null"); f.run("(()=>{localStorage.removeItem('cr-moves-run')})()");
+    }
   } finally { end(f); }
 });
