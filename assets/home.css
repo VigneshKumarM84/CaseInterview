@@ -22,14 +22,29 @@ nav button[aria-current=page]{background:#eef2e7;font-weight:700;color:var(--gre
 
 /* Below the hero the page splits on intent: assess yourself on a whole round, or train one skill in five minutes. */
 .home-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start;border-top:1px solid var(--line);padding-top:24px}
-.home-half{border:1px solid var(--line);border-radius:14px;padding:20px 22px;background:#fff}
-.home-half.home-moves{background:#fafaf6}
+/* Each half has its own colour so the choice reads at a glance: deep green for Assess (the real round),
+   burnt orange for Train (practice). --accent passes 4.5:1 for text on --tint and for white text on --accent. */
+.home-rounds{--accent:#163e36;--tint:#e9f1da;--edge:#bfd29b;--hover:#f5f9ec}
+.home-moves{--accent:#9a4614;--tint:#fcefe0;--edge:#ecc7a2;--hover:#fff8f0}
+.home-half{border:1px solid var(--edge);border-top:6px solid var(--accent);border-radius:14px;padding:20px 22px;background:var(--tint)}
+.home-half .eyebrow,.home-half .wu-link{color:var(--accent)}
+.home-half .eyebrow{font-weight:800}
+.home-half .round-tile,.home-half .home-move{border-color:var(--edge);background:#fff}
+.home-half .round-tile:hover,.home-half .home-move:hover{border-color:var(--accent);background:var(--hover)}
+.home-rounds .round-n{background:var(--accent);border-color:var(--accent);color:#fff}
+.home-rounds .home-go{color:var(--accent)}
+.home-moves .home-move-group-title{color:#7a4a28}
+.home-moves .home-move.ready{border-left:3px solid var(--accent)}
 .home-half .section-title{margin:4px 0 2px}
 .home-half>.note{margin:0 0 4px}
 .home-half .row{align-items:flex-start;gap:12px}
 .home-jump{display:none}
 .home-jump button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:56px;padding:10px 14px;text-align:left}
-.home-jump .note{margin:0}
+.home-jump .note{margin:0;color:inherit;opacity:.85}
+#homeJumpAssess{background:#163e36;border-color:#163e36;color:#fff}
+#homeJumpTrain{background:#9a4614;border-color:#9a4614;color:#fff}
+#homeJumpAssess:hover{background:#28564a}
+#homeJumpTrain:hover{background:#7f3a10}
 .round-tiles{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
 .round-tile{width:100%;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:start;text-align:left;padding:12px 14px;border-radius:12px;background:#fff}
 .round-body{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
