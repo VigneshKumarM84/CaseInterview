@@ -1,0 +1,103 @@
+/* Résumé builder: the tabs, the form and the preview column. The printed sheet itself is in resume-sheet.css.
+   Builds on app.css; reuses .rc-drop, .rc-pick, .rc-msg and .rc-privacy from resume.css. */
+.rb-tabs{display:inline-flex;max-width:100%;margin:0 0 22px;padding:4px;border:1px solid var(--line);border-radius:12px;background:#eef1e8;gap:4px}
+.rb-tabs button{border:0;background:transparent;border-radius:9px;padding:9px 18px;font-weight:600;font-size:14px;color:var(--muted)}
+.rb-tabs button:hover{background:#fff;color:var(--ink)}
+.rb-tabs button[aria-current=page]{background:var(--green);color:#fff}
+.rb-input{max-width:900px;min-width:0}
+.rb-input h2{font:600 20px Manrope,sans-serif;margin:0 0 10px}
+.rb-input h2:not(:first-child){margin-top:28px}
+.rb-resume{min-height:240px;font-size:14px;margin-top:14px}
+.rb-points{min-height:160px;font-size:14px}
+
+/* Two columns: the form on the left, the preview on the right. */
+.rb-work{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:28px;align-items:start}
+.rb-editor{min-width:0}
+.rb-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:16px}
+.rb-remember{flex:1 1 260px;margin:0;padding:0}
+.rb-remember small{display:block;margin-top:2px}
+.rb-jump{display:none}
+.rb-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px;min-width:0}
+.rb-card h2{font:600 18px Manrope,sans-serif;margin:0 0 12px}
+.rb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.rb-field{min-width:0;margin-bottom:10px}
+.rb-field label{font-size:13px;font-weight:600;margin-bottom:4px}
+.rb-card input[type=text]{width:100%;padding:10px 12px;border:1px solid #bcc8b8;border-radius:8px;background:#fff;color:var(--ink)}
+.rb-card textarea{margin:0;min-height:0;padding:10px 12px;font-size:14px;line-height:1.5;resize:vertical}
+.rb-field .note{margin:4px 0 0}
+.rb-sec-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 14px;border-bottom:1px solid var(--line);margin-bottom:14px;padding-bottom:6px}
+.rb-sec-head .rb-field{flex:1 1 220px;margin-bottom:6px}
+.rb-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.rb-ic,.rb-del,.rb-add,.rb-toggle,.rb-bctl select,.rb-top button{padding:6px 10px;font-size:13px;border-radius:8px}
+.rb-ic{min-width:34px}
+.rb-del{color:#8a3b2a}
+.rb-add{margin:4px 0 2px;border-style:dashed}
+.rb-entry-card{border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px;background:#fbfcf8;min-width:0}
+.rb-entry-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,2fr);gap:0 12px;margin-bottom:6px}
+.rb-entry-top .rb-ctl{grid-column:1/-1;margin:0 0 6px}
+.rb-bullet{position:relative;padding:10px 0;border-top:1px dashed var(--line)}
+.rb-bullet:first-of-type{border-top:0}
+.rb-btext{display:block;width:100%;overflow:hidden}
+.rb-bctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.rb-bctl select{max-width:100%;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.rb-toggle[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
+.rb-toggle[aria-pressed=true]:hover{background:#28564a}
+.rb-hint{margin:5px 0 0;font-size:12px;line-height:1.5;color:#7a4a1f}
+.rb-hint:empty{display:none}
+.rb-left-out .rb-btext{opacity:.55;background:#faf8f2}
+.rb-chip{display:inline-block;margin-left:auto;padding:2px 9px;border-radius:999px;background:#fbefd5;border:1px solid #e3c27a;color:#7a4a00;font-size:11px;font-weight:600}
+.rb-addsec select{width:100%;max-width:360px;padding:10px 12px;border:1px solid #bcc8b8;border-radius:8px;background:#fff;color:var(--ink)}
+.rb-addsec label{margin-bottom:6px}
+
+/* Preview column: sticky on a wide screen, below the form on a narrow one. */
+.rb-side{position:sticky;top:12px;min-width:0;max-height:calc(100vh - 24px);overflow:auto;outline:0}
+.rb-side-in{display:grid;gap:14px}
+.rb-opt h2{font:600 13px Manrope,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:#687861;margin:0 0 6px}
+.rb-seg{display:grid;gap:6px}
+.rb-templates{grid-template-columns:repeat(3,minmax(0,1fr))}
+.rb-lengths{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rb-seg button{text-align:left;padding:9px 11px;font-size:13px;line-height:1.35}
+.rb-seg button b{display:block;font-size:14px}
+.rb-seg button span{display:block;margin-top:2px;font-size:11px;color:var(--muted)}
+.rb-seg button[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff}
+.rb-seg button[aria-pressed=true] span{color:#cfe0c6}
+.rb-lengths button{text-align:center;font-weight:600}
+.rb-fit{margin:0;padding:10px 12px;border-radius:8px;background:#f0f5e9;border:1px solid #c9dca0;font-size:13px;line-height:1.5}
+.rb-preview{position:relative;overflow:hidden;width:100%;border-radius:12px;background:#dfe7dc;border:1px solid #cfd9cb;min-height:120px}
+.rb-page{position:absolute;left:0;top:0;width:210mm;transform-origin:top left;--rb-scale:1}
+.rb-preview .rb-sheet{box-shadow:0 2px 14px #163e3626,0 0 0 1px #163e3614}
+.rb-guide{position:absolute;left:0;right:0;height:0;border-top:2px dashed #b0602a;pointer-events:none;z-index:2}
+.rb-guide span{position:absolute;right:8px;top:4px;padding:2px 8px;border-radius:4px;background:#fff;color:#b0602a;font:600 calc(11px / var(--rb-scale)) 'DM Sans',sans-serif;line-height:1.4}
+.rb-actions{display:grid;gap:8px}
+.rb-actions .primary{width:100%;padding:12px 16px;font-weight:600}
+.rb-actions .note{margin:0}
+.rb-actions-row{display:flex;flex-wrap:wrap;gap:8px}
+.rb-actions-row button{flex:1 1 140px}
+.rb-ai{border-top:1px solid var(--line);padding-top:14px}
+.rb-ai>button{width:100%}
+.rb-ai .note{margin:6px 0 0}
+.rb-review{margin-top:12px;padding:14px;border:1px solid #cdc7e3;border-radius:10px;background:#f2f0fa}
+.rb-review h3{font:600 16px Manrope,sans-serif;margin:0 0 4px}
+.rb-sug{padding:12px 0;border-top:1px solid #dcd7ee}
+.rb-orig{margin:0 0 6px;font-size:13px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+.rb-orig span{font-weight:700;margin-right:4px}
+.rb-sug textarea{width:100%;min-height:64px;margin:6px 0;resize:vertical;font-size:13px;line-height:1.5;padding:8px 10px;border:1px solid #bcc8b8;border-radius:8px}
+.rb-warn{margin:6px 0 0;padding:8px 10px;border-radius:8px;background:#fbefd5;border:1px solid #e3c27a;font-size:12px;line-height:1.5;color:#6a4000}
+.rb-sug .selfcheck{padding:6px 0 0}
+#rbCopyText{font-size:13px}
+
+@media(max-width:1000px){
+  .rb-work{grid-template-columns:minmax(0,1fr)}
+  .rb-side{position:static;max-height:none;overflow:visible}
+  .rb-jump{display:inline-block}
+  .rb-templates{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:600px){
+  .rb-tabs{display:flex}.rb-tabs button{flex:1 1 0;padding:9px 8px;font-size:13px}
+  .rb-card{padding:14px}
+  .rb-grid,.rb-entry-top{grid-template-columns:minmax(0,1fr)}
+  .rb-input{padding:18px}
+  .rb-ctl,.rb-bctl{gap:6px}
+  .rb-chip{margin-left:0}
+}
+@media print{.rb-tabs,.rb-work,.rb-input,.rb-intro{display:none}}

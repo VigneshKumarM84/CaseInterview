@@ -145,6 +145,17 @@ Open **Résumé check** in the header, or link straight to `/#resume`. It checks
 - **Saving is optional and off by default.** Tick "Remember my text on this device" to keep the résumé and job-description text (never the file) in this browser (`cr-resume-*` keys). Unticking it, or "Delete saved text", removes it.
 - The analysis (`src/resume-check.js`) has no DOM access and is unit-tested in Node, including the PDF line rebuilding and the .docx XML conversion. Word lists and the samples are in `content/resume-words.js`. File reading is in `src/resume-files.js`. Apart from loading pdf.js from this site, the tool makes no network requests; a test fails if `fetch`, `XMLHttpRequest` or `navigator.sendBeacon` is called during analysis.
 
+### Résumé builder
+
+Choose **Build a new résumé** at the top of the checker, or link straight to `/#resume-build`. Start from an old résumé (file, paste or sample), from a list of points, or both; the builder turns them into a form with your details, sections, entries and bullets, and a live A4 preview. Free, with no AI needed, and the file is read in your browser.
+
+- **Points sort themselves, but check them.** A heading line such as "Data Analyst Intern, Acme Foods · Jun–Aug 2025" above some points keeps them together; lines on their own go to Education, Experience, Projects, Positions of Responsibility, Achievements or Skills by keyword rules, which can be wrong.
+- **It fits the page for you.** Choose One page or Two pages and a template (Classic, Modern or Compact). The builder measures the real layout, leaves out the lowest-ranked bullets first (no number, weak opening verb, later entries), then tightens the spacing, and never empties an entry. Left-out bullets are marked in the editor. **Pin** keeps a bullet, **Hide** removes it, and you can reorder, move bullets between entries and add or remove sections. Dashed lines on the preview show where pages break.
+- **Output:** Download PDF opens the print window (choose Save as PDF, A4, headers and footers off), plus Copy as text and Download .txt for portals that want plain text. The templates are single-column real text, so applicant tracking systems can read them.
+- **Tighten with AI (optional):** with your own provider key set up in Settings, sends only the bullet text (never your name or contact details) and shows each suggested rewrite beside the original, to edit and accept one by one. A suggestion that adds a number not in the original is unticked with a warning.
+- **Saving is optional and off by default.** Tick "Remember this résumé on this device" to keep it in this browser (`cr-resume-build`). Unticking it, or "Start again", removes it.
+- The logic (`src/resume-build.js`) has no DOM access and is unit-tested in Node; the screen is `src/resume-builder.js` and the printed sheet is `assets/resume-sheet.css`. Tests: `tests/resume-build.test.cjs`.
+
 ## Included AI features
 
 - **Feedback:** assesses the candidate's actual responses across six reasoning dimensions, with exact-excerpt verification, improvement priorities and a practice exercise. No hiring-readiness score.

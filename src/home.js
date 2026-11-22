@@ -16,7 +16,7 @@
   /* The home page splits on intent: "Assess yourself" opens a round as it really runs; "Train one skill" lists the
      five-minute Moves under the same round names. `moves` puts every move under exactly one round. */
   const ROUNDS = [
-    { id: 'resume', n: 1, title: 'Résumé shortlisting', text: 'Check every bullet and see which job-description keywords you are missing.', moves: ['put-a-number'], open: () => ResumeTool.open() },
+    { id: 'resume', n: 1, title: 'Résumé shortlisting', text: 'Check every bullet, see missing job-description keywords, or build a clean one-page résumé.', moves: ['put-a-number'], open: () => ResumeTool.open() },
     { id: 'aptitude', n: 2, title: 'Online aptitude test', text: 'Quant, logical and verbal practice with worked solutions, timed mock tests and spoken English.', moves: ['triage'], open: () => Aptitude.open() },
     { id: 'gd', n: 3, title: 'Group discussion', text: 'A timed discussion for three to six of you, with briefs, an observer’s tally and a printable kit.', moves: ['next-line'], open: () => GDTool.open() },
     { id: 'case', n: 4, title: 'Case or guesstimate interview', text: 'A 10-minute warm-up, 12 full cases, case maths and a mock interview with a friend.', moves: ['split-it', 'one-question', 'so-what', 'number-sense'], open: () => casesPage() },
@@ -115,7 +115,7 @@
   };
 
   /* ---------- Navigation: in round order, with the current page marked ---------- */
-  const NAV = { homeNav: ['home', 'gd', 'moves'], planNav: ['next-round'], resumeNav: ['resume'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
+  const NAV = { homeNav: ['home', 'gd', 'moves'], planNav: ['next-round'], resumeNav: ['resume', 'resume-build'], aptitudeNav: ['aptitude', 'english'], casesNav: ['cases', 'session', 'report', 'warmup', 'drill', 'peer'], behaviouralNav: ['behavioural', 'defence'], historyNav: ['history'] };
   function markNav() { for (const [id, views] of Object.entries(NAV)) { const b = document.getElementById(id); if (b) { if (views.includes(view)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); } } }
   $('#planNav').onclick = () => NextRoundTool.open();
   $('#casesNav').onclick = () => casesPage();

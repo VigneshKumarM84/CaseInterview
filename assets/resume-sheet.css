@@ -1,0 +1,67 @@
+/* Résumé builder: the printed page and its three templates (Classic, Modern, Compact).
+   The sheet is laid out in real print units (pt, mm) at A4 width, so what is measured on screen is what prints.
+   Density classes (rb-d-0 comfortable, rb-d-1 snug, rb-d-2 tight) scale type and spacing; fit() picks one.
+   All three are single-column, real text, no tables or images, so applicant tracking systems can read them. */
+.rb-sheet{--k:1;--sp:1;--fs:10.5pt;--lh:1.36;--ink:#1b1f1d;--soft:#4a524e;--rule:#1b1f1d;--accent:#1b1f1d;
+  box-sizing:border-box;width:210mm;min-height:297mm;padding:12mm 14mm;background:#fff;color:var(--ink);
+  font-size:calc(var(--fs) * var(--k));line-height:var(--lh);text-align:left;overflow-wrap:break-word;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rb-sheet.rb-d-1{--k:.95;--sp:.78}
+.rb-sheet.rb-d-2{--k:.9;--sp:.58;--lh:1.3}
+.rb-sheet *{box-sizing:border-box}
+/* Undo the site's own element styles (header, h1, p in app.css, including its print rule that hides <header>). */
+.rb-sheet h1,.rb-sheet h2,.rb-sheet p,.rb-sheet ul{margin:0;padding:0;font-family:inherit;line-height:inherit;color:inherit}
+.rb-sheet .rb-head{display:block;height:auto;min-height:0;max-width:none;margin:0 0 calc(9pt * var(--sp));padding:0;border:0;gap:0}
+.rb-sheet .rb-name{font-size:2em;line-height:1.1;font-weight:700;letter-spacing:.2pt}
+.rb-headline{margin-top:2pt;color:var(--soft)}
+.rb-contact{margin-top:3pt;color:var(--soft);font-size:.92em}
+.rb-contact span+span::before{content:"·";margin:0 5pt;color:var(--soft)}
+.rb-sec{margin-top:calc(10pt * var(--sp))}
+.rb-sec h2{font-size:.95em;font-weight:700;text-transform:uppercase;letter-spacing:1.1pt;color:var(--accent);
+  padding-bottom:2pt;border-bottom:.75pt solid var(--rule);margin-bottom:calc(5pt * var(--sp));break-after:avoid}
+.rb-entry{margin-top:calc(6pt * var(--sp))}
+.rb-entry:first-child{margin-top:0}
+.rb-entry-head{display:flex;justify-content:space-between;align-items:baseline;gap:10pt;break-after:avoid}
+.rb-entry-title{font-weight:700}
+.rb-dates{white-space:nowrap;color:var(--soft);font-size:.95em}
+.rb-entry-sub{font-style:italic;color:var(--soft);break-after:avoid}
+.rb-bullets{list-style:none;margin-top:calc(2pt * var(--sp))}
+.rb-bullets li{position:relative;padding-left:11pt;margin-top:calc(1.6pt * var(--sp));break-inside:avoid}
+.rb-bullets li::before{content:"•";position:absolute;left:2pt;top:0}
+.rb-line{margin-top:calc(1.6pt * var(--sp))}
+.rb-line:first-child,.rb-summary{margin-top:0}
+
+/* Classic: serif, centred name, ruled headings. */
+.rb-t-classic{font-family:Georgia,'Times New Roman',Times,serif}
+.rb-t-classic .rb-head{text-align:center}
+.rb-t-classic .rb-name{font-size:2.05em;font-weight:400;letter-spacing:1.2pt;text-transform:uppercase}
+.rb-t-classic .rb-dates{font-style:italic}
+
+/* Modern: sans-serif with one deep-green accent. */
+.rb-t-modern{--fs:10.2pt;--accent:#163e36;--rule:#b7c9a6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
+.rb-t-modern .rb-name{color:#163e36;font-size:2.25em;letter-spacing:-.3pt}
+.rb-t-modern .rb-head{padding-bottom:calc(7pt * var(--sp));border-bottom:2.2pt solid #163e36}
+.rb-t-modern .rb-sec h2{letter-spacing:1.6pt;font-size:.88em;border-bottom-width:1pt}
+.rb-t-modern .rb-bullets li::before{content:"";width:3.2pt;height:3.2pt;border-radius:50%;background:#163e36;top:.55em;left:2.5pt}
+
+/* Compact: headings in a narrow side column; the most text per page. */
+.rb-t-compact{--fs:9.8pt;--lh:1.32;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif}
+.rb-t-compact .rb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12pt;padding-bottom:calc(6pt * var(--sp));border-bottom:1pt solid var(--rule)}
+.rb-t-compact .rb-contact{display:flex;flex-direction:column;align-items:flex-end;text-align:right;margin:0}
+.rb-t-compact .rb-contact span+span::before{content:none}
+.rb-t-compact .rb-headline{margin-top:3pt}
+.rb-t-compact .rb-sec{display:grid;grid-template-columns:31mm minmax(0,1fr);column-gap:5mm}
+.rb-t-compact .rb-sec h2{border:0;padding:0;margin:0;font-size:.86em;letter-spacing:.9pt;line-height:1.45}
+.rb-t-compact .rb-sec+.rb-sec{padding-top:calc(8pt * var(--sp));border-top:.5pt solid #c9cec9}
+
+/* Printing: the builder copies the sheet into #rbPrintRoot and adds body.rb-printing; nothing else prints. */
+/* The page margin, not the sheet's padding, gives every page (not just the first) its top and bottom space. */
+@page resume{size:A4;margin:12mm 0}
+@media print{
+  body.rb-printing>*:not(#rbPrintRoot){display:none!important}
+  body.rb-printing{background:#fff;margin:0}
+  #rbPrintRoot{page:resume}
+  #rbPrintRoot .rb-sheet{box-shadow:none;transform:none;margin:0;min-height:0;padding:0 14mm;width:auto}
+}
+#rbPrintRoot{display:none}
+@media print{#rbPrintRoot{display:block}}
