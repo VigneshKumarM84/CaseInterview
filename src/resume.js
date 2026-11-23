@@ -22,7 +22,7 @@
 
   function render() {
     stopMedia(); view = 'resume'; window.scrollTo(0, 0);
-    $('#app').innerHTML = `<div class="rc-head"><div class="eyebrow">RÉSUMÉ CHECKER · FREE · NO AI</div><h1 class="drill-title">Sharpen your résumé <em>bullets</em></h1>
+    $('#app').innerHTML = `<div class="rb-tabs" role="group" aria-label="Résumé tools"><button type="button" id="rbTabCheck" aria-current="page">Check my résumé</button><button type="button" id="rbTabBuild">Build a new résumé</button></div><div class="rc-head"><div class="eyebrow">RÉSUMÉ CHECKER · FREE · NO AI</div><h1 class="drill-title">Sharpen your résumé <em>bullets</em></h1>
       <p class="lead">Checks your whole résumé and every bullet point, with or without a job description. Add one to see which of its keywords you are missing. Every check is a rule of thumb you can argue with, not a score.</p></div>
       <p class="rc-privacy" id="rcPrivacy"><b>Your file is read in your browser. Nothing is uploaded.</b> There is no AI and no server: the checks run on this device, and nothing is stored unless you tick “Remember my text”.</p>
       <section class="panel rc-input">
@@ -47,6 +47,7 @@
         <div class="actions"><button class="primary" id="rcCheck">Check résumé</button><button type="button" id="rcClear">Clear both boxes</button></div>
       </section>
       <div id="rcResults" aria-live="polite"></div>`;
+    $('#rbTabBuild').onclick = () => ResumeBuilder.open();
     bind();
     if (analysis) renderResults();
   }
